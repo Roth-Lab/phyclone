@@ -42,7 +42,7 @@ class Kernel(object):
         if seed is not None:
             random.setstate(old_state)
 
-        return Particle(data_point=data_point, log_w=log_w, node=node, parent_particle=parent_particle)
+        return Particle(log_w=log_w, node=node, parent_particle=parent_particle)
 
     def _compute_log_weight(self, node, parent_particle, log_q, log_p):
         # Likelihood prior
