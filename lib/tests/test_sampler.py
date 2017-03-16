@@ -11,7 +11,7 @@ from math import log
 from pydp.densities import log_binomial_pdf
 from pydp.rvs import binomial_rvs, poisson_rvs
 
-from fscrp.sampler import Sampler, get_graph, get_log_weights, get_nodes
+from fscrp.sampler import Sampler, get_log_weights, get_nodes
 
 
 class Test(unittest.TestCase):
@@ -47,7 +47,7 @@ class Test(unittest.TestCase):
         log_likelihood_func = lambda x, p: sum(
             [log_binomial_pdf(x_sample[0], x_sample[1], p_sample) for x_sample, p_sample in zip(x, p)])
 
-        node_agg_func = sum
+        node_agg_func = lambda x: tuple(np.sum(x, axis=0))
 
         sampler = Sampler(
             alpha,
@@ -58,7 +58,8 @@ class Test(unittest.TestCase):
             node_agg_func,
             param_prior,
             num_implicit_particles=int(1e4),
-            randomise_data=False)
+            randomise_data=False
+        )
 
         sampler.sample()
 
@@ -94,15 +95,11 @@ def param_proposal_func(value, tree_params, precision=10):
 
         log_q += -log(b)
 
-    return np.array(param), log_q
+    return tuple(param), log_q
 
 
 def param_prior(node, nodes):
     return len(node.node_params) * log(max(len(nodes), 1))
-
-
-def log_factorial(x):
-    return np
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
