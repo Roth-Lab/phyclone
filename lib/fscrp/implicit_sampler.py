@@ -10,13 +10,13 @@ from pydp.rvs import multinomial_rvs
 
 import random
 
-from fscrp.data_structures import ImplicitParticle, Node
+from fscrp.data_structures import Node, Particle
 from fscrp.particle_utils import get_data_points, get_nodes, get_node_params, get_num_data_points_per_node, \
     get_root_nodes
 from fscrp.utils import exp_normalize
 
 
-class Sampler(object):
+class ImplicitSampler(object):
 
     def __init__(
             self,
@@ -27,8 +27,7 @@ class Sampler(object):
             node_param_proposal_func,
             node_agg_func,
             node_param_prior_func,
-            num_implicit_particles=None,
-            randomise_data=False):
+            num_implicit_particles=None):
 
         self.alpha = alpha
 
@@ -43,8 +42,6 @@ class Sampler(object):
         self.num_particles = num_particles
 
         self.particle_multiplicities = {}
-
-        self.randomise_data = randomise_data
 
         self._log_likelihood_func = log_likelihood_func
 
@@ -122,15 +119,7 @@ class Sampler(object):
 
         random.seed(seed)
 
-        if self.randomise_data:
-            used_data_points = get_data_points(parent_particle)
-
-            unused_data_points = set(self.data_points) - set(used_data_points)
-
-            data_point = random.sample(unused_data_points, 1)[0]
-
-        else:
-            data_point = self.data_points[self.iteration]
+        data_point = self.data_points[self.iteration]
 
         log_q, node = self._propose_node(data_point, parent_particle)
 
@@ -140,12 +129,11 @@ class Sampler(object):
 
         random.setstate(old_state)
 
-        return ImplicitParticle(
+        return Particle(
             data_point=data_point,
             log_w=log_w,
             node=node,
-            parent_particle=parent_particle,
-            seed=seed
+            parent_particle=parent_particle
         )
 
     def _propose_node(self, data_point, parent_particle):
