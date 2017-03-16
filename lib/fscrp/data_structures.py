@@ -1,0 +1,12 @@
+'''
+Created on 16 Mar 2017
+
+@author: Andrew Roth
+'''
+from collections import namedtuple
+
+Particle = namedtuple('Particle', ['data_point', 'log_w', 'node', 'parent_particle'])
+
+ImplicitParticle = namedtuple('Particle', ['data_point', 'log_w', 'node', 'parent_particle', 'seed'])
+
+Node = namedtuple('Node', ['children', 'node_params', 'agg_params'])
