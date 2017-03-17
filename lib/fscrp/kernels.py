@@ -27,6 +27,11 @@ class Kernel(object):
 
         self.node_param_prior_func = node_param_prior_func
 
+    def create_particle(self, data_point, node, parent_particle):
+        log_w = self._compute_log_weight(data_point, node, parent_particle)
+
+        return Particle(log_w=log_w, node=node, parent_particle=parent_particle)
+
     def propose_particle(self, data_point, parent_particle, seed=None):
         if seed is not None:
             old_state = random.getstate()
@@ -35,18 +40,18 @@ class Kernel(object):
 
         node = self.propose_node(data_point, parent_particle)
 
-        log_p = self.log_likelihood_func(data_point, node.agg_params)
-
-        log_q = self.get_log_q(data_point, node, parent_particle)
-
-        log_w = self._compute_log_weight(node, parent_particle, log_q, log_p)
+        particle = self.create_particle(data_point, node, parent_particle)
 
         if seed is not None:
             random.setstate(old_state)
 
-        return Particle(log_w=log_w, node=node, parent_particle=parent_particle)
+        return particle
 
-    def _compute_log_weight(self, node, parent_particle, log_q, log_p):
+    def _compute_log_weight(self, data_point, node, parent_particle):
+        log_p = self.log_likelihood_func(data_point, node.agg_params)
+
+        log_q = self.get_log_q(data_point, node, parent_particle)
+
         # Likelihood prior
         log_weight = log_p - log_q
 
