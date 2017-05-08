@@ -12,13 +12,7 @@ from fscrp.swarm import ParticleSwarm
 
 class AdaptiveSampler(object):
 
-    def __init__(
-            self,
-            data_points,
-            kernel,
-            num_particles,
-            resample_threshold=0.5):
-
+    def __init__(self, data_points, kernel, num_particles, resample_threshold=0.5):
         self.data_points = data_points
 
         self.kernel = kernel
@@ -63,8 +57,6 @@ class AdaptiveSampler(object):
 
         if swarm.relative_ess <= self.resample_threshold:
             new_swarm = ParticleSwarm()
-
-            print 'Resampling', swarm.relative_ess
 
             log_uniform_weight = -np.log(self.num_particles)
 
