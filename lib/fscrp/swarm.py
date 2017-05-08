@@ -6,6 +6,7 @@ Created on 16 Mar 2017
 from pydp.utils import log_sum_exp
 
 import numpy as np
+from _collections import defaultdict
 
 
 class ParticleSwarm(object):
@@ -65,4 +66,9 @@ class ParticleSwarm(object):
         self._log_norm_const = None
 
     def to_dict(self):
-        return dict(zip(self.particles, self.weights))
+        result = defaultdict(float)
+
+        for p, w in zip(self.particles, self.weights):
+            result[p] += w
+
+        return result
