@@ -8,6 +8,33 @@ from collections import defaultdict
 import networkx as nx
 
 
+def get_constrained_path(data, graph, kernel, sigma):
+    constrained_path = [None, ]
+
+    data_to_node = get_data_to_node_map(graph)
+
+    for idx in sigma:
+        node = data_to_node[idx]
+
+        particle = kernel.create_particle(data[idx], node, constrained_path[-1])
+
+        constrained_path.append(particle)
+
+    return constrained_path
+
+
+def get_data_to_node_map(graph):
+    result = {}
+
+    for node in graph.nodes_iter():
+        node_data = graph.node[node]
+
+        for x in node_data['data_points']:
+            result[x] = node_data['node']
+
+    return result
+
+
 def get_data_points(last_particle):
     data_points = []
 
@@ -17,6 +44,15 @@ def get_data_points(last_particle):
     data_points.reverse()
 
     return data_points
+
+
+def get_log_likelihood(last_particle):
+    log_likelihood = 0
+
+    for particle in iter_particles(last_particle):
+        log_likelihood += particle.log_likelihood
+
+    return log_likelihood
 
 
 def get_log_weights(last_particle):
@@ -30,15 +66,6 @@ def get_log_weights(last_particle):
     return log_weights
 
 
-def get_log_likelihood(last_particle):
-    log_likelihood = 0
-
-    for particle in iter_particles(last_particle):
-        log_likelihood += particle.log_likelihood
-
-    return log_likelihood
-
-
 def get_nodes(last_particle):
     nodes = set()
 
@@ -48,11 +75,17 @@ def get_nodes(last_particle):
     return nodes
 
 
-def get_node_data_points(last_particle):
+def get_node_data_points(last_particle, sigma=None):
     node_data_points = defaultdict(list)
 
-    for particle in iter_particles(last_particle):
-        node_data_points[particle.node].append(particle.data_point)
+    for i, particle in enumerate(reversed(list(iter_particles(last_particle)))):
+        node = particle.node
+
+        if sigma is None:
+            node_data_points[node].append(i)
+
+        else:
+            node_data_points[node].append(sigma[i])
 
     return node_data_points
 
@@ -80,7 +113,7 @@ def get_root_nodes(last_particle):
 
     nodes = get_nodes(last_particle)
 
-    for node in get_nodes(last_particle):
+    for node in nodes:
         child_nodes.update(set(node.children))
 
     root_nodes = nodes - child_nodes
@@ -95,31 +128,26 @@ def iter_particles(particle):
         particle = particle.parent_particle
 
 
-def get_graph(last_particle, multiplicity):
-    log_weights = get_log_weights(last_particle)
+def get_graph(particle, sigma=None):
+    graph = nx.DiGraph()
 
-    data_points = get_data_points(last_particle)
+    nodes = get_nodes(particle)
 
-    graph = nx.DiGraph(log_weights=log_weights,
-                       data_points=[x.id for x in data_points],
-                       multiplicity=multiplicity)
+    node_data_points = get_node_data_points(particle, sigma=sigma)
 
-    nodes = get_nodes(last_particle)
+    node_map = {}
 
-    node_data_points = get_node_data_points(last_particle)
+    for node_id, node in enumerate(nodes):
+        node_map[node] = node_id
 
-    node_ids = {}
+        graph.add_node(
+            node_id,
+            data_points=node_data_points[node],
+            node=node,
+        )
 
-    for i, node in enumerate(nodes):
-        node_ids[node] = "Node {0}".format(i + 1)
-
-        graph.add_node(node_ids[node],
-                       agg_params=node.agg_params,
-                       node_params=node.node_params,
-                       data_points=[x.id for x in node_data_points[node]])
-
-    for i, node in enumerate(nodes):
+    for node in nodes:
         for child in node.children:
-            graph.add_edge(node_ids[node], node_ids[child])
+            graph.add_edge(node_map[node], node_map[child])
 
     return graph
