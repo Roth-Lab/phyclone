@@ -1,0 +1,91 @@
+'''
+Created on 8 May 2017
+
+@author: Andrew Roth
+'''
+from math import log
+
+import random
+
+from fscrp.data_structures import Node
+from fscrp.kernels.base import Kernel
+from fscrp.particle_utils import get_nodes, get_node_params, get_root_nodes
+
+
+class BootstrapKernel(Kernel):
+
+    def get_log_q(self, data_point, node, parent_particle):
+        nodes = get_nodes(parent_particle)
+
+        if node in nodes:
+            log_q = self._get_log_q_add_existing(data_point, node, parent_particle)
+
+        else:
+            log_q = self._get_log_q_add_new(data_point, node, parent_particle)
+
+        if parent_particle is not None:
+            log_q -= log(2)
+
+        return log_q
+
+    def propose_node(self, data_point, parent_particle):
+        if parent_particle is None:
+            proposal_funcs = [self._add_data_point_to_new_node, ]
+
+        else:
+            proposal_funcs = [self._add_data_point_to_existing_node, self._add_data_point_to_new_node]
+
+        proposal_func = random.choice(proposal_funcs)
+
+        node = proposal_func(data_point, parent_particle)
+
+        return node
+
+    def _add_data_point_to_existing_node(self, data_point, particle):
+        nodes = get_nodes(particle)
+
+        node = random.sample(nodes, 1)[0]
+
+        return node
+
+    def _add_data_point_to_new_node(self, data_point, particle):
+        root_nodes = get_root_nodes(particle)
+
+        num_root = len(root_nodes)
+
+        num_children = random.randint(0, num_root)
+
+        if num_children > 0:
+            children = random.sample(root_nodes, num_children)
+
+        else:
+            children = []
+
+        node_params = self.node_param_proposal.propose(data_point, get_node_params(particle))
+
+        subtree_params = [node_params, ]
+
+        for child in children:
+            subtree_params.append(child.agg_params)
+
+        agg_params = self.node_agg_func(subtree_params)
+
+        node = Node(tuple(children), node_params, agg_params)
+
+        return node
+
+    def _get_log_q_add_existing(self, data_point, node, parent_particle):
+        nodes = get_nodes(parent_particle)
+
+        return -log(len(nodes))
+
+    def _get_log_q_add_new(self, data_point, node, parent_particle):
+        log_q = self.node_param_proposal.log_likelihood(node.node_params, data_point, get_node_params(parent_particle))
+
+        root_nodes = get_root_nodes(parent_particle)
+
+        num_root = len(root_nodes)
+
+        log_q -= num_root * log(2)
+
+        return log_q
