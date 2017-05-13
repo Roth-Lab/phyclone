@@ -17,7 +17,7 @@ from pydp.utils import log_sum_exp
 
 class MarginalKernel(Kernel):
 
-    def __init__(self, alpha, grid_size=101):
+    def __init__(self, alpha, grid_size):
         self.alpha = alpha
 
         self.grid_size = grid_size
@@ -107,7 +107,7 @@ class MarginalKernel(Kernel):
             #             for children in itertools.combinations(root_nodes, num_children):
             children = random.sample(root_nodes, num_children)
 
-            node = MarginalNode(children)
+            node = MarginalNode(children, self.grid_size)
 
             node.add_data_point(data_point)
 
@@ -126,4 +126,4 @@ class MarginalKernel(Kernel):
         return log_q
 
     def _get_tree_log_p(self, root_nodes):
-        return MarginalNode(root_nodes).log_p
+        return MarginalNode(root_nodes, self.grid_size).log_p
