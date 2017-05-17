@@ -3,6 +3,8 @@ Created on 8 May 2017
 
 @author: Andrew Roth
 '''
+from __future__ import division
+
 from math import log
 
 import random
@@ -29,28 +31,25 @@ class Kernel(object):
 
         return Particle(log_w=log_w, node=node, parent_particle=parent_particle)
 
-    def propose_particle(self, data_point, parent_particle, seed=None):
-        if seed is not None:
-            old_state = random.getstate()
-
-            random.seed(seed)
+    def propose_particle(self, data_point, parent_particle):  # , seed=None):
+        #         if seed is not None:
+        #             old_state = random.getstate()
+        #
+        #             random.seed(seed)
 
         node = self.propose_node(data_point, parent_particle)
 
         particle = self.create_particle(data_point, node, parent_particle)
 
-        if seed is not None:
-            random.setstate(old_state)
+#         if seed is not None:
+#             random.setstate(old_state)
 
         return particle
 
     def _compute_log_weight(self, data_point, node, parent_particle):
-        log_p = self.log_likelihood_func(data_point, node.agg_params)
+        log_weight = self.log_likelihood_func(data_point, node.agg_params)
 
-        log_q = self.get_log_q(data_point, node, parent_particle)
-
-        # Likelihood prior
-        log_weight = log_p - log_q
+        log_weight -= self.get_log_q(data_point, node, parent_particle)
 
         nodes = get_nodes(parent_particle)
 
@@ -66,7 +65,7 @@ class Kernel(object):
 #             num_partitions += 1
 
             if num_partitions > 1:
-                log_weight += (num_partitions - 1) * log(num_partitions) - num_partitions * log(num_partitions + 1)
+                log_weight += (num_partitions - 1) * log(num_partitions + 1) - num_partitions * log(num_partitions + 2)
 
             log_weight += self.node_param_prior_func(node, nodes)
 
@@ -78,5 +77,7 @@ class Kernel(object):
 #         # Uniform prior over trees
 #         if num_partitions > 1:
 #             log_weight += (num_partitions - 2) * log(num_partitions - 1) - (num_partitions - 1) * log(num_partitions)
+
+#         print 'a', log_weight
 
         return log_weight

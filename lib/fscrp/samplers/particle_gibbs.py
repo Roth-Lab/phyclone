@@ -7,9 +7,7 @@ from __future__ import division
 
 import numpy as np
 
-from fscrp.data_structures import Particle
 from fscrp.swarm import ParticleSwarm
-from fscrp.particle_utils import iter_particles
 
 
 class ParticleGibbsSampler(object):
@@ -89,7 +87,7 @@ class ParticleGibbsSampler(object):
 
             multiplicities = np.random.multinomial(self.num_particles - 1, swarm.weights)
 
-            assert not np.isneginf(self.constrained_path[self.iteration + 1].log_w)
+#             assert not np.isneginf(self.constrained_path[self.iteration + 1].log_w)
 
             new_swarm.add_particle(log_uniform_weight, self.constrained_path[self.iteration + 1])
 
@@ -109,12 +107,12 @@ class ParticleGibbsSampler(object):
     def _sample_new_particles(self):
         new_swarm = ParticleSwarm()
 
-        for parent_log_W, parent_particle in zip(self.swarm.log_weights, self.swarm.particles):
-            if parent_particle is self.constrained_path[self.iteration]:
-                particle = self.constrained_path[self.iteration + 1]
+        particle = self.constrained_path[self.iteration + 1]
 
-            else:
-                particle = self._propose_particle(parent_particle)
+        new_swarm.add_particle(self.swarm.log_weights[0] + particle.log_w, particle)
+
+        for parent_log_W, parent_particle in zip(self.swarm.log_weights[1:], self.swarm.particles[1:]):
+            particle = self._propose_particle(parent_particle)
 
             new_swarm.add_particle(parent_log_W + particle.log_w, particle)
 

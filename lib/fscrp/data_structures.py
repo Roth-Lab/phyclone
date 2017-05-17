@@ -3,55 +3,58 @@ Created on 16 Mar 2017
 
 @author: Andrew Roth
 '''
+from __future__ import division
+
 from collections import namedtuple
 
 import numpy as np
 import numba
+import random
 
 from fscrp.math_utils import log_sum_exp
 
-# Particle = namedtuple('Particle', ['log_w', 'node', 'parent_particle'])
+Particle = namedtuple('Particle', ['log_w', 'node', 'parent_particle'])
 
 # MarginalParticle = namedtuple('Particle', ['log_w', 'node', 'parent_particle', 'tree_log_p'])
 
-# Node = namedtuple('Node', ['children', 'node_params', 'agg_params'])
+Node = namedtuple('Node', ['children', 'node_params', 'agg_params'])
 #
 # MarginalNode = namedtuple('MarginalNode', ['children', 'log_likelihoo', 'log_S'])
 
 
-class Particle(object):
-
-    def __init__(self, log_w, node, parent_particle):
-        self.log_w = log_w
-
-        self.node = node
-
-        self.parent_particle = parent_particle
-
-    def copy(self):
-        return Particle(self.log_w, self.node.copy(), self.parent_particle)
-
-
-class Node(object):
-
-    def __init__(self, children, node_params, agg_params):
-        self.children = children
-
-        self.node_params = node_params
-
-        self.agg_params = agg_params
-
-    def __key(self):
-        return (self.children, self.node_params, self.agg_params)
-
-    def __eq__(x, y):
-        return x.__key() == y.__key()
-
-    def __hash__(self):
-        return hash(self.__key())
-
-    def copy(self):
-        return Node(tuple(self.children), self.node_params, self.agg_params)
+# class Particle(object):
+#
+#     def __init__(self, log_w, node, parent_particle):
+#         self.log_w = log_w
+#
+#         self.node = node
+#
+#         self.parent_particle = parent_particle
+#
+#     def copy(self):
+#         return Particle(self.log_w, self.node.copy(), self.parent_particle)
+#
+#
+# class Node(object):
+#
+#     def __init__(self, children, node_params, agg_params):
+#         self.children = children
+#
+#         self.node_params = node_params
+#
+#         self.agg_params = agg_params
+#
+#     def __key(self):
+#         return (self.children, self.node_params, self.agg_params)
+#
+#     def __eq__(x, y):
+#         return x.__key() == y.__key()
+#
+#     def __hash__(self):
+#         return hash(self.__key())
+#
+#     def copy(self):
+#         return Node(tuple(self.children), self.node_params, self.agg_params)
 
 
 class MarginalParticle(object):

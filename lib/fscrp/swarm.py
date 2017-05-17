@@ -3,10 +3,12 @@ Created on 16 Mar 2017
 
 @author: Andrew Roth
 '''
+from __future__ import division
+
+from collections import defaultdict
 from pydp.utils import log_sum_exp
 
 import numpy as np
-from _collections import defaultdict
 
 
 class ParticleSwarm(object):

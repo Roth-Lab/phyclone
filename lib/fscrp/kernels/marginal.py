@@ -10,7 +10,7 @@ import random
 
 from fscrp.data_structures import MarginalNode, MarginalParticle
 from fscrp.kernels.base import Kernel
-from fscrp.particle_utils import get_nodes, get_num_data_points_per_node, get_root_nodes
+from fscrp.particle_utils import get_num_data_points_per_node
 from fscrp.utils import exp_normalize
 from pydp.utils import log_sum_exp
 

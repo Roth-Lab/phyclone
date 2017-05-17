@@ -64,8 +64,7 @@ class AdaptiveSampler(object):
 
             for particle, multiplicity in zip(swarm.particles, multiplicities):
                 for _ in range(multiplicity):
-                    new_swarm.add_particle(log_uniform_weight, particle.copy())
-#                     new_swarm.add_particle(log_uniform_weight, particle)
+                    new_swarm.add_particle(log_uniform_weight, particle)
 
         else:
             new_swarm = swarm
