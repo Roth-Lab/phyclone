@@ -29,12 +29,48 @@ def sample_sigma(graph, source=None):
         for node in roots:
             sigma.append(sample_sigma(graph, source=node))
 
+        sigma = interleave_lists(sigma)
+
+        data_points = []
+
+        for node in graph.nodes():
+            for x in graph.node[node]['data_points']:
+                if x not in sigma:
+                    data_points.append(x)
+
+        random.shuffle(data_points)
+
+        sigma.extend(data_points)
+
+        return sigma
+
+    sigma = []
+
+    for child in graph.successors(source):
+        sigma.append(sample_sigma(graph, source=child))
+
+    sigma = interleave_lists(sigma)
+
+    sigma.append(random.choice(graph.node[source]['data_points']))
+
+    return sigma
+
+
+def sample_sigma_1(graph, source=None):
+    if source is None:
+        roots = get_roots(graph)
+
+        sigma = []
+
+        for node in roots:
+            sigma.append(sample_sigma_1(graph, source=node))
+
         return interleave_lists(sigma)
 
     child_sigma = []
 
     for child in graph.successors(source):
-        child_sigma.append(sample_sigma(graph, source=child))
+        child_sigma.append(sample_sigma_1(graph, source=child))
 
     sigma = interleave_lists(child_sigma)
 

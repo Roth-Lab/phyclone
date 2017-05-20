@@ -68,9 +68,9 @@ class ParticleSwarm(object):
         self._log_norm_const = None
 
     def to_dict(self):
-        result = defaultdict(float)
+#         result = defaultdict(float)
+# 
+#         for p, w in zip(self.particles, self.weights):
+#             result[p] += w
 
-        for p, w in zip(self.particles, self.weights):
-            result[p] += w
-
-        return result
+        return zip(self.particles, self.weights)

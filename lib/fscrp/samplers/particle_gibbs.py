@@ -42,7 +42,8 @@ class ParticleGibbsSampler(object):
 
             self._sample_new_particles()
 
-            self._resample_if_necessary()
+            if self.iteration < self.num_iterations - 1:
+                self._resample_if_necessary()
 
             self.iteration += 1
 
@@ -79,15 +80,15 @@ class ParticleGibbsSampler(object):
         swarm = self.swarm
 
         if swarm.relative_ess <= self.resample_threshold:
-            new_swarm = ParticleSwarm()
+            #             print 'Resampling {}'.format(swarm.relative_ess)
 
-#             print self.iteration, 'Resampling', swarm.relative_ess
+            new_swarm = ParticleSwarm()
 
             log_uniform_weight = -np.log(self.num_particles)
 
             multiplicities = np.random.multinomial(self.num_particles - 1, swarm.weights)
 
-#             assert not np.isneginf(self.constrained_path[self.iteration + 1].log_w)
+            assert not np.isneginf(self.constrained_path[self.iteration + 1].log_w)
 
             new_swarm.add_particle(log_uniform_weight, self.constrained_path[self.iteration + 1])
 
@@ -95,9 +96,7 @@ class ParticleGibbsSampler(object):
                 for _ in range(multiplicity):
                     assert not np.isneginf(particle.log_w)
 
-                    new_particle = particle
-
-                    new_swarm.add_particle(log_uniform_weight, new_particle)
+                    new_swarm.add_particle(log_uniform_weight, particle)
 
         else:
             new_swarm = swarm

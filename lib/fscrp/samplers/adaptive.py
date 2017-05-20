@@ -29,7 +29,7 @@ class AdaptiveSampler(object):
         self._init_swarm()
 
         for _ in range(self.num_iterations):
-            print 'Iteration {0} of {1}.'.format(self.iteration, self.num_iterations)
+#             print 'Iteration {0} of {1}.'.format(self.iteration, self.num_iterations)
 
             self._sample_new_particles()
 
