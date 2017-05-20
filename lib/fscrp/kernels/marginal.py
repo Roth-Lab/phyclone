@@ -72,18 +72,10 @@ class MarginalKernel(Kernel):
 
         new_nodes[node_idx].add_data_point(data_point)
 
-        log_w += MarginalNode(
-            -1,
-            [new_nodes[n] for n in root_idxs],
-            self.grid_size
-        ).log_p
+        log_w += self._get_tree_log_p([new_nodes[n] for n in root_idxs])
 
         if parent_particle is not None:
-            log_w -= MarginalNode(
-                -1,
-                [parent_particle.nodes[n] for n in parent_particle.root_idxs],
-                self.grid_size
-            ).log_p
+            log_w -= self._get_tree_log_p([parent_particle.nodes[n] for n in parent_particle.root_idxs])
 
         return MarginalParticle(log_w, parent_particle, new_nodes, node_idx, root_idxs)
 
