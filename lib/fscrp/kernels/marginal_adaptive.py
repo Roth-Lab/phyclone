@@ -15,19 +15,26 @@ import random
 
 from fscrp.data_structures import MarginalNode
 from fscrp.particle_utils import iter_particles
-from fscrp.math_utils import exp_normalize, log_sum_exp, discrete_rvs
+from fscrp.math_utils import log_factorial, log_normalize
+
 
 MarginalParticle = namedtuple('MarginalParticle', ['log_w', 'parent_particle', 'state'])
 
 
 class State(object):
 
-    def __init__(self, nodes, node_idx, root_idxs):
+    def __init__(self, nodes, node_idx, log_p_prior, root_idxs):
+        self.log_p_prior = log_p_prior
+
+        assert node_idx < len(nodes)
+
         self.nodes = nodes
 
         self.node_idx = node_idx
 
         self._root_idxs = tuple(sorted(root_idxs))
+
+        self._log_p = None
 
     def __key(self):
         return (self.node_idx, self._root_idxs)
@@ -37,6 +44,13 @@ class State(object):
 
     def __hash__(self):
         return hash(self.__key())
+
+    @property
+    def log_p(self):
+        if self._log_p is None:
+            self._log_p = MarginalNode(-1, self.root_nodes, self.nodes.values()[0].grid_size).log_p
+
+        return self.log_p_prior + self._log_p
 
     @property
     def root_idxs(self):
@@ -54,19 +68,21 @@ class MarginalKernel(object):
 
         self.grid_size = grid_size
 
-    def create_particle(self, data_point, parent_particle, state, log_q=None, log_q_norm=None):
+    def create_particle(self, data_point, log_q, parent_particle, state):
         '''
         Create a descendant particle from a parent particle
         '''
-        if log_q is None:
-            log_q = self.get_log_q(data_point, parent_particle)
+        if parent_particle is None:
+            log_w = state.log_p - log_q
 
-        if log_q_norm is None:
-            log_q_norm = log_sum_exp(np.array(log_q.values()))
+        else:
+            log_w = state.log_p - parent_particle.state.log_p - log_q
 
-        return MarginalParticle(log_q_norm, parent_particle, state)
+        return MarginalParticle(log_w, parent_particle, state)
 
     def create_state(self, data_point, parent_particle, node_idx, root_idxs):
+        log_p_prior = self._compute_log_p_prior(data_point, parent_particle, node_idx, root_idxs)
+
         if parent_particle is None:
             assert node_idx == 0
 
@@ -94,86 +110,204 @@ class MarginalKernel(object):
 
         nodes[node_idx].add_data_point(data_point)
 
-        return State(nodes, node_idx, root_idxs)
-
-    def get_log_q(self, data_point, parent_particle):
-        log_q = self._get_log_q_new(data_point, parent_particle)
-
-        if parent_particle is not None:
-            log_q.update(self._get_log_q_existing(data_point, parent_particle))
-
-        for state in log_q:
-            log_q[state] += self._get_tree_log_p(state)
-
-            if parent_particle is not None:
-                log_q[state] -= self._get_tree_log_p(parent_particle.state)
-
-        return log_q
+        return State(nodes, node_idx, log_p_prior, root_idxs)
 
     def propose_particle(self, data_point, parent_particle):
         '''
         Propose a particle for t given a particle from t - 1 and a data point.
         '''
-        log_q = self.get_log_q(data_point, parent_particle)
+        proposal_dist = self.get_proposal_distribution(data_point, parent_particle)
 
-        state_probs, log_q_norm = exp_normalize(np.array(log_q.values()))
+        state = proposal_dist.sample_state()
 
-        state_idx = discrete_rvs(state_probs)
+        log_q = proposal_dist.get_log_q(state)
 
-        state = log_q.keys()[state_idx]
+        return self.create_particle(data_point, log_q, parent_particle, state)
 
-        return self.create_particle(data_point, parent_particle, state, log_q=log_q, log_q_norm=log_q_norm)
-
-    def _get_log_q_existing(self, data_point, parent_particle):
-        log_q = {}
-
-        cluster_sizes = get_num_data_points_per_node(parent_particle)
-
-        for node_idx in parent_particle.state.root_idxs:
-            state = self.create_state(data_point, parent_particle, node_idx, parent_particle.state.root_idxs)
-
-            # CRP prior
-            log_q[state] = log(cluster_sizes[node_idx])
-
-        return log_q
-
-    def _get_log_q_new(self, data_point, parent_particle):
-        log_q = {}
-
+    def _compute_log_p_prior(self, data_point, parent_particle, node_idx, root_idxs):
         if parent_particle is None:
-            node_idx = 0
+            log_p = np.log(self.alpha)
 
-            root_idxs = set([node_idx, ])
+        elif node_idx in parent_particle.state.root_idxs:
+            node_counts = get_num_data_points_per_node(parent_particle)
 
-            state = self.create_state(data_point, parent_particle, node_idx, root_idxs)
-
-            log_q[state] = log(self.alpha)
+            log_p = np.log(node_counts[node_idx])
 
         else:
-            node_idx = max(parent_particle.state.nodes.keys() + [-1, ]) + 1
+            child_idxs = parent_particle.state.root_idxs - root_idxs
+
+            node_counts = get_num_data_points_per_node(parent_particle)
 
             num_nodes = len(parent_particle.state.nodes)
 
-            num_roots = len(parent_particle.state.root_idxs)
+            # CRP prior
+            log_p = log(self.alpha)
 
-            for r in range(0, num_roots + 1):
-                for child_idxs in itertools.combinations(parent_particle.state.root_idxs, r):
-                    root_idxs = parent_particle.state.root_idxs - set(child_idxs)
+            # Tree prior
+            log_p += (num_nodes - 1) * log(num_nodes + 1) - num_nodes * log(num_nodes + 2)
 
-                    root_idxs.add(node_idx)
+            log_perm_norm = log_factorial(sum([node_counts[idx] for idx in child_idxs]))
 
-                    state = self.create_state(data_point, parent_particle, node_idx, root_idxs)
+            for idx in child_idxs:
+                log_perm_norm -= log_factorial(node_counts[idx])
 
-                    # CRP prior
-                    log_q[state] = log(self.alpha)
+            log_p -= log_perm_norm
 
-                    # Tree prior
-                    log_q[state] += (num_nodes - 1) * log(num_nodes + 1) - num_nodes * log(num_nodes + 2)
+        return log_p
+
+
+class BootstrapProposal(object):
+
+    def __init__(self, data_point, kernel, parent_particle):
+        self.data_point = data_point
+
+        self.kernel = kernel
+
+        self.parent_particle = parent_particle
+
+    def get_log_q(self, state):
+        if self.parent_particle is None:
+            log_q = 0
+
+        elif state.node_idx in self.parent_particle.state.root_idxs:
+            num_roots = len(state.root_idxs)
+
+            log_q = np.log(0.5) - np.log(num_roots)
+
+        else:
+            old_num_roots = len(self.parent_particle.state.root_idxs)
+
+            log_q = np.log(0.5) - old_num_roots * np.log(2)
 
         return log_q
 
-    def _get_tree_log_p(self, state):
-        return MarginalNode(-1, state.root_nodes, self.grid_size).log_p
+    def sample_state(self):
+        if self.parent_particle is None:
+            state = self.kernel.create_state(self.data_point, self.parent_particle, 0, set([0, ]))
+
+        else:
+            u = random.random()
+
+            if u < 0.5:
+                state = self._propose_existing_node()
+
+            else:
+                state = self._propose_new_node()
+
+        return state
+
+    def _propose_existing_node(self):
+        node_idx = random.choice(list(self.parent_particle.state.root_idxs))
+
+        return self.kernel.create_state(
+            self.data_point,
+            self.parent_particle,
+            node_idx,
+            self.parent_particle.state.root_idxs
+        )
+
+    def _propose_new_node(self):
+        num_roots = len(self.parent_particle.state.root_idxs)
+
+        num_children = random.randint(0, num_roots)
+
+        children = random.sample(self.parent_particle.state.root_idxs, num_children)
+
+        node_idx = max(self.parent_particle.state.nodes.keys() + [-1, ]) + 1
+
+        root_idxs = self.parent_particle.state.root_idxs - set(children)
+
+        root_idxs.add(node_idx)
+
+        return self.kernel.create_state(
+            self.data_point,
+            self.parent_particle,
+            node_idx,
+            root_idxs
+        )
+
+
+class MarginalBootstrapKernel(MarginalKernel):
+
+    def get_proposal_distribution(self, data_point, parent_particle):
+        return BootstrapProposal(data_point, self, parent_particle)
+
+
+class FullyAdaptedProposal(object):
+
+    def __init__(self, data_point, kernel, parent_particle):
+        self.data_point = data_point
+
+        self.kernel = kernel
+
+        self.parent_particle = parent_particle
+
+        self._init_dist()
+
+    def get_log_q(self, state):
+        return self.log_q[self.states.index(state)]
+
+    def sample_state(self):
+        q = np.exp(self.log_q)
+
+        idx = np.random.multinomial(1, q).argmax()
+
+        return self.states[idx]
+
+    def _init_dist(self):
+        self.states = self._propose_new_node()
+
+        if self.parent_particle is not None:
+            self.states.extend(self._propose_existing_node())
+
+        log_q = [x.log_p for x in self.states]
+
+        self.log_q = log_normalize(np.array(log_q))
+
+    def _propose_existing_node(self):
+        proposed_states = []
+
+        for node_idx in self.parent_particle.state.root_idxs:
+            proposed_states.append(
+                self.kernel.create_state(
+                    self.data_point,
+                    self.parent_particle,
+                    node_idx,
+                    self.parent_particle.state.root_idxs
+                )
+            )
+
+        return proposed_states
+
+    def _propose_new_node(self):
+        if self.parent_particle is None:
+            return [
+                self.kernel.create_state(self.data_point, self.parent_particle, 0, set([0, ]))
+            ]
+
+        proposed_states = []
+
+        node_idx = max(self.parent_particle.state.nodes.keys() + [-1, ]) + 1
+
+        num_roots = len(self.parent_particle.state.root_idxs)
+
+        for r in range(0, num_roots + 1):
+            for child_idxs in itertools.combinations(self.parent_particle.state.root_idxs, r):
+                root_idxs = self.parent_particle.state.root_idxs - set(child_idxs)
+
+                root_idxs.add(node_idx)
+
+                proposed_states.append(
+                    self.kernel.create_state(self.data_point, self.parent_particle, node_idx, root_idxs)
+                )
+
+        return proposed_states
+
+
+class MarginalFullyAdaptedKernel(MarginalKernel):
+
+    def get_proposal_distribution(self, data_point, parent_particle):
+        return FullyAdaptedProposal(data_point, self, parent_particle)
 
 
 def get_num_data_points_per_node(last_particle):
@@ -293,9 +427,13 @@ def get_constrained_path(data, graph, kernel, sigma):
 
             node_idx += 1
 
+        proposal_dist = kernel.get_proposal_distribution(data[data_idx], constrained_path[-1])
+
         state = kernel.create_state(data[data_idx], constrained_path[-1], old_to_new_node_idx[old_node_idx], root_idxs)
 
-        particle = kernel.create_particle(data[data_idx], constrained_path[-1], state)
+        log_q = proposal_dist.get_log_q(state)
+
+        particle = kernel.create_particle(data[data_idx], log_q, constrained_path[-1], state)
 
         constrained_path.append(particle)
 
