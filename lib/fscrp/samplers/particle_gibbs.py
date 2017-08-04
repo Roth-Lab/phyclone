@@ -108,7 +108,9 @@ class ParticleGibbsSampler(object):
 
         particle = self.constrained_path[self.iteration + 1]
 
-        new_swarm.add_particle(self.swarm.log_weights[0] + particle.log_w, particle)
+        parent_log_W = self.swarm.log_weights[0]
+
+        new_swarm.add_particle(parent_log_W + particle.log_w, particle)
 
         for parent_log_W, parent_particle in zip(self.swarm.log_weights[1:], self.swarm.particles[1:]):
             particle = self._propose_particle(parent_particle)
