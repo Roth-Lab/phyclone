@@ -3,6 +3,8 @@ Created on 16 Mar 2017
 
 @author: Andrew Roth
 '''
+from __future__ import division
+
 from collections import defaultdict
 
 import networkx as nx
