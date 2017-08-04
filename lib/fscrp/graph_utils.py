@@ -3,6 +3,8 @@ Created on 17 Mar 2017
 
 @author: Andrew Roth
 '''
+from __future__ import division
+
 import random
 
 
