@@ -26,16 +26,22 @@ class AdaptiveSampler(object):
         self.num_iterations = len(data_points)
 
     def sample(self):
+        self.log_Z = 0
+
         self._init_swarm()
 
-        for _ in range(self.num_iterations):
-#             print 'Iteration {0} of {1}.'.format(self.iteration, self.num_iterations)
-
+        for _ in range(self.num_iterations - 1):
             self._sample_new_particles()
 
             self._resample_if_necessary()
 
             self.iteration += 1
+
+        self._sample_new_particles()
+
+        self.iteration += 1
+
+        self.log_Z += -np.log(self.swarm.num_particles) + self.swarm.log_norm_const
 
         return self.swarm.to_dict()
 
@@ -56,6 +62,8 @@ class AdaptiveSampler(object):
         swarm = self.swarm
 
         if swarm.relative_ess <= self.resample_threshold:
+            self.log_Z += -np.log(self.swarm.num_particles) + self.swarm.log_norm_const
+
             new_swarm = ParticleSwarm()
 
             log_uniform_weight = -np.log(self.num_particles)
