@@ -5,7 +5,6 @@ Created on 16 Mar 2017
 '''
 from __future__ import division
 
-from collections import defaultdict
 from pydp.utils import log_sum_exp
 
 import numpy as np
@@ -68,9 +67,9 @@ class ParticleSwarm(object):
         self._log_norm_const = None
 
     def to_dict(self):
-#         result = defaultdict(float)
-# 
-#         for p, w in zip(self.particles, self.weights):
-#             result[p] += w
+        #         result = defaultdict(float)
+        #
+        #         for p, w in zip(self.particles, self.weights):
+        #             result[p] += w
 
         return zip(self.particles, self.weights)

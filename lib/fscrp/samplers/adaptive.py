@@ -7,7 +7,7 @@ from __future__ import division
 
 import numpy as np
 
-from fscrp.swarm import ParticleSwarm
+from fscrp.samplers.swarm import ParticleSwarm
 
 
 class AdaptiveSampler(object):
