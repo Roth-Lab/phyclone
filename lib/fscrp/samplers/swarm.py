@@ -5,7 +5,7 @@ Created on 16 Mar 2017
 '''
 from __future__ import division
 
-from pydp.utils import log_sum_exp
+from fscrp.math_utils import log_sum_exp
 
 import numpy as np
 
