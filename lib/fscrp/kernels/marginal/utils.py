@@ -11,6 +11,7 @@ import networkx as nx
 import random
 
 from fscrp.particle_utils import iter_particles
+from fscrp.kernels.marginal.data_structures import MarginalNode
 
 
 def get_num_data_points_per_node(last_particle):
@@ -36,6 +37,7 @@ def get_graph(particle, sigma=None):
     graph.add_node(
         -1,
         data_points=[],
+        node=particle.state.dummy_root,
     )
 
     for idx in particle.state.root_idxs:
@@ -45,6 +47,7 @@ def get_graph(particle, sigma=None):
         graph.add_node(
             node_idx,
             data_points=node_data_points[node_idx],
+            node=nodes[node_idx]
         )
 
     for node in nodes.values():
