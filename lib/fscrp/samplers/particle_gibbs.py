@@ -110,11 +110,18 @@ class ParticleGibbsSampler(object):
 
         parent_log_W = self.swarm.log_weights[0]
 
-        new_swarm.add_particle(parent_log_W + particle.log_w, particle)
+        new_swarm.add_particle(parent_log_W + self._get_log_w(particle), particle)
 
         for parent_log_W, parent_particle in zip(self.swarm.log_weights[1:], self.swarm.particles[1:]):
             particle = self._propose_particle(parent_particle)
 
-            new_swarm.add_particle(parent_log_W + particle.log_w, particle)
+            new_swarm.add_particle(parent_log_W + self._get_log_w(particle), particle)
 
         self.swarm = new_swarm
+
+    def _get_log_w(self, particle):
+        if self.iteration < self.num_iterations - 1:
+            return particle.log_w
+
+        else:
+            return particle.log_w - particle.state.log_p + particle.state.log_p_one
