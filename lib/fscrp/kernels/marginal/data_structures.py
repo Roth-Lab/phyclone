@@ -18,12 +18,16 @@ MarginalParticle = namedtuple('MarginalParticle', ['log_w', 'parent_particle', '
 
 class MarginalNode(object):
 
-    def __init__(self, idx, children, grid_size):
+    def __init__(self, idx, grid_size, children=None):
         self.idx = idx
 
         self.grid_size = grid_size
 
-        self.children = tuple(children)
+        self._children = {}
+
+        if children is not None:
+            for child in children:
+                self._children[child.idx] = child
 
         self.log_likelihood = np.ones(grid_size) * -np.log(grid_size[1])
 
@@ -31,14 +35,9 @@ class MarginalNode(object):
 
         self.update()
 
-    def __key(self):
-        return (self.idx, self.children, tuple(self.log_likelihood.flatten()))
-
-    def __eq__(x, y):
-        return x.__key() == y.__key()
-
-    def __hash__(self):
-        return hash(self.__key())
+    @property
+    def children(self):
+        return self._children.values()
 
     @property
     def log_p(self):
@@ -48,6 +47,38 @@ class MarginalNode(object):
             log_p += log_sum_exp(self.log_R[i, :])
 
         return log_p
+
+    @property
+    def log_p_one(self):
+        log_p = 0
+
+        for i in range(self.grid_size[0]):
+            log_p += self.log_R[i, -1]
+
+        return log_p
+
+    def add_child_node(self, node):
+        assert node.idx not in self.children
+
+        self._children[node.idx] = node
+
+        self.update()
+
+    def remove_child_node(self, node):
+        del self._children[node.idx]
+
+        self.update()
+
+    def update_children(self, children):
+        self._children = {}
+
+        if children is not None:
+            for child in children:
+                self._children[child.idx] = child
+
+        self.log_R = np.zeros(self.grid_size)
+
+        self.update()
 
     def add_data_point(self, data_point):
         '''
@@ -66,13 +97,16 @@ class MarginalNode(object):
         self._update_log_R()
 
     def copy(self):
-        new = MarginalNode(self.idx, [x.copy() for x in self.children], grid_size=self.grid_size)
+        #TODO: Replace call to __init__ with __new__ and skip call to update()
+        new_children = [x.copy() for x in self.children]
+
+        new = MarginalNode(self.idx, self.grid_size, children=new_children)
 
         new.log_likelihood = np.copy(self.log_likelihood)
 
         new.log_R = np.copy(self.log_R)
 
-        new.log_S = np.copy(self.log_S.copy())
+        new.log_S = np.copy(self.log_S)
 
         return new
 

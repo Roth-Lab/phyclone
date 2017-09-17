@@ -30,7 +30,11 @@ class State(object):
 
         self._root_idxs = tuple(sorted(root_idxs))
 
+        self._dummy_root = None
+
         self._log_p = None
+
+        self._log_p_one = None
 
     def __key(self):
         return (self.node_idx, self._root_idxs)
@@ -42,11 +46,25 @@ class State(object):
         return hash(self.__key())
 
     @property
+    def dummy_root(self):
+        if self._dummy_root is None:
+            self._dummy_root = MarginalNode(-1, self.nodes.values()[0].grid_size, children=self.root_nodes)
+
+        return self._dummy_root
+
+    @property
     def log_p(self):
         if self._log_p is None:
-            self._log_p = MarginalNode(-1, self.root_nodes, self.nodes.values()[0].grid_size).log_p
+            self._log_p = self.dummy_root.log_p
 
         return self.log_p_prior + self._log_p
+
+    @property
+    def log_p_one(self):
+        if self._log_p_one is None:
+            self._log_p_one = self.dummy_root.log_p_one
+
+        return self.log_p_prior + self._log_p_one
 
     @property
     def root_idxs(self):
@@ -86,7 +104,7 @@ class MarginalKernel(object):
 
             nodes = {}
 
-            nodes[node_idx] = MarginalNode(node_idx, (), self.grid_size)
+            nodes[node_idx] = MarginalNode(node_idx, self.grid_size)
 
         elif node_idx in parent_particle.state.nodes:
             assert root_idxs == parent_particle.state.root_idxs
@@ -100,9 +118,9 @@ class MarginalKernel(object):
 
             nodes = parent_particle.state.nodes.copy()
 
-            child_nodes = [parent_particle.state.nodes[idx] for idx in child_idxs]
+            children = [parent_particle.state.nodes[idx] for idx in child_idxs]
 
-            nodes[node_idx] = MarginalNode(node_idx, child_nodes, self.grid_size)
+            nodes[node_idx] = MarginalNode(node_idx, self.grid_size, children=children)
 
         nodes[node_idx].add_data_point(data_point)
 
