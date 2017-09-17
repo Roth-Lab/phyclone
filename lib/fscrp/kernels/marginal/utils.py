@@ -11,7 +11,7 @@ import networkx as nx
 import random
 
 from fscrp.particle_utils import iter_particles
-from fscrp.kernels.marginal.data_structures import MarginalNode
+from fscrp.tree import Tree
 
 
 def get_num_data_points_per_node(last_particle):
@@ -57,6 +57,14 @@ def get_graph(particle, sigma=None):
     return graph
 
 
+def get_tree(particle, sigma=None):
+    data_points = get_node_data_points(particle, sigma=sigma)
+
+    nodes = get_nodes(particle)
+
+    return Tree(data_points, nodes)
+
+
 def get_node_data_points(last_particle, sigma=None):
     node_data_points = defaultdict(list)
 
@@ -81,7 +89,11 @@ def sample_sigma(graph, source=None):
 
     child_sigma = []
 
-    for child in graph.successors(source):
+    children = list(graph.successors(source))
+
+    random.shuffle(children)
+
+    for child in children:
         child_sigma.append(sample_sigma(graph, source=child))
 
     sigma = interleave_lists(child_sigma)
