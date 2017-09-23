@@ -52,7 +52,7 @@ class ParticleGibbsSampler(object):
 #             for i in range(1, self.swarm.num_particles):
 #                 assert self.constrained_path[self.iteration] is not self.swarm.particles[i]
 
-        return self.swarm.to_dict()
+        return self.swarm
 
     def _init_swarm(self):
         self.swarm = ParticleSwarm()
