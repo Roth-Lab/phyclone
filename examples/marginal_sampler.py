@@ -6,9 +6,12 @@ import random
 import scipy.stats as stats
 
 from fscrp.concentration import GammaPriorConcentrationSampler
+from fscrp.kernels.marginal.data_structures import MarginalNode
+from fscrp.kernels.marginal.bootstrap import MarginalBootstrapKernel
 from fscrp.kernels.marginal.fully_adapted import MarginalFullyAdaptedKernel
-from fscrp.kernels.marginal.utils import get_constrained_path, get_graph, get_nodes, sample_sigma, get_labels
+from fscrp.kernels.marginal.utils import get_constrained_path, get_graph, get_nodes, sample_sigma, get_labels, get_tree
 from fscrp.math_utils import discrete_rvs
+from fscrp.tree import Tree
 from fscrp.samplers.adaptive import AdaptiveSampler
 from fscrp.samplers.particle_gibbs import ParticleGibbsSampler
 
@@ -22,52 +25,55 @@ def main():
 
     data, labels, true_graph = simulate_binomial_data()
 
-    alpha = 1
+    alpha = 1e-3
 
     num_particles = 20
 
     conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
 
-    graph = nx.DiGraph()
+    data_points = {0: range(len(data))}
 
-    graph.add_edge(-1, 0)
+    nodes = [MarginalNode(0, data[0].shape, []), ]
 
-    graph.node[-1]['data_points'] = []
+    tree = Tree(data_points, nodes)
 
-    graph.node[0]['data_points'] = range(len(data))
+#     kernel = MarginalBootstrapKernel(alpha, data[0].shape)
 
     kernel = MarginalFullyAdaptedKernel(alpha, data[0].shape)
 
     for i in range(1000):
-        sigma = sample_sigma(graph)
+        sigma = sample_sigma(tree)
 
         data_sigma = [data[data_idx] for data_idx in sigma]
 
-        constrained_path = get_constrained_path(data, graph, kernel, sigma)
+        constrained_path = get_constrained_path(data, kernel, sigma, tree)
 
         sampler = ParticleGibbsSampler(constrained_path, data_sigma, kernel, num_particles, resample_threshold=0.5)
 
-        particles = sampler.sample()
+        swarm = sampler.sample()
 
-        particle_idx = discrete_rvs([x[1] for x in particles])
+        particle_idx = discrete_rvs(swarm.weights)
 
-        particle = particles[particle_idx][0]
+        particle = swarm.particles[particle_idx]
 
-        graph = get_graph(particle, sigma=sigma)
+        tree = get_tree(particle, sigma)
 
-        kernel.alpha = conc_sampler.sample(alpha, len(set(get_labels(graph))), len(data))
+#         kernel.alpha = conc_sampler.sample(alpha, len(tree.nodes), len(data))
 
         if i % 1 == 0:
+            pred_labels = [tree.labels[x] for x in sorted(tree.labels)]
             print
             print i, kernel.alpha
-            print get_labels(graph)
-            print homogeneity_completeness_v_measure(labels, get_labels(graph)), len(set(get_labels(graph)))
+            print sigma
+            print pred_labels
+            print homogeneity_completeness_v_measure(labels, pred_labels), len(tree.nodes)
             print particle.log_w
-            print graph.nodes()
-            print graph.edges()
-            print len(get_nodes(particle))
-            print nx.is_isomorphic(graph, true_graph)
+            print nx.is_isomorphic(tree._graph, true_graph)
+            print [x.idx for x in tree.roots]
             print
+
+            for node_idx in tree.nodes:
+                print node_idx, [(x + 1) / 100 for x in np.argmax(tree.nodes[node_idx].log_R, axis=1)]
 
 
 def simulate_binomial_data():
@@ -78,20 +84,21 @@ def simulate_binomial_data():
 
         return stats.binom.logpmf(x, n, grid)
 
+    eps = 1e-10
     graph = nx.DiGraph()
     graph.add_edge(-1, 5)
     graph.add_edge(5, 4)
     graph.add_edge(5, 3)
     graph.add_edge(3, 1)
     graph.add_edge(3, 2)
-    clusters = [[0.1, 0.1, 0.9], [0.2, 0.1, 0.02], [0.3, 0.2, 0.92], [0.7, 0.8, 0.0], [1.0, 1.0, 1.0]]
+    clusters = [[0.1, 0.1, 0.9], [0.2, 0.1, 0.02], [0.3, 0.2, 0.92], [0.7, 0.8, 0.0], [1.0 - eps, 1.0 - eps, 1.0 - eps]]
 
     data = []
 
     labels = []
 
     for i, params in enumerate(clusters):
-        for _ in range(2):
+        for _ in range(5):
             data_point = []
 
             n = stats.poisson.rvs(10000)
