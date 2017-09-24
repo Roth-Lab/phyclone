@@ -116,10 +116,10 @@ class Tree(object):
     def roots(self):
         return [self._nodes[idx] for idx in self._graph.successors(-1)]
 
-#     def copy(self):
-#         root = self._nodes[-1].copy()
-#
-#         return Tree(get_nodes(root), self._data_points.copy())
+    def copy(self):
+        root = self._nodes[-1].copy()
+
+        return Tree(self._data_points.copy(), get_nodes(root)[1:])
 
     def draw(self, ax=None):
         nx.draw(
@@ -252,20 +252,20 @@ class Tree(object):
         # TODO: Fix this by copy the dicts
         node_map = {}
 
-        old_nodes = self.nodes.copy()
-
         old_data_points = self.data_points.copy()
 
         self._data_points = {-1: []}
 
-        self._nodes = {-1: self._nodes[-1]}
+        self._nodes = {-1: self._nodes[-1].copy()}
 
-        for new_idx, old_idx in enumerate(old_nodes, min_value):
-            node_map[old_idx] = new_idx
+        old_nodes = get_nodes(self._nodes[-1])
 
-            self._data_points[new_idx] = old_data_points[old_idx]
+        for new_idx, old in enumerate(old_nodes[1:], min_value):
+            node_map[old.idx] = new_idx
 
-            self._nodes[new_idx] = old_nodes[old_idx]
+            self._data_points[new_idx] = old_data_points[old.idx]
+
+            self._nodes[new_idx] = old
 
             self._nodes[new_idx].idx = new_idx
 
