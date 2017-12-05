@@ -3,7 +3,7 @@ Created on 2014-02-25
 
 @author: Andrew Roth
 '''
-from __future__ import division
+from __future__ import division, print_function
 
 import numpy as np
 
@@ -12,14 +12,7 @@ from fscrp.samplers.swarm import ParticleSwarm
 
 class ParticleGibbsSampler(object):
 
-    def __init__(
-            self,
-            constrained_path,
-            data_points,
-            kernel,
-            num_particles,
-            resample_threshold=0.5):
-
+    def __init__(self, constrained_path, data_points, kernel, num_particles, resample_threshold=0.5):
         self.constrained_path = constrained_path
 
         self.data_points = data_points
@@ -38,8 +31,6 @@ class ParticleGibbsSampler(object):
         self._init_swarm()
 
         while self.iteration < self.num_iterations:
-            #             print 'Iteration {0} of {1}.'.format(self.iteration, self.num_iterations)
-
             self._sample_new_particles()
 
             if self.iteration < self.num_iterations - 1:
@@ -48,9 +39,6 @@ class ParticleGibbsSampler(object):
             self.iteration += 1
 
             assert self.constrained_path[self.iteration] is self.swarm.particles[0]
-
-#             for i in range(1, self.swarm.num_particles):
-#                 assert self.constrained_path[self.iteration] is not self.swarm.particles[i]
 
         return self.swarm
 
@@ -80,8 +68,6 @@ class ParticleGibbsSampler(object):
         swarm = self.swarm
 
         if swarm.relative_ess <= self.resample_threshold:
-            #             print 'Resampling {}'.format(swarm.relative_ess)
-
             new_swarm = ParticleSwarm()
 
             log_uniform_weight = -np.log(self.num_particles)
@@ -124,4 +110,5 @@ class ParticleGibbsSampler(object):
             return particle.log_w
 
         else:
+            # Enforce that the sum of the tree is one
             return particle.log_w - particle.state.log_p + particle.state.log_p_one
