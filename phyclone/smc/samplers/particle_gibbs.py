@@ -2,8 +2,7 @@ from __future__ import division, print_function
 
 import numpy as np
 
-
-from phyclone.samplers.swarm import ParticleSwarm
+from phyclone.smc.samplers.swarm import ParticleSwarm
 
 
 class ParticleGibbsSampler(object):

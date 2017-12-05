@@ -4,10 +4,9 @@ from collections import namedtuple
 
 import numpy as np
 
-
-from phyclone.kernels.marginal.data_structures import MarginalNode
-from phyclone.kernels.marginal.utils import get_num_data_points_per_node
 from phyclone.math_utils import log_factorial
+from phyclone.smc.utils import get_num_data_points_per_node
+from phyclone.tree import MarginalNode
 
 
 MarginalParticle = namedtuple('MarginalParticle', ['log_w', 'parent_particle', 'state'])

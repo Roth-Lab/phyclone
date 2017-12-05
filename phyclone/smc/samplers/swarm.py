@@ -2,7 +2,6 @@ from __future__ import division, print_function
 
 import numpy as np
 
-
 from phyclone.math_utils import log_sum_exp
 
 

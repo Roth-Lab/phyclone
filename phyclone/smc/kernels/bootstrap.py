@@ -1,14 +1,9 @@
-'''
-Created on 9 Aug 2017
-
-@author: Andrew Roth
-'''
 from __future__ import division
 
 import numpy as np
 import random
 
-from phyclone.kernels.marginal.base import MarginalKernel
+from phyclone.smc.kernels.base import MarginalKernel
 
 
 class BootstrapProposal(object):

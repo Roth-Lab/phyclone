@@ -12,15 +12,14 @@ from sklearn.metrics import homogeneity_completeness_v_measure
 
 
 from phyclone.concentration import GammaPriorConcentrationSampler
-from phyclone.kernels.marginal.data_structures import MarginalNode
-from phyclone.kernels.marginal.bootstrap import MarginalBootstrapKernel
-from phyclone.kernels.marginal.fully_adapted import MarginalFullyAdaptedKernel
-from phyclone.kernels.marginal.utils import get_constrained_path, get_graph, get_nodes, sample_sigma, get_labels, get_tree
+from phyclone.smc.kernels.bootstrap import MarginalBootstrapKernel
+from phyclone.smc.kernels.fully_adapted import MarginalFullyAdaptedKernel
+from phyclone.smc.utils import get_constrained_path, get_graph, get_nodes, sample_sigma, get_labels, get_tree
 from phyclone.math_utils import discrete_rvs
-from phyclone.samplers.adaptive import AdaptiveSampler
-from phyclone.samplers.particle_gibbs import ParticleGibbsSampler
-from phyclone.samplers.swarm import ParticleSwarm
-from phyclone.tree import Tree
+from phyclone.smc.samplers.adaptive import AdaptiveSampler
+from phyclone.smc.samplers.particle_gibbs import ParticleGibbsSampler
+from phyclone.smc.samplers.swarm import ParticleSwarm
+from phyclone.tree import MarginalNode, Tree
 
 
 def load_tree(num_iters):
@@ -192,6 +191,7 @@ def run_subtree_particle_gibbs_sampler(data, kernel, tree, num_particles=10, res
     tree.relabel_nodes(0)
 
     return tree, sigma
+
 
 # %%
 data, labels, true_graph, tree = load_tree(10)

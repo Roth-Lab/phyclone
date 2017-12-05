@@ -1,23 +1,3 @@
-# -*- coding: utf-8 -*-
-'''
-This file is part of PhyClone.
-
-PhyClone is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-PhyClone is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
-of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with PhyClone.  If not, see
-<http://www.gnu.org/licenses/>.
-
-Created on 15-03-2013
-
-@authors Alexandre Bouchard-Côté, Andrew Roth
-
-Definition: A clade is a set of data_points, obtained as the set of data_points in the node n of a PhyClone tree plus all
-the mutation in the children of n.
-'''
 from __future__ import division
 
 from collections import defaultdict
@@ -40,9 +20,8 @@ def get_consensus_tree(graphs, threshold=0.5):
 
 
 def consensus(clades):
-    '''
-    Attempts to build a consensus tree from a set of clades. Returns a DiGraph where nodes are clades.
-    '''
+    """ Attempts to build a consensus tree from a set of clades. Returns a DiGraph where nodes are clades.
+    """
     result = nx.DiGraph()
 
     for clade in clades:
@@ -60,11 +39,12 @@ def consensus(clades):
 
 
 def relabel(graph):
-    '''
-    Relabels a consensus tree. Takes in a DiGraph of clades, return a new DiGraph where nodes are again set of mutation,
-    but with a different interpretation. The tranformation used to change the nodes/sets is to start with the original
-    and remove from each node the data_points that appear in children clades
-    '''
+    """ Relabels a consensus tree.
+
+    Takes in a DiGraph of clades, return a new DiGraph where nodes are again set of mutation, but with a different
+    interpretation. The tranformation used to change the nodes/sets is to start with the original and remove from each
+    node the data_points that appear in children clades.
+    """
     result = nx.DiGraph()
 
     for root in roots(graph):
@@ -91,10 +71,11 @@ def clean_tree(tree):
 
 
 def clade_probabilities(graphs):
-    '''
+    """ Return a clade probabilities.
+
     Reads a YAML file, loops over particles, normalize weights, then: return a dictionary where the entries are clades,
     and the values are posterior probabilities
-    '''
+    """
     clades_counter = defaultdict(float)
 
     for graph, particle_probabilities in iter_graph_probabilities(graphs):
@@ -107,9 +88,8 @@ def clade_probabilities(graphs):
 
 
 def key_above_threshold(counter, threshold):
-    '''
-    Only keeps the keys in a dict above or equal the threshold
-    '''
+    """ Only keeps the keys in a dict above or equal the threshold
+    """
     return set([key for key, value in counter.iteritems() if value > threshold])
 
 
@@ -200,14 +180,18 @@ def find_smallest_superset(set_of_sets, query_set):
 
 
 def load_data_point_params(graphs):
-    '''
-    Args:
-        particle_file : (path) Path of gzip compressed file with particles.
+    """
+    Parameters
+    ----------
+    particle_file : path
+        Path of gzip compressed file with particles.
 
-    Returns:
-        data_point_params : (dict) A dictionary of lists with one entry per data point. Values are three tuples of
-        (particle_probability, agg_params, node_params).
-    '''
+    Returns
+    -------
+        data_point_params : dict
+            A dictionary of lists with one entry per data point. Values are three tuples of (particle_probability,
+        agg_params, node_params).
+    """
     data_point_params = defaultdict(list)
 
     for graph, p in iter_graph_probabilities(graphs):

@@ -8,8 +8,8 @@ from __future__ import division
 import numpy as np
 import random
 
-from phyclone.kernels.marginal.base import MarginalKernel
 from phyclone.math_utils import log_normalize
+from phyclone.smc.kernels.base import MarginalKernel
 
 
 class SemiAdaptedProposal(object):
