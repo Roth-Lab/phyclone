@@ -1,17 +1,13 @@
-'''
-Created on 2014-02-25
-
-@author: Andrew Roth
-'''
 from __future__ import division
 
 import numpy as np
+
 
 from fscrp.samplers.swarm import ParticleSwarm
 
 
 class AdaptiveSampler(object):
-    """ Unconditional SMC sampler
+    """ Unconditional SMC sampler.
     """
 
     def __init__(self, data_points, kernel, num_particles, resample_threshold=0.5):
@@ -45,7 +41,7 @@ class AdaptiveSampler(object):
 
         self.log_Z += -np.log(self.swarm.num_particles) + self.swarm.log_norm_const
 
-        return self.swarm.to_dict()
+        return self.swarm.to_list()
 
     def _init_swarm(self):
         self.swarm = ParticleSwarm()
