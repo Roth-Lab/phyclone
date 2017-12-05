@@ -9,13 +9,19 @@ from fscrp.kernels.marginal.data_structures import MarginalNode
 
 
 class Tree(object):
+    """ FSCRP tree data structure.
+
+    This structure includes the dummy root node.
+    """
 
     def __init__(self, data_points, nodes):
-        """ FSCRP tree data structure
-
-        :param data_points: dictionary mapping node ids to data points
-        :param nodes: list of nodes
-
+        """
+        Parameters
+        ----------
+        data_points: dict
+            A mapping from nodes to a list of data points associated with the node.
+        nodes: list
+            A list of MarginalNodes
         """
 
 #         self._nodes = {}
@@ -49,12 +55,10 @@ class Tree(object):
         self._graph = G
 
         # Instantiate dummy node
-        root_idxs = self._graph.successors(-1)
-
         roots = []
 
         for node in nodes:
-            if node.idx in root_idxs:
+            if node.idx in self._graph.successors(-1):
                 roots.append(node)
 
         self._data_points[-1] = []
@@ -136,7 +140,7 @@ class Tree(object):
         if node.idx == -1:
             return None
 
-        parent_idxs = self._graph.predecessors(node.idx)
+        parent_idxs = list(self._graph.predecessors(node.idx))
 
         assert len(parent_idxs) == 1
 
@@ -324,9 +328,11 @@ class Tree(object):
             assert set(self._graph.successors(node.idx)) == set([x.idx for x in node.children])
 
             for child in node.children:
-                assert len(self._graph.predecessors(child.idx)) == 1
+                parents = list(self._graph.predecessors(child.idx))
 
-                assert self._graph.predecessors(child.idx)[0] == node.idx
+                assert len(parents) == 1
+
+                assert parents[0] == node.idx
 
 
 def get_nodes(source):
