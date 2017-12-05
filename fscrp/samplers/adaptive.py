@@ -41,7 +41,7 @@ class AdaptiveSampler(object):
 
         self.log_Z += -np.log(self.swarm.num_particles) + self.swarm.log_norm_const
 
-        return self.swarm.to_list()
+        return self.swarm
 
     def _init_swarm(self):
         self.swarm = ParticleSwarm()
