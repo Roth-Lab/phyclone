@@ -9,7 +9,7 @@ from collections import namedtuple
 from scipy.signal import fftconvolve
 
 import numpy as np
-import numba
+
 
 from fscrp.math_utils import log_sum_exp
 
@@ -17,6 +17,8 @@ MarginalParticle = namedtuple('MarginalParticle', ['log_w', 'parent_particle', '
 
 
 class MarginalNode(object):
+    """ A node in FS-CRP forest with parameters marginalized.
+    """
 
     def __init__(self, idx, grid_size, children=None):
         self.idx = idx
@@ -37,10 +39,14 @@ class MarginalNode(object):
 
     @property
     def children(self):
+        """ List of child nodes.
+        """
         return self._children.values()
 
     @property
     def log_p(self):
+        """ Log probability of sub-tree rooted at node, marginalizing node parameter.
+        """
         log_p = 0
 
         for i in range(self.grid_size[0]):
@@ -50,6 +56,8 @@ class MarginalNode(object):
 
     @property
     def log_p_one(self):
+        """ Log probability of sub-tree rooted at node, conditioned on node parameter of one.
+        """
         log_p = 0
 
         for i in range(self.grid_size[0]):
@@ -58,6 +66,8 @@ class MarginalNode(object):
         return log_p
 
     def add_child_node(self, node):
+        """ Add a child node.
+        """
         assert node.idx not in self.children
 
         self._children[node.idx] = node
@@ -65,11 +75,15 @@ class MarginalNode(object):
         self.update()
 
     def remove_child_node(self, node):
+        """ Remove a child node.
+        """
         del self._children[node.idx]
 
         self.update()
 
     def update_children(self, children):
+        """ Set the node children
+        """
         self._children = {}
 
         if children is not None:
@@ -81,23 +95,25 @@ class MarginalNode(object):
         self.update()
 
     def add_data_point(self, data_point):
-        '''
-        Add a data point to the collection at this node.
-        '''
+        """ Add a data point to the collection at this node.
+        """
         self.log_likelihood += data_point
 
         self._update_log_R()
 
     def remove_data_point(self, data_point):
-        '''
-        Add a data point to the collection at this node.
-        '''
+        """ Remove a data point to the collection at this node.
+        """
         self.log_likelihood -= data_point
 
         self._update_log_R()
 
     def copy(self):
-        #TODO: Replace call to __init__ with __new__ and skip call to update()
+        """ Make a deep copy of the node.
+
+        This should return a copy of the node with no shared memory with the original.
+        """
+        # TODO: Replace call to __init__ with __new__ and skip call to update()
         new_children = [x.copy() for x in self.children]
 
         new = MarginalNode(self.idx, self.grid_size, children=new_children)
@@ -111,6 +127,8 @@ class MarginalNode(object):
         return new
 
     def update(self):
+        """ Update the arrays required for the recursion.
+        """
         self._update_log_S()
 
         self._update_log_R()
@@ -140,6 +158,8 @@ class MarginalNode(object):
 
 
 def _compute_log_D_n(child_log_R, prev_log_D_n):
+    """ Compute the recursion over D using the FFT
+    """
     log_R_max = child_log_R.max()
 
     log_D_max = prev_log_D_n.max()
@@ -155,23 +175,3 @@ def _compute_log_D_n(child_log_R, prev_log_D_n):
     result[result <= 0] = 1e-100
 
     return np.log(result) + log_D_max + log_R_max
-
-
-@numba.jit(nopython=True, cache=True)
-def _compute_log_S(log_D):
-    G = len(log_D)
-
-    log_S = np.zeros(G)
-
-    temp = np.zeros(2)
-
-    log_S[0] = -np.inf
-
-    for i in range(1, G):
-        temp[0] = log_D[i]
-
-        temp[1] = log_S[i - 1]
-
-        log_S[i] = log_sum_exp(temp)
-
-    return log_S
