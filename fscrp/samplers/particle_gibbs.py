@@ -1,17 +1,13 @@
-'''
-Created on 2014-02-25
-
-@author: Andrew Roth
-'''
 from __future__ import division, print_function
 
 import numpy as np
+
 
 from fscrp.samplers.swarm import ParticleSwarm
 
 
 class ParticleGibbsSampler(object):
-    """ SMC sampler which conditions a fixed path
+    """ SMC sampler which conditions a fixed path.
     """
 
     def __init__(self, constrained_path, data_points, kernel, num_particles, resample_threshold=0.5):
