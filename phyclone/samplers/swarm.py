@@ -3,7 +3,7 @@ from __future__ import division, print_function
 import numpy as np
 
 
-from fscrp.math_utils import log_sum_exp
+from phyclone.math_utils import log_sum_exp
 
 
 class ParticleSwarm(object):

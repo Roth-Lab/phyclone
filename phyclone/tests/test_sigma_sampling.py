@@ -7,7 +7,7 @@ import unittest
 
 import networkx as nx
 
-from fscrp.graph_utils import interleave_lists, sample_sigma
+from phyclone.graph_utils import interleave_lists, sample_sigma
 
 
 class Test(unittest.TestCase):

@@ -10,8 +10,8 @@ from collections import defaultdict
 import networkx as nx
 import random
 
-from fscrp.particle_utils import iter_particles
-from fscrp.tree import Tree
+from phyclone.particle_utils import iter_particles
+from phyclone.tree import Tree
 
 
 def get_num_data_points_per_node(last_particle):

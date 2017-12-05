@@ -3,7 +3,7 @@ from __future__ import division
 import numpy as np
 
 
-from fscrp.samplers.swarm import ParticleSwarm
+from phyclone.samplers.swarm import ParticleSwarm
 
 
 class AdaptiveSampler(object):

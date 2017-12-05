@@ -5,9 +5,9 @@ from collections import namedtuple
 import numpy as np
 
 
-from fscrp.kernels.marginal.data_structures import MarginalNode
-from fscrp.kernels.marginal.utils import get_num_data_points_per_node
-from fscrp.math_utils import log_factorial
+from phyclone.kernels.marginal.data_structures import MarginalNode
+from phyclone.kernels.marginal.utils import get_num_data_points_per_node
+from phyclone.math_utils import log_factorial
 
 
 MarginalParticle = namedtuple('MarginalParticle', ['log_w', 'parent_particle', 'state'])

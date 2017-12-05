@@ -8,7 +8,7 @@ from __future__ import division
 import numpy as np
 import random
 
-from fscrp.kernels.marginal.base import MarginalKernel
+from phyclone.kernels.marginal.base import MarginalKernel
 
 
 class BootstrapProposal(object):

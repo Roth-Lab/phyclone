@@ -5,7 +5,7 @@ Created on 16 Sep 2017
 '''
 import networkx as nx
 
-from fscrp.kernels.marginal.data_structures import MarginalNode
+from phyclone.kernels.marginal.data_structures import MarginalNode
 
 
 class Tree(object):

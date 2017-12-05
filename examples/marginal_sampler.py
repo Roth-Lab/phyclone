@@ -5,15 +5,15 @@ import numpy as np
 import random
 import scipy.stats as stats
 
-from fscrp.concentration import GammaPriorConcentrationSampler
-from fscrp.kernels.marginal.data_structures import MarginalNode
-from fscrp.kernels.marginal.bootstrap import MarginalBootstrapKernel
-from fscrp.kernels.marginal.fully_adapted import MarginalFullyAdaptedKernel
-from fscrp.kernels.marginal.utils import get_constrained_path, get_graph, get_nodes, sample_sigma, get_labels, get_tree
-from fscrp.math_utils import discrete_rvs
-from fscrp.tree import Tree
-from fscrp.samplers.adaptive import AdaptiveSampler
-from fscrp.samplers.particle_gibbs import ParticleGibbsSampler
+from phyclone.concentration import GammaPriorConcentrationSampler
+from phyclone.kernels.marginal.data_structures import MarginalNode
+from phyclone.kernels.marginal.bootstrap import MarginalBootstrapKernel
+from phyclone.kernels.marginal.fully_adapted import MarginalFullyAdaptedKernel
+from phyclone.kernels.marginal.utils import get_constrained_path, get_graph, get_nodes, sample_sigma, get_labels, get_tree
+from phyclone.math_utils import discrete_rvs
+from phyclone.tree import Tree
+from phyclone.samplers.adaptive import AdaptiveSampler
+from phyclone.samplers.particle_gibbs import ParticleGibbsSampler
 
 from sklearn.metrics import homogeneity_completeness_v_measure
 

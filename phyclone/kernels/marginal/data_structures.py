@@ -11,7 +11,7 @@ from scipy.signal import fftconvolve
 import numpy as np
 
 
-from fscrp.math_utils import log_sum_exp
+from phyclone.math_utils import log_sum_exp
 
 MarginalParticle = namedtuple('MarginalParticle', ['log_w', 'parent_particle', 'nodes', 'node_idx', 'root_idxs'])
 

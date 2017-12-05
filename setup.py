@@ -1,12 +1,12 @@
 from setuptools import find_packages, setup
 
 setup(
-    name='fscrp',
+    name='phyclone',
     version='0.1.0',
-    description='A Python library implementing the forest structured chinese restaurant process models.',
+    description='A method for inferring clonal phylogenies from SNV data.',
     author='Andrew Roth',
     author_email='andrewjlroth@gmail.com',
-    url='https://bitbucket.org/aroth85/fscrp',
+    url='https://bitbucket.org/aroth85/phyclone',
     packages=find_packages(),
     license='GPL v3'
 )
