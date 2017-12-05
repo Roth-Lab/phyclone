@@ -3,23 +3,25 @@ Created on 8 Dec 2016
 
 @author: Andrew Roth
 '''
-from __future__ import division
+from __future__ import division, print_function
 
 import numpy as np
 import scipy.stats as stats
 
 
 class GammaPriorConcentrationSampler(object):
-    '''
-    Gibbs update assuming a gamma prior on the concentration parameter.
-    '''
+    """ Gibbs update assuming a gamma prior on the concentration parameter.
+    """
 
     def __init__(self, a, b):
-        '''
-        Args :
-            a : (float) Shape parameter of the gamma prior.
-            b : (float) Rate parameter of the gamma prior.
-        '''
+        """
+        Parameters
+        ----------
+        a: float
+            Shape parameter of the gamma prior.
+        b: float
+            Rate parameter of the gamma prior.
+        """
         self.a = a
 
         self.b = b

@@ -3,12 +3,14 @@ Created on 17 Mar 2017
 
 @author: Andrew Roth
 '''
-from __future__ import division
+from __future__ import division, print_function
 
 import random
 
 
 def get_labels(graph):
+    """ Get cluster labels from a graph.
+    """
     labels = {}
 
     for node in graph.nodes():
@@ -19,10 +21,14 @@ def get_labels(graph):
 
 
 def get_roots(graph):
+    """ Get the root nodes in a directed graph.
+    """
     return [x for x in graph.nodes() if graph.in_degree(x) == 0]
 
 
 def sample_sigma(graph, source=None):
+    """ Sample a permutation of data points conditioned on a graph.
+    """
     if source is None:
         roots = get_roots(graph)
 
@@ -58,34 +64,42 @@ def sample_sigma(graph, source=None):
     return sigma
 
 
-def sample_sigma_1(graph, source=None):
-    if source is None:
-        roots = get_roots(graph)
-
-        sigma = []
-
-        for node in roots:
-            sigma.append(sample_sigma_1(graph, source=node))
-
-        return interleave_lists(sigma)
-
-    child_sigma = []
-
-    for child in graph.successors(source):
-        child_sigma.append(sample_sigma_1(graph, source=child))
-
-    sigma = interleave_lists(child_sigma)
-
-    source_sigma = list(graph.node[source]['data_points'])
-
-    random.shuffle(source_sigma)
-
-    sigma.extend(source_sigma)
-
-    return sigma
+# Note: Playing with some other options for resampling sigma
+# def sample_sigma_1(graph, source=None):
+#     if source is None:
+#         roots = get_roots(graph)
+#
+#         sigma = []
+#
+#         for node in roots:
+#             sigma.append(sample_sigma_1(graph, source=node))
+#
+#         return interleave_lists(sigma)
+#
+#     child_sigma = []
+#
+#     for child in graph.successors(source):
+#         child_sigma.append(sample_sigma_1(graph, source=child))
+#
+#     sigma = interleave_lists(child_sigma)
+#
+#     source_sigma = list(graph.node[source]['data_points'])
+#
+#     random.shuffle(source_sigma)
+#
+#     sigma.extend(source_sigma)
+#
+#     return sigma
 
 
 def interleave_lists(lists):
+    """ Bridge shuffle the elements of set of lists.
+
+    Parameters
+    ----------
+    lists: list
+        A list of lists to interleave.
+    """
     result = []
 
     while len(lists) > 0:

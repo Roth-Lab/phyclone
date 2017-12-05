@@ -16,6 +16,20 @@ def discrete_rvs(p):
 
 @numba.jit(cache=True, nopython=True)
 def exp_normalize(log_p):
+    """ Normalize a vector numerically safely.
+
+    Parameters
+    ----------
+    log_p: array_like (float)
+        Unnormalized array of values in log space.
+
+    Returns:
+    -------
+    p: array_like (float)
+        Normalized array of values.
+    log_norm: float
+        Log normalization constant.
+    """
     log_norm = log_sum_exp(log_p)
 
     p = np.exp(log_p - log_norm)
@@ -27,11 +41,10 @@ def exp_normalize(log_p):
 
 @numba.jit(cache=True, nopython=True)
 def log_sum_exp(log_X):
-    '''
-    Given a list of values in log space, log_X. Compute exp(log_X[0] + log_X[1] + ... log_X[n])
+    """ Given a list of values in log space, log_X. Compute exp(log_X[0] + log_X[1] + ... log_X[n])
 
-    Numerically safer than naive method.
-    '''
+    This implementation is numerically safer than the naive method.
+    """
     max_exp = np.max(log_X)
 
     if np.isinf(max_exp):

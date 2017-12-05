@@ -11,6 +11,8 @@ import networkx as nx
 
 
 def get_constrained_path(data, graph, kernel, sigma):
+    """ Get a list of particles that can be used as the conditional path in a particle Gibbs move.
+    """
     constrained_path = [None, ]
 
     data_to_node = get_data_to_node_map(graph)
@@ -26,6 +28,8 @@ def get_constrained_path(data, graph, kernel, sigma):
 
 
 def get_data_to_node_map(graph):
+    """ Get a mapping of data points to node assignments.
+    """
     result = {}
 
     for node in graph.nodes_iter():
@@ -38,6 +42,8 @@ def get_data_to_node_map(graph):
 
 
 def get_data_points(last_particle):
+    """ Get data points from a genealogy.
+    """
     data_points = []
 
     for particle in iter_particles(last_particle):
