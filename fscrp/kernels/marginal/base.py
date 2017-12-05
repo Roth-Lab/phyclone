@@ -1,13 +1,9 @@
-'''
-Created on 9 Aug 2017
-
-@author: Andrew Roth
-'''
-from __future__ import division
+from __future__ import division, print_function
 
 from collections import namedtuple
 
 import numpy as np
+
 
 from fscrp.kernels.marginal.data_structures import MarginalNode
 from fscrp.kernels.marginal.utils import get_num_data_points_per_node
@@ -18,6 +14,10 @@ MarginalParticle = namedtuple('MarginalParticle', ['log_w', 'parent_particle', '
 
 
 class State(object):
+    """ A partial state of the SMC algorithm.
+
+    This class stores the partially constructed tree during the SMC.
+    """
 
     def __init__(self, nodes, node_idx, log_p_prior, root_idxs):
         self.log_p_prior = log_p_prior
@@ -47,6 +47,8 @@ class State(object):
 
     @property
     def dummy_root(self):
+        """ A node connecting all concrete rootnodes in the tree.
+        """
         if self._dummy_root is None:
             self._dummy_root = MarginalNode(-1, self.nodes.values()[0].grid_size, children=self.root_nodes)
 
@@ -54,6 +56,8 @@ class State(object):
 
     @property
     def log_p(self):
+        """ Log joint probability of the state marginalizing over value of dummy root.
+        """
         if self._log_p is None:
             self._log_p = self.dummy_root.log_p
 
@@ -61,6 +65,8 @@ class State(object):
 
     @property
     def log_p_one(self):
+        """ Log joint probability of the state with dummy root having value of one.
+        """
         if self._log_p_one is None:
             self._log_p_one = self.dummy_root.log_p_one
 
@@ -68,24 +74,44 @@ class State(object):
 
     @property
     def root_idxs(self):
+        """ List indexes for concrete root nodes in the tree.
+        """
         return set(self._root_idxs)
 
     @property
     def root_nodes(self):
+        """ List of concrete root nodes.
+        """
         return [self.nodes[idx] for idx in self._root_idxs]
 
 
 class MarginalKernel(object):
+    """ Abstract class representing an SMC kernel targeting the marginal FS-CRP distribution.
+
+    Sub-classes should implement the get_proposal_distribution method.
+    """
+
+    def get_proposal_distribution(self, data_point, parent_particle):
+        """ Get proposal distribution given the current data point and parent particle.
+        """
+        raise NotImplementedError
 
     def __init__(self, alpha, grid_size):
+        """
+        Parameters
+        ----------
+        alpha: float
+            Concentration parameter of the CRP.
+        grid_size: int
+            The size of the grid to approximate the recursion integrals.
+        """
         self.alpha = alpha
 
         self.grid_size = grid_size
 
     def create_particle(self, data_point, log_q, parent_particle, state):
-        '''
-        Create a descendant particle from a parent particle
-        '''
+        """  Create a new particle from a parent particle.
+        """
         if parent_particle is None:
             log_w = state.log_p - log_q
 
@@ -95,6 +121,19 @@ class MarginalKernel(object):
         return MarginalParticle(log_w, parent_particle, state)
 
     def create_state(self, data_point, parent_particle, node_idx, root_idxs):
+        """ Create a new state.
+
+        Parameters
+        ----------
+        data_point: array_like (float)
+            Current data point.
+        parent_particle: MarginalParticle
+            Parent particle in genealogy.
+        node_idx: int
+            Index of the node the data point is assigned to.
+        root_idxs: array_like (int)
+            List of indexes for concrete nodes.
+        """
         log_p_prior = self._compute_log_p_prior(data_point, parent_particle, node_idx, root_idxs)
 
         if parent_particle is None:
@@ -127,9 +166,8 @@ class MarginalKernel(object):
         return State(nodes, node_idx, log_p_prior, root_idxs)
 
     def propose_particle(self, data_point, parent_particle):
-        '''
-        Propose a particle for t given a particle from t - 1 and a data point.
-        '''
+        """ Propose a particle for t given a particle from t - 1 and a data point.
+        """
         proposal_dist = self.get_proposal_distribution(data_point, parent_particle)
 
         state = proposal_dist.sample_state()
@@ -139,6 +177,8 @@ class MarginalKernel(object):
         return self.create_particle(data_point, log_q, parent_particle, state)
 
     def _compute_log_p_prior(self, data_point, parent_particle, node_idx, root_idxs):
+        """ Compute the incremental FS-CRP prior contribution.
+        """
         if parent_particle is None:
             log_p = np.log(self.alpha)
 
