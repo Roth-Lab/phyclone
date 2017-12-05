@@ -11,6 +11,8 @@ from fscrp.samplers.swarm import ParticleSwarm
 
 
 class ParticleGibbsSampler(object):
+    """ SMC sampler which conditions a fixed path
+    """
 
     def __init__(self, constrained_path, data_points, kernel, num_particles, resample_threshold=0.5):
         self.constrained_path = constrained_path

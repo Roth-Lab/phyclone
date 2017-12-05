@@ -11,6 +11,8 @@ from fscrp.samplers.swarm import ParticleSwarm
 
 
 class AdaptiveSampler(object):
+    """ Unconditional SMC sampler
+    """
 
     def __init__(self, data_points, kernel, num_particles, resample_threshold=0.5):
         self.data_points = data_points
