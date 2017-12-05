@@ -13,6 +13,11 @@ from fscrp.math_utils import log_normalize
 
 
 class SemiAdaptedProposal(object):
+    """ Semi adapted proposal density.
+
+    Considers all possible choice of existing nodes and one option for a new node proposed at random. This
+    should provide a computational advantage over the fully adapted proposal.
+    """
 
     def __init__(self, data_point, kernel, parent_particle):
         self.data_point = data_point

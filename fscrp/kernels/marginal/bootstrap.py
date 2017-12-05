@@ -12,6 +12,10 @@ from fscrp.kernels.marginal.base import MarginalKernel
 
 
 class BootstrapProposal(object):
+    """ Bootstrap proposal distribution.
+
+    A simple proposal from the prior distribution.
+    """
 
     def __init__(self, data_point, kernel, parent_particle):
         self.data_point = data_point
@@ -21,6 +25,8 @@ class BootstrapProposal(object):
         self.parent_particle = parent_particle
 
     def get_log_q(self, state):
+        """ Get the log probability of the state.
+        """
         if self.parent_particle is None:
             log_q = 0
 
@@ -37,6 +43,8 @@ class BootstrapProposal(object):
         return log_q
 
     def sample_state(self):
+        """ Sample a new state from the proposal distribution.
+        """
         if self.parent_particle is None:
             state = self.kernel.create_state(self.data_point, self.parent_particle, 0, set([0, ]))
 

@@ -13,6 +13,10 @@ from fscrp.math_utils import log_normalize
 
 
 class FullyAdaptedProposal(object):
+    """ Fully adapted proposal density.
+
+    Considers all possible proposals and weight according to log probability.
+    """
 
     def __init__(self, data_point, kernel, parent_particle):
         self.data_point = data_point
