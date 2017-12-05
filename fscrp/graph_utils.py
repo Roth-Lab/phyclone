@@ -19,7 +19,7 @@ def get_labels(graph):
 
 
 def get_roots(graph):
-    return [x for x in graph.nodes_iter() if graph.in_degree(x) == 0]
+    return [x for x in graph.nodes() if graph.in_degree(x) == 0]
 
 
 def sample_sigma(graph, source=None):
