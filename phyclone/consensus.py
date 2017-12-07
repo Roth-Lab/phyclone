@@ -5,8 +5,8 @@ from collections import defaultdict
 import networkx as nx
 
 
-def get_consensus_tree(graphs, threshold=0.5):
-    clades_counter = clade_probabilities(graphs)
+def get_consensus_tree(trees, threshold=0.5, weighted=False):
+    clades_counter = clade_probabilities(trees, weighted=weighted)
 
     consensus_clades = key_above_threshold(clades_counter, threshold)
 
@@ -70,19 +70,22 @@ def clean_tree(tree):
     return new_tree
 
 
-def clade_probabilities(graphs):
+def clade_probabilities(trees, weighted=False):
     """ Return a clade probabilities.
-
-    Reads a YAML file, loops over particles, normalize weights, then: return a dictionary where the entries are clades,
-    and the values are posterior probabilities
     """
     clades_counter = defaultdict(float)
 
-    for graph, particle_probabilities in iter_graph_probabilities(graphs):
-        data_points_map = get_data_points(graph)
+    for tree in trees:
+        for clade in clades(tree):
+            if weighted:
+                clades_counter[clade] += trees[tree]
 
-        for clade in clades(graph, data_points_map):
-            clades_counter[clade] += particle_probabilities
+            else:
+                clades_counter[clade] += 1
+
+    if not weighted:
+        for clade in clades_counter:
+            clades_counter[clade] = clades_counter[clade] / len(trees)
 
     return clades_counter
 
@@ -93,23 +96,23 @@ def key_above_threshold(counter, threshold):
     return set([key for key, value in counter.iteritems() if value > threshold])
 
 
-def clades(graph, data_points):
+def clades(tree):
     result = set()
 
-    for root in roots(graph):
-        _clades(graph, root, result, data_points)
+    for root in tree.roots:
+        _clades(result, root, tree)
 
     return result
 
 
-def _clades(graph, node, clades, data_points):
+def _clades(clades, node, tree):
     current_clade = set()
 
-    for mutation in data_points[node]:
+    for mutation in tree.data_points[node.idx]:
         current_clade.add(mutation)
 
-    for _, children in graph.out_edges_iter(node):
-        for mutation in _clades(graph, children, clades, data_points):
+    for child in node.children:
+        for mutation in _clades(clades, child, tree):
             current_clade.add(mutation)
 
     clades.add(frozenset(current_clade))
@@ -120,7 +123,7 @@ def _clades(graph, node, clades, data_points):
 def _relabel(node, transformed, original):
     result = set(node)
 
-    for _, children in original.out_edges_iter(node):
+    for _, children in original.out_edges(node):
         for mutation in children:
             result.remove(mutation)
 
@@ -128,27 +131,14 @@ def _relabel(node, transformed, original):
 
     transformed.add_node(result)
 
-    for _, children in original.out_edges_iter(node):
+    for _, children in original.out_edges(node):
         transformed.add_edge(result, _relabel(children, transformed, original))
 
     return result
 
 
-def get_data_points(graph):
-    result = {}
-
-    for n, d in graph.nodes_iter(data=True):
-        result[n] = set(mutation for mutation in d['data_points'])
-
-    return result
-
-
 def roots(graph):
-    return [n for n in graph.nodes_iter() if len(graph.in_edges(n)) == 0]
-
-
-def increment(counter, key, increment):
-    counter[key] = counter.get(key, 0) + increment
+    return [n for n in graph.nodes() if len(graph.in_edges(n)) == 0]
 
 
 def find_smallest_superset(set_of_sets, query_set):
@@ -177,41 +167,3 @@ def find_smallest_superset(set_of_sets, query_set):
             smallest_superset = candidate_superset
 
     return smallest_superset
-
-
-def load_data_point_params(graphs):
-    """
-    Parameters
-    ----------
-    particle_file : path
-        Path of gzip compressed file with particles.
-
-    Returns
-    -------
-        data_point_params : dict
-            A dictionary of lists with one entry per data point. Values are three tuples of (particle_probability,
-        agg_params, node_params).
-    """
-    data_point_params = defaultdict(list)
-
-    for graph, p in iter_graph_probabilities(graphs):
-        for node in graph.nodes():
-            for d in graph.node[node]['data_points']:
-                data_point_params[d].append((p, graph.node[node]['agg_params'], graph.node[node]['node_params']))
-
-    return data_point_params
-
-
-def iter_graph_probabilities(graphs):
-    weights = []
-
-    for i, graph in enumerate(graphs):
-        if i % 100 == 0:
-            print i
-
-        weights.append(graph.graph['multiplicity'])
-
-    probabilities = [x / sum(weights) for x in weights]
-
-    for g, p in zip(graphs, probabilities):
-        yield g, p
