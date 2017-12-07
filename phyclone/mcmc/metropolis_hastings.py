@@ -35,8 +35,6 @@ class PruneRegraphSampler(object):
         u = random.random()
 
         if new_log_p - old_log_p > math.log(u):
-            print('Accepting prune regraph')
-
             tree = new_tree
 
         return tree
