@@ -4,7 +4,7 @@ import random
 import scipy.stats as stats
 
 
-def load_test_data(cluster_size=10, depth=1000, grid_size=101):
+def load_test_data(cluster_size=5, depth=1000, grid_size=101, single_sample=False):
     """ Simulate a toy Binomial data set.
 
     True tree: (4,(3,2(1,0)))
@@ -29,13 +29,17 @@ def load_test_data(cluster_size=10, depth=1000, grid_size=101):
     graph.add_edge(4, 2)
     graph.add_edge(2, 0)
     graph.add_edge(2, 1)
-    clusters = [[0.1, 0.1, 0.9], [0.2, 0.1, 0.02], [0.3, 0.2, 0.92], [0.7, 0.8, 0.0], [1.0, 1.0, 1.0]]
+
+    cluster_params = [[0.1, 0.1, 0.9], [0.2, 0.1, 0.02], [0.3, 0.2, 0.92], [0.7, 0.8, 0.0], [1.0, 1.0, 1.0]]
+
+    if single_sample:
+        cluster_params = [[x[0], ] for x in cluster_params]
 
     data = []
 
     labels = []
 
-    for i, params in enumerate(clusters):
+    for i, params in enumerate(cluster_params):
         for _ in range(cluster_size):
             data_point = []
 
