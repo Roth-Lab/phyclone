@@ -6,6 +6,7 @@ import networkx as nx
 import numpy as np
 
 from phyclone.concentration import GammaPriorConcentrationSampler
+from phyclone.consensus import get_consensus_tree
 from phyclone.mcmc.metropolis_hastings import PruneRegraphSampler
 from phyclone.mcmc.particle_gibbs import ParticleGibbsSubtreeSampler
 from phyclone.tree import get_single_node_tree
@@ -28,8 +29,11 @@ pg_sampler = ParticleGibbsSubtreeSampler(
     resample_threshold=0.5
 )
 
+num_iters = int(1e3)
 
-for i in range(1000):
+trace = []
+
+for i in range(num_iters):
     tree = pg_sampler.sample_tree(data, tree)
 
     tree = mh_sampler.sample_tree(data, tree)
@@ -49,3 +53,13 @@ for i in range(1000):
 
         for node_idx in tree.nodes:
             print(node_idx, [(x + 1) / 101 for x in np.argmax(tree.nodes[node_idx].log_R, axis=1)])
+
+        if i >= (num_iters / 2):
+            trace.append(tree)
+
+consensus_tree = get_consensus_tree(trace)
+
+print(consensus_tree.edges())
+
+for node in consensus_tree.nodes():
+    print(node, consensus_tree.nodes[node]['data_points'])
