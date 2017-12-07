@@ -9,7 +9,7 @@ from phyclone.smc.utils import get_num_data_points_per_node
 from phyclone.tree import MarginalNode
 
 
-MarginalParticle = namedtuple('MarginalParticle', ['log_w', 'parent_particle', 'state'])
+Particle = namedtuple('Particle', ['log_w', 'parent_particle', 'state'])
 
 
 class State(object):
@@ -84,7 +84,7 @@ class State(object):
         return [self.nodes[idx] for idx in self._root_idxs]
 
 
-class MarginalKernel(object):
+class Kernel(object):
     """ Abstract class representing an SMC kernel targeting the marginal FS-CRP distribution.
 
     Sub-classes should implement the get_proposal_distribution method.
@@ -117,7 +117,7 @@ class MarginalKernel(object):
         else:
             log_w = state.log_p - parent_particle.state.log_p - log_q
 
-        return MarginalParticle(log_w, parent_particle, state)
+        return Particle(log_w, parent_particle, state)
 
     def create_state(self, data_point, parent_particle, node_idx, root_idxs):
         """ Create a new state.
@@ -126,7 +126,7 @@ class MarginalKernel(object):
         ----------
         data_point: array_like (float)
             Current data point.
-        parent_particle: MarginalParticle
+        parent_particle: Particle
             Parent particle in genealogy.
         node_idx: int
             Index of the node the data point is assigned to.

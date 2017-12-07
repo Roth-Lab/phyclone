@@ -4,7 +4,7 @@ import itertools
 import numpy as np
 
 from phyclone.math_utils import log_normalize
-from phyclone.smc.kernels.base import MarginalKernel
+from phyclone.smc.kernels.base import Kernel
 
 
 class FullyAdaptedProposal(object):
@@ -86,7 +86,7 @@ class FullyAdaptedProposal(object):
         return proposed_states
 
 
-class MarginalFullyAdaptedKernel(MarginalKernel):
+class FullyAdaptedKernel(Kernel):
 
     def get_proposal_distribution(self, data_point, parent_particle):
         return FullyAdaptedProposal(data_point, self, parent_particle)

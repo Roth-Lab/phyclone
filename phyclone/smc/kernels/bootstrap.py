@@ -3,7 +3,7 @@ from __future__ import division
 import numpy as np
 import random
 
-from phyclone.smc.kernels.base import MarginalKernel
+from phyclone.smc.kernels.base import Kernel
 
 
 class BootstrapProposal(object):
@@ -85,7 +85,7 @@ class BootstrapProposal(object):
         )
 
 
-class MarginalBootstrapKernel(MarginalKernel):
+class BootstrapKernel(Kernel):
 
     def get_proposal_distribution(self, data_point, parent_particle):
         return BootstrapProposal(data_point, self, parent_particle)

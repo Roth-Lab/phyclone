@@ -506,3 +506,13 @@ def get_nodes(source):
         nodes.extend(get_nodes(child))
 
     return nodes
+
+
+def get_single_node_tree(data):
+    """ Load a tree with all data points assigned single node.
+    """
+    data_points = {0: range(len(data))}
+
+    nodes = [MarginalNode(0, data[0].shape, []), ]
+
+    return Tree(data_points, nodes)

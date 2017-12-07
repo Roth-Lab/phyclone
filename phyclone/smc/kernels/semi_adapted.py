@@ -9,7 +9,7 @@ import numpy as np
 import random
 
 from phyclone.math_utils import log_normalize
-from phyclone.smc.kernels.base import MarginalKernel
+from phyclone.smc.kernels.base import Kernel
 
 
 class SemiAdaptedProposal(object):
@@ -98,7 +98,7 @@ class SemiAdaptedProposal(object):
         return proposed_states
 
 
-class MarginalSemiAdaptedKernel(MarginalKernel):
+class SemiAdaptedKernel(Kernel):
 
     def get_proposal_distribution(self, data_point, parent_particle):
         return SemiAdaptedProposal(data_point, self, parent_particle)
