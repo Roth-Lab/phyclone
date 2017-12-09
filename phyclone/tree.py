@@ -17,7 +17,7 @@ class Tree(object):
     This structure includes the dummy root node.
     """
 
-    def __init__(self, data_points, nodes):
+    def __init__(self, nodes):
         """
         Parameters
         ----------
@@ -31,8 +31,6 @@ class Tree(object):
 #
 #         for n in nodes:
 #             self._nodes[n.idx] = n
-
-        self._data_points = data_points
 
         self._init_graph(nodes)
 
@@ -64,8 +62,6 @@ class Tree(object):
             if node.idx in self._graph.successors(-1):
                 roots.append(node)
 
-        self._data_points[-1] = []
-
         dummy_root = MarginalNode(
             -1,
             nodes[0].grid_size,
@@ -79,11 +75,7 @@ class Tree(object):
 
     @property
     def data_points(self):
-        data_points = self._data_points.copy()
-
-        del data_points[-1]
-
-        return data_points
+        return set(self.labels.keys())
 
     @property
     def nodes(self):
@@ -113,9 +105,9 @@ class Tree(object):
     def labels(self):
         labels = {}
 
-        for node_idx in self.data_points:
-            for data_idx in self.data_points[node_idx]:
-                labels[data_idx] = node_idx
+        for node in self.nodes.values():
+            for data_point in node.data:
+                labels[data_point.idx] = node.idx
 
         return labels
 
@@ -126,7 +118,7 @@ class Tree(object):
     def copy(self):
         root = self._nodes[-1].copy()
 
-        return Tree(self._data_points.copy(), get_nodes(root)[1:])
+        return Tree(get_nodes(root)[1:])
 
     def draw(self, ax=None):
         nx.draw(
@@ -203,15 +195,12 @@ class Tree(object):
 
         assert parent in self._nodes.values()
 
-        assert len(set.union(*[set(x) for x in subtree.data_points.values()]) &
-                   set.union(*[set(x) for x in self._data_points.values()])) == 0
+        assert len(subtree.data_points & self.data_points) == 0
 
         for n in subtree.nodes.values():
             assert n.idx not in self._nodes.keys()
 
             assert n not in self._nodes.values()
-
-            self._data_points[n.idx] = subtree.data_points[n.idx]
 
             self._nodes[n.idx] = n
 
@@ -234,16 +223,12 @@ class Tree(object):
     def get_subtree(self, subtree_root):
         subtree_node_idxs = list(nx.dfs_tree(self._graph, subtree_root.idx))
 
-        data_points = {}
-
         nodes = []
 
         for node_idx in subtree_node_idxs:
-            data_points[node_idx] = self._data_points[node_idx]
-
             nodes.append(self._nodes[node_idx])
 
-        t = Tree(data_points, nodes)
+        t = Tree(nodes)
 
         t._validate()
 
@@ -259,8 +244,6 @@ class Tree(object):
         # TODO: Fix this by copy the dicts
         node_map = {}
 
-        old_data_points = self.data_points.copy()
-
         self._data_points = {-1: []}
 
         self._nodes = {-1: self._nodes[-1].copy()}
@@ -269,8 +252,6 @@ class Tree(object):
 
         for new_idx, old in enumerate(old_nodes[1:], min_value):
             node_map[old.idx] = new_idx
-
-            self._data_points[new_idx] = old_data_points[old.idx]
 
             self._nodes[new_idx] = old
 
@@ -309,8 +290,6 @@ class Tree(object):
 
         # Update data structures
         for node_idx in subtree_node_idxs:
-            del self._data_points[node_idx]
-
             del self._nodes[node_idx]
 
             self._graph.remove_node(node_idx)
@@ -352,6 +331,8 @@ class MarginalNode(object):
         if children is not None:
             for child in children:
                 self._children[child.idx] = child
+
+        self.data = []
 
         self.log_likelihood = np.ones(grid_size) * -np.log(grid_size[1])
 
@@ -419,14 +400,18 @@ class MarginalNode(object):
     def add_data_point(self, data_point):
         """ Add a data point to the collection at this node.
         """
-        self.log_likelihood += data_point
+        self.data.append(data_point)
+
+        self.log_likelihood += data_point.value
 
         self._update_log_R()
 
     def remove_data_point(self, data_point):
         """ Remove a data point to the collection at this node.
         """
-        self.log_likelihood -= data_point
+        self.data.append(data_point)
+
+        self.log_likelihood -= data_point.value
 
         self._update_log_R()
 
@@ -439,6 +424,8 @@ class MarginalNode(object):
         new_children = [x.copy() for x in self.children]
 
         new = MarginalNode(self.idx, self.grid_size, children=new_children)
+
+        new.data = list(self.data)
 
         new.log_likelihood = np.copy(self.log_likelihood)
 
@@ -511,8 +498,8 @@ def get_nodes(source):
 def get_single_node_tree(data):
     """ Load a tree with all data points assigned single node.
     """
-    data_points = {0: range(len(data))}
-
     nodes = [MarginalNode(0, data[0].shape, []), ]
 
-    return Tree(data_points, nodes)
+    nodes[0].data = data
+
+    return Tree(nodes)

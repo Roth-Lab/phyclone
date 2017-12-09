@@ -3,6 +3,8 @@ import numpy as np
 import random
 import scipy.stats as stats
 
+from phyclone.data import DataPoint
+
 
 def load_test_data(cluster_size=5, depth=1000, grid_size=101, single_sample=False):
     """ Simulate a toy Binomial data set.
@@ -39,6 +41,8 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, single_sample=Fals
 
     labels = []
 
+    idx = 0
+
     for i, params in enumerate(cluster_params):
         for _ in range(cluster_size):
             data_point = []
@@ -50,8 +54,10 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, single_sample=Fals
 
                 data_point.append(compute_log_likelihood(x, n))
 
-            data.append(np.array(data_point))
+            data.append(DataPoint(idx, np.array(data_point)))
 
             labels.append(i)
+
+            idx += 1
 
     return data, labels, graph

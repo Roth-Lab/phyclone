@@ -33,55 +33,10 @@ def get_nodes(last_particle):
     return last_particle.state.nodes
 
 
-def get_graph(particle, sigma=None):
-    graph = nx.DiGraph()
-
-    nodes = get_nodes(particle)
-
-    node_data_points = get_node_data_points(particle, sigma=sigma)
-
-    graph.add_node(
-        -1,
-        data_points=[],
-        node=particle.state.dummy_root,
-    )
-
-    for idx in particle.state.root_idxs:
-        graph.add_edge(-1, idx)
-
-    for node_idx in node_data_points:
-        graph.add_node(
-            node_idx,
-            data_points=node_data_points[node_idx],
-            node=nodes[node_idx]
-        )
-
-    for node in nodes.values():
-        for child in node.children:
-            graph.add_edge(node.idx, child.idx)
-
-    return graph
-
-
 def get_tree(particle, sigma=None):
-    data_points = get_node_data_points(particle, sigma=sigma)
-
     nodes = get_nodes(particle)
 
-    return Tree(data_points, nodes.values())
-
-
-def get_node_data_points(last_particle, sigma=None):
-    node_data_points = defaultdict(list)
-
-    for i, particle in enumerate(reversed(list(iter_particles(last_particle)))):
-        if sigma is None:
-            node_data_points[particle.state.node_idx].append(i)
-
-        else:
-            node_data_points[particle.state.node_idx].append(sigma[i])
-
-    return node_data_points
+    return Tree(nodes.values())
 
 
 def sample_sigma(tree, source=None):
@@ -104,7 +59,7 @@ def sample_sigma(tree, source=None):
 
     sigma = interleave_lists(child_sigma)
 
-    source_sigma = list(tree.data_points[source.idx])
+    source_sigma = list([x.idx for x in tree.nodes[source.idx].data])
 
     random.shuffle(source_sigma)
 
@@ -164,23 +119,3 @@ def get_constrained_path(data, kernel, sigma, tree):
     assert nx.is_isomorphic(tree.graph, get_tree(constrained_path[-1], sigma).graph)
 
     return constrained_path
-
-
-def get_data_to_node_map(tree):
-    result = {}
-
-    for node_idx in tree.data_points:
-        for data_idx in tree.data_points[node_idx]:
-            result[data_idx] = node_idx
-
-    return result
-
-
-def get_labels(graph):
-    labels = {}
-
-    for node in graph.nodes():
-        for data_point in graph.node[node]['data_points']:
-            labels[data_point] = node
-
-    return [labels[x] for x in sorted(labels)]
