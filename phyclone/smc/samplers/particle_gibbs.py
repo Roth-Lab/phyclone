@@ -1,17 +1,17 @@
 from __future__ import division, print_function
 
+import networkx as nx
 import numpy as np
 
-from phyclone.smc.samplers.swarm import ParticleSwarm
+import phyclone.smc.samplers.swarm
+import phyclone.smc.utils
 
 
 class ParticleGibbsSampler(object):
     """ SMC sampler which conditions a fixed path.
     """
 
-    def __init__(self, constrained_path, data_points, kernel, num_particles, resample_threshold=0.5):
-        self.constrained_path = constrained_path
-
+    def __init__(self, current_tree, data_points, kernel, num_particles, resample_threshold=0.5):
         self.data_points = data_points
 
         self.kernel = kernel
@@ -23,6 +23,8 @@ class ParticleGibbsSampler(object):
         self.iteration = 0
 
         self.num_iterations = len(data_points)
+
+        self.constrained_path = self._get_constrained_path(current_tree)
 
     def sample(self):
         self._init_swarm()
@@ -39,8 +41,48 @@ class ParticleGibbsSampler(object):
 
         return self.swarm
 
+    def _get_constrained_path(self, tree):
+        constrained_path = [None, ]
+
+        data_to_node = tree.labels
+
+        node_idx = 0
+
+        old_to_new_node_idx = {}
+
+        root_idxs = set()
+
+        for data_point in self.data_points:
+            old_node_idx = data_to_node[data_point.idx]
+
+            if old_node_idx not in old_to_new_node_idx:
+                for child in tree.nodes[old_node_idx].children:
+                    root_idxs.remove(old_to_new_node_idx[child.idx])
+
+                old_to_new_node_idx[old_node_idx] = node_idx
+
+                root_idxs.add(node_idx)
+
+                node_idx += 1
+
+            proposal_dist = self.kernel.get_proposal_distribution(data_point, constrained_path[-1])
+
+            state = self.kernel.create_state(
+                data_point, constrained_path[-1], old_to_new_node_idx[old_node_idx], root_idxs
+            )
+
+            log_q = proposal_dist.get_log_q(state)
+
+            particle = self.kernel.create_particle(data_point, log_q, constrained_path[-1], state)
+
+            constrained_path.append(particle)
+
+        assert nx.is_isomorphic(tree.graph, phyclone.smc.utils.get_tree(constrained_path[-1]).graph)
+
+        return constrained_path
+
     def _init_swarm(self):
-        self.swarm = ParticleSwarm()
+        self.swarm = phyclone.smc.samplers.swarm.ParticleSwarm()
 
         uniform_weight = -np.log(self.num_particles)
 
@@ -65,7 +107,7 @@ class ParticleGibbsSampler(object):
         swarm = self.swarm
 
         if swarm.relative_ess <= self.resample_threshold:
-            new_swarm = ParticleSwarm()
+            new_swarm = phyclone.smc.samplers.swarm.ParticleSwarm()
 
             log_uniform_weight = -np.log(self.num_particles)
 
@@ -87,7 +129,7 @@ class ParticleGibbsSampler(object):
         self.swarm = new_swarm
 
     def _sample_new_particles(self):
-        new_swarm = ParticleSwarm()
+        new_swarm = phyclone.smc.samplers.swarm.ParticleSwarm()
 
         particle = self.constrained_path[self.iteration + 1]
 

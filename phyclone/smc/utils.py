@@ -7,7 +7,6 @@ from __future__ import division
 
 from collections import defaultdict
 
-import networkx as nx
 import random
 
 from phyclone.tree import Tree
@@ -80,42 +79,3 @@ def interleave_lists(lists):
             lists.remove(x)
 
     return result
-
-
-def get_constrained_path(data, kernel, sigma, tree):
-    constrained_path = [None, ]
-
-    data_to_node = tree.labels
-
-    node_idx = 0
-
-    old_to_new_node_idx = {}
-
-    root_idxs = set()
-
-    for data_idx in sigma:
-        old_node_idx = data_to_node[data_idx]
-
-        if old_node_idx not in old_to_new_node_idx:
-            for child in tree.nodes[old_node_idx].children:
-                root_idxs.remove(old_to_new_node_idx[child.idx])
-
-            old_to_new_node_idx[old_node_idx] = node_idx
-
-            root_idxs.add(node_idx)
-
-            node_idx += 1
-
-        proposal_dist = kernel.get_proposal_distribution(data[data_idx], constrained_path[-1])
-
-        state = kernel.create_state(data[data_idx], constrained_path[-1], old_to_new_node_idx[old_node_idx], root_idxs)
-
-        log_q = proposal_dist.get_log_q(state)
-
-        particle = kernel.create_particle(data[data_idx], log_q, constrained_path[-1], state)
-
-        constrained_path.append(particle)
-
-    assert nx.is_isomorphic(tree.graph, get_tree(constrained_path[-1]).graph)
-
-    return constrained_path
