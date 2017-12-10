@@ -108,8 +108,8 @@ def clades(tree):
 def _clades(clades, node, tree):
     current_clade = set()
 
-    for mutation in tree.data_points[node.idx]:
-        current_clade.add(mutation)
+    for mutation in tree.nodes[node.idx].data:
+        current_clade.add(mutation.idx)
 
     for child in node.children:
         for mutation in _clades(clades, child, tree):
