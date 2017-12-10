@@ -68,7 +68,7 @@ class ParticleGibbsTreeSampler(object):
 
         particle = swarm.particles[particle_idx]
 
-        return phyclone.smc.utils.get_tree(particle, sigma=sigma)
+        return phyclone.smc.utils.get_tree(particle)
 
 
 class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
@@ -122,7 +122,7 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
 
             w -= p.state.log_p_one
 
-            t = phyclone.smc.utils.get_tree(p, sigma=sigma)
+            t = phyclone.smc.utils.get_tree(p)
 
             t.relabel_nodes(min_value=min_node_idx)
 

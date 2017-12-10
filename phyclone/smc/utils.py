@@ -33,7 +33,7 @@ def get_nodes(last_particle):
     return last_particle.state.nodes
 
 
-def get_tree(particle, sigma=None):
+def get_tree(particle):
     nodes = get_nodes(particle)
 
     return Tree(nodes.values())
@@ -116,6 +116,6 @@ def get_constrained_path(data, kernel, sigma, tree):
 
         constrained_path.append(particle)
 
-    assert nx.is_isomorphic(tree.graph, get_tree(constrained_path[-1], sigma).graph)
+    assert nx.is_isomorphic(tree.graph, get_tree(constrained_path[-1]).graph)
 
     return constrained_path
