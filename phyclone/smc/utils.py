@@ -29,7 +29,14 @@ def get_num_data_points_per_node(last_particle):
 
 
 def get_nodes(last_particle):
-    return last_particle.state.nodes
+    nodes = last_particle.state.roots
+
+    for particle in iter_particles(last_particle):
+        for node_idx in particle.state.roots:
+            if node_idx not in nodes:
+                nodes[node_idx] = particle.state.roots[node_idx]
+
+    return nodes
 
 
 def get_tree(particle):

@@ -18,16 +18,12 @@ class State(object):
     This class stores the partially constructed tree during the SMC.
     """
 
-    def __init__(self, nodes, node_idx, log_p_prior, root_idxs):
+    def __init__(self, node_idx, log_p_prior, roots):
         self.log_p_prior = log_p_prior
-
-        assert node_idx < len(nodes)
-
-        self.nodes = nodes
 
         self.node_idx = node_idx
 
-        self._root_idxs = tuple(sorted(root_idxs))
+        self.roots = roots
 
         self._dummy_root = None
 
@@ -35,11 +31,13 @@ class State(object):
 
         self._log_p_one = None
 
-    def __key(self):
-        return (self.node_idx, self._root_idxs)
+        assert node_idx in self.root_idxs
 
-    def __eq__(x, y):
-        return x.__key() == y.__key()
+    def __key(self):
+        return (self.node_idx, self.root_idxs)
+
+    def __eq__(self, y):
+        return self.__key() == y.__key()
 
     def __hash__(self):
         return hash(self.__key())
@@ -49,7 +47,9 @@ class State(object):
         """ A node connecting all concrete rootnodes in the tree.
         """
         if self._dummy_root is None:
-            self._dummy_root = MarginalNode(-1, self.nodes.values()[0].grid_size, children=self.root_nodes)
+            grid_size = self.roots.values()[0].grid_size
+
+            self._dummy_root = MarginalNode(-1, grid_size, children=self.roots.values())
 
         return self._dummy_root
 
@@ -73,15 +73,7 @@ class State(object):
 
     @property
     def root_idxs(self):
-        """ List indexes for concrete root nodes in the tree.
-        """
-        return set(self._root_idxs)
-
-    @property
-    def root_nodes(self):
-        """ List of concrete root nodes.
-        """
-        return [self.nodes[idx] for idx in self._root_idxs]
+        return set([x.idx for x in self.roots.values()])
 
 
 class Kernel(object):
@@ -140,29 +132,31 @@ class Kernel(object):
 
             assert root_idxs == set([0, ])
 
-            nodes = {}
+            roots = {0: MarginalNode(node_idx, self.grid_size)}
 
-            nodes[node_idx] = MarginalNode(node_idx, self.grid_size)
-
-        elif node_idx in parent_particle.state.nodes:
+        elif node_idx in parent_particle.state.roots:
             assert root_idxs == parent_particle.state.root_idxs
 
-            nodes = parent_particle.state.nodes.copy()
+            roots = parent_particle.state.roots.copy()
 
-            nodes[node_idx] = parent_particle.state.nodes[node_idx].copy()
+            roots[node_idx] = roots[node_idx].copy()
 
         else:
             child_idxs = parent_particle.state.root_idxs - root_idxs
 
-            nodes = parent_particle.state.nodes.copy()
+            children = [parent_particle.state.roots[idx] for idx in child_idxs]
 
-            children = [parent_particle.state.nodes[idx] for idx in child_idxs]
+            roots = {}
 
-            nodes[node_idx] = MarginalNode(node_idx, self.grid_size, children=children)
+            for idx in root_idxs:
+                if idx in parent_particle.state.root_idxs:
+                    roots[idx] = parent_particle.state.roots[idx]
 
-        nodes[node_idx].add_data_point(data_point)
+            roots[node_idx] = MarginalNode(node_idx, self.grid_size, children=children)
 
-        return State(nodes, node_idx, log_p_prior, root_idxs)
+        roots[node_idx].add_data_point(data_point)
+
+        return State(node_idx, log_p_prior, roots)
 
     def propose_particle(self, data_point, parent_particle):
         """ Propose a particle for t given a particle from t - 1 and a data point.
@@ -191,7 +185,7 @@ class Kernel(object):
 
             node_counts = get_num_data_points_per_node(parent_particle)
 
-            num_nodes = len(parent_particle.state.nodes)
+            num_nodes = len(set(node_counts.keys()))
 
             # CRP prior
             log_p = np.log(self.alpha)

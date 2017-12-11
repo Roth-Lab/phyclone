@@ -65,13 +65,13 @@ class BootstrapProposal(object):
         )
 
     def _propose_new_node(self):
-        num_roots = len(self.parent_particle.state.root_idxs)
+        num_roots = len(self.parent_particle.state.roots)
 
         num_children = random.randint(0, num_roots)
 
         children = random.sample(self.parent_particle.state.root_idxs, num_children)
 
-        node_idx = max(self.parent_particle.state.nodes.keys() + [-1, ]) + 1
+        node_idx = max(self.parent_particle.state.roots.keys() + [-1, ]) + 1
 
         root_idxs = self.parent_particle.state.root_idxs - set(children)
 
