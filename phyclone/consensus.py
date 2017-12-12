@@ -93,7 +93,7 @@ def clade_probabilities(trees, weighted=False):
 def key_above_threshold(counter, threshold):
     """ Only keeps the keys in a dict above or equal the threshold
     """
-    return set([key for key, value in counter.iteritems() if value > threshold])
+    return set([key for key, value in counter.items() if value > threshold])
 
 
 def clades(tree):

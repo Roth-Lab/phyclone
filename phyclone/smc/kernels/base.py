@@ -47,7 +47,7 @@ class State(object):
         """ A node connecting all concrete rootnodes in the tree.
         """
         if self._dummy_root is None:
-            grid_size = self.roots.values()[0].grid_size
+            grid_size = self.root_nodes[0].grid_size
 
             self._dummy_root = MarginalNode(-1, grid_size, children=self.roots.values())
 
@@ -74,6 +74,10 @@ class State(object):
     @property
     def root_idxs(self):
         return frozenset([x.idx for x in self.roots.values()])
+
+    @property
+    def root_nodes(self):
+        return list(self.roots.values())
 
 
 class Kernel(object):

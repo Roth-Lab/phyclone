@@ -71,7 +71,7 @@ class BootstrapProposal(object):
 
         children = random.sample(self.parent_particle.state.root_idxs, num_children)
 
-        node_idx = max(self.parent_particle.state.roots.keys() + [-1, ]) + 1
+        node_idx = max(list(self.parent_particle.state.root_idxs) + [-1, ]) + 1
 
         root_idxs = set(self.parent_particle.state.root_idxs - set(children))
 

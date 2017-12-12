@@ -77,7 +77,7 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
     """
 
     def sample_tree(self, data, tree):
-        node_idxs = tree.nodes.keys()
+        node_idxs = list(tree.nodes.keys())
 
         subtree_root_idx = random.choice(node_idxs)
 

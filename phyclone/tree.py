@@ -344,7 +344,7 @@ class MarginalNode(object):
     def children(self):
         """ List of child nodes.
         """
-        return self._children.values()
+        return list(self._children.values())
 
     @property
     def log_p(self):

@@ -11,7 +11,7 @@ class PruneRegraphSampler(object):
 
         new_tree = tree.copy()
 
-        nodes = new_tree.nodes.values()
+        nodes = list(new_tree.nodes.values())
 
         subtree_root = random.choice(nodes)
 
@@ -19,7 +19,7 @@ class PruneRegraphSampler(object):
 
         new_tree.remove_subtree(subtree)
 
-        remaining_nodes = new_tree.nodes.values()
+        remaining_nodes = list(new_tree.nodes.values())
 
         if len(remaining_nodes) == 0:
             return tree

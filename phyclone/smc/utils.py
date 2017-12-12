@@ -42,7 +42,7 @@ def get_nodes(last_particle):
 def get_tree(particle):
     nodes = get_nodes(particle)
 
-    return Tree(nodes.values())
+    return Tree(list(nodes.values()))
 
 
 def sample_sigma(tree, source=None):

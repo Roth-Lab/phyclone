@@ -52,7 +52,7 @@ class SemiAdaptedProposal(object):
             u = random.random()
 
             if u < 0.5:
-                q = np.exp(self.log_q.values())
+                q = np.exp(list(self.log_q.values()))
 
                 assert abs(1 - sum(q)) < 1e-6
 
@@ -60,7 +60,7 @@ class SemiAdaptedProposal(object):
 
                 idx = np.random.multinomial(1, q).argmax()
 
-                state = self.log_q.keys()[idx]
+                state = list(self.log_q.keys())[idx]
 
             else:
                 state = self._propose_new_node()
@@ -101,7 +101,7 @@ class SemiAdaptedProposal(object):
 
         children = random.sample(self.parent_particle.state.root_idxs, num_children)
 
-        node_idx = max(self.parent_particle.state.roots.keys() + [-1, ]) + 1
+        node_idx = max(list(self.parent_particle.state.root_idxs) + [-1, ]) + 1
 
         root_idxs = set(self.parent_particle.state.root_idxs - set(children))
 

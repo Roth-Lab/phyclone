@@ -69,7 +69,7 @@ class FullyAdaptedProposal(object):
 
         proposed_states = []
 
-        node_idx = max(self.parent_particle.state.roots.keys() + [-1, ]) + 1
+        node_idx = max(list(self.parent_particle.state.root_idxs) + [-1, ]) + 1
 
         num_roots = len(self.parent_particle.state.root_idxs)
 
