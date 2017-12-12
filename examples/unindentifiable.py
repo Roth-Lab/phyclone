@@ -24,7 +24,7 @@ mh_sampler = PruneRegraphSampler()
 pg_sampler = ParticleGibbsTreeSampler(
     data[0].shape,
     alpha=1.0,
-    kernel='fully_adapted',
+    kernel='fully-adapted',
     num_particles=10,
     resample_threshold=0.5
 )
