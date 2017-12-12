@@ -73,7 +73,7 @@ class State(object):
 
     @property
     def root_idxs(self):
-        return set([x.idx for x in self.roots.values()])
+        return frozenset([x.idx for x in self.roots.values()])
 
 
 class Kernel(object):
@@ -139,7 +139,7 @@ class Kernel(object):
 
             roots = parent_particle.state.roots.copy()
 
-            roots[node_idx] = roots[node_idx].copy()
+            roots[node_idx] = roots[node_idx].shallow_copy()
 
         else:
             child_idxs = parent_particle.state.root_idxs - root_idxs

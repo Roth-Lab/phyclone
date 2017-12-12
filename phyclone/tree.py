@@ -435,6 +435,25 @@ class MarginalNode(object):
 
         return new
 
+    def shallow_copy(self):
+        new = MarginalNode.__new__(MarginalNode)
+
+        new._children = self._children
+
+        new.grid_size = self.grid_size
+
+        new.idx = self.idx
+
+        new.data = list(self.data)
+
+        new.log_likelihood = np.copy(self.log_likelihood)
+
+        new.log_R = np.copy(self.log_R)
+
+        new.log_S = np.copy(self.log_S)
+
+        return new
+
     def update(self):
         """ Update the arrays required for the recursion.
         """
