@@ -29,32 +29,55 @@ class SemiAdaptedProposal(object):
         self._init_dist()
 
     def get_log_q(self, state):
-        # Hack for the conditional path
-        if state not in self.states:
-            return 0
+        """ Get the log probability of the state.
+        """
+        if self.parent_particle is None:
+            log_q = 0
 
-        return self.log_q[self.states.index(state)]
+        elif state.node_idx in self.parent_particle.state.root_idxs:
+            log_q = np.log(0.5) + self.log_q[state]
+
+        else:
+            old_num_roots = len(self.parent_particle.state.root_idxs)
+
+            log_q = np.log(0.5) - old_num_roots * np.log(2)
+
+        return log_q
 
     def sample_state(self):
-        q = np.exp(self.log_q)
+        if self.parent_particle is None:
+            state = self.kernel.create_state(self.data_point, self.parent_particle, 0, set([0, ]))
 
-        assert abs(1 - sum(q)) < 1e-6
+        else:
+            u = random.random()
 
-        q = q / sum(q)
+            if u < 0.5:
+                q = np.exp(self.log_q.values())
 
-        idx = np.random.multinomial(1, q).argmax()
+                assert abs(1 - sum(q)) < 1e-6
 
-        return self.states[idx]
+                q = q / sum(q)
+
+                idx = np.random.multinomial(1, q).argmax()
+
+                state = self.log_q.keys()[idx]
+
+            else:
+                state = self._propose_new_node()
+
+        return state
 
     def _init_dist(self):
-        self.states = self._propose_new_node()
+        if self.parent_particle is None:
+            return
 
-        if self.parent_particle is not None:
-            self.states.extend(self._propose_existing_node())
+        states = self._propose_existing_node()
 
-        log_q = [x.log_p for x in self.states]
+        log_q = [x.log_p for x in states]
 
-        self.log_q = log_normalize(np.array(log_q))
+        log_q = log_normalize(np.array(log_q))
+
+        self.log_q = dict(zip(states, log_q))
 
     def _propose_existing_node(self):
         proposed_states = []
@@ -72,30 +95,24 @@ class SemiAdaptedProposal(object):
         return proposed_states
 
     def _propose_new_node(self):
-        if self.parent_particle is None:
-            return [
-                self.kernel.create_state(self.data_point, self.parent_particle, 0, set([0, ]))
-            ]
+        num_roots = len(self.parent_particle.state.roots)
 
-        proposed_states = []
+        num_children = random.randint(0, num_roots)
 
-        node_idx = max(self.parent_particle.state.nodes.keys() + [-1, ]) + 1
+        children = random.sample(self.parent_particle.state.root_idxs, num_children)
 
-        num_roots = len(self.parent_particle.state.root_idxs)
+        node_idx = max(self.parent_particle.state.roots.keys() + [-1, ]) + 1
 
-        r = random.randint(0, num_roots)
-
-        child_idxs = random.sample(self.parent_particle.state.root_idxs, r)
-
-        root_idxs = self.parent_particle.state.root_idxs - set(child_idxs)
+        root_idxs = set(self.parent_particle.state.root_idxs - set(children))
 
         root_idxs.add(node_idx)
 
-        proposed_states.append(
-            self.kernel.create_state(self.data_point, self.parent_particle, node_idx, root_idxs)
+        return self.kernel.create_state(
+            self.data_point,
+            self.parent_particle,
+            node_idx,
+            root_idxs
         )
-
-        return proposed_states
 
 
 class SemiAdaptedKernel(Kernel):

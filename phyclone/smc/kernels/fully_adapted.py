@@ -75,7 +75,7 @@ class FullyAdaptedProposal(object):
 
         for r in range(0, num_roots + 1):
             for child_idxs in itertools.combinations(self.parent_particle.state.root_idxs, r):
-                root_idxs = self.parent_particle.state.root_idxs - set(child_idxs)
+                root_idxs = set(self.parent_particle.state.root_idxs - set(child_idxs))
 
                 root_idxs.add(node_idx)
 

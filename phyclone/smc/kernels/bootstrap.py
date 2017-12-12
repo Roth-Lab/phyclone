@@ -73,7 +73,7 @@ class BootstrapProposal(object):
 
         node_idx = max(self.parent_particle.state.roots.keys() + [-1, ]) + 1
 
-        root_idxs = self.parent_particle.state.root_idxs - set(children)
+        root_idxs = set(self.parent_particle.state.root_idxs - set(children))
 
         root_idxs.add(node_idx)
 

@@ -17,8 +17,11 @@ class ParticleGibbsTreeSampler(object):
         if kernel == 'bootstrap':
             self.kernel = phyclone.smc.kernels.BootstrapKernel(alpha, grid_size)
 
-        elif kernel == 'fully_adapted':
+        elif kernel == 'fully-adapted':
             self.kernel = phyclone.smc.kernels.FullyAdaptedKernel(alpha, grid_size)
+
+        elif kernel == 'semi-adapted':
+            self.kernel = phyclone.smc.kernels.SemiAdaptedKernel(alpha, grid_size)
 
         else:
             raise Exception('Unrecognized kernel: {}'.format(kernel))
