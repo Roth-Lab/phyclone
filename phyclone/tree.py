@@ -31,6 +31,11 @@ class Tree(object):
 #
 #         for n in nodes:
 #             self._nodes[n.idx] = n
+        if len(nodes) == 0:
+            self.grid_size = (0, 0)
+
+        else:
+            self.grid_size = nodes[0].grid_size
 
         self._init_graph(nodes)
 
@@ -64,7 +69,7 @@ class Tree(object):
 
         dummy_root = MarginalNode(
             -1,
-            nodes[0].grid_size,
+            self.grid_size,
             children=roots
         )
 

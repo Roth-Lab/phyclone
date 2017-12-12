@@ -5,11 +5,11 @@ import random
 
 
 class PruneRegraphSampler(object):
-    def sample_tree(self, data, tree):
-        if len(tree.nodes) == 1:
-            return tree
+    def sample_tree(self, data, config):
+        if len(config.tree.nodes) == 1:
+            return config
 
-        new_tree = tree.copy()
+        new_tree = config.tree.copy()
 
         nodes = list(new_tree.nodes.values())
 
@@ -22,19 +22,19 @@ class PruneRegraphSampler(object):
         remaining_nodes = list(new_tree.nodes.values())
 
         if len(remaining_nodes) == 0:
-            return tree
+            return config
 
         parent = random.choice(remaining_nodes)
 
         new_tree.add_subtree(subtree, parent)
 
-        old_log_p = tree.log_p_one
+        old_log_p = config.tree.log_p_one
 
         new_log_p = new_tree.log_p_one
 
         u = random.random()
 
         if new_log_p - old_log_p > math.log(u):
-            tree = new_tree
+            config.tree = new_tree
 
-        return tree
+        return config

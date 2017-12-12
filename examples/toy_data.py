@@ -32,7 +32,8 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, single_sample=Fals
     graph.add_edge(2, 0)
     graph.add_edge(2, 1)
 
-    cluster_params = [[0.1, 0.1, 0.9], [0.2, 0.1, 0.02], [0.3, 0.2, 0.92], [0.7, 0.8, 0.0], [1.0, 1.0, 1.0]]
+    cluster_params = [[0.1, 0.1, 0.9], [0.2, 0.1, 0.02], [0.3, 0.2, 0.92],
+                      [0.7, 0.8, 0.0], [1.0, 1.0, 1.0], [0.0, 1.0, 1.0]]
 
     if single_sample:
         cluster_params = [[x[0], ] for x in cluster_params]
@@ -44,7 +45,13 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, single_sample=Fals
     idx = 0
 
     for i, params in enumerate(cluster_params):
-        for _ in range(cluster_size):
+        if i == 5:
+            n = 2
+
+        else:
+            n = cluster_size
+
+        for _ in range(n):
             data_point = []
 
             n = stats.poisson.rvs(depth)

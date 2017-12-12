@@ -92,6 +92,15 @@ class SemiAdaptedProposal(object):
                 )
             )
 
+        proposed_states.append(
+            self.kernel.create_state(
+                self.data_point,
+                self.parent_particle,
+                -1,
+                self.parent_particle.state.root_idxs
+            )
+        )
+
         return proposed_states
 
     def _propose_new_node(self):

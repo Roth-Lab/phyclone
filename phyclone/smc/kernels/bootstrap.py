@@ -25,15 +25,18 @@ class BootstrapProposal(object):
         if self.parent_particle is None:
             log_q = 0
 
+        elif state.node_idx == -1:
+            log_q = np.log(0.1)
+
         elif state.node_idx in self.parent_particle.state.root_idxs:
             num_roots = len(state.root_idxs)
 
-            log_q = np.log(0.5) - np.log(num_roots)
+            log_q = np.log(0.45) - np.log(num_roots)
 
         else:
             old_num_roots = len(self.parent_particle.state.root_idxs)
 
-            log_q = np.log(0.5) - old_num_roots * np.log(2)
+            log_q = np.log(0.45) - old_num_roots * np.log(2)
 
         return log_q
 
@@ -46,11 +49,22 @@ class BootstrapProposal(object):
         else:
             u = random.random()
 
-            if u < 0.5:
-                state = self._propose_existing_node()
+            if len(self.parent_particle.state.roots) == 0:
+                if u < 0.9:
+                    state = self._propose_new_node()
+
+                else:
+                    state = self._propose_outlier()
 
             else:
-                state = self._propose_new_node()
+                if u < 0.45:
+                    state = self._propose_existing_node()
+
+                elif u < 0.9:
+                    state = self._propose_new_node()
+
+                else:
+                    state = self._propose_outlier()
 
         return state
 
@@ -82,6 +96,14 @@ class BootstrapProposal(object):
             self.parent_particle,
             node_idx,
             root_idxs
+        )
+
+    def _propose_outlier(self):
+        return self.kernel.create_state(
+            self.data_point,
+            self.parent_particle,
+            -1,
+            self.parent_particle.state.root_idxs
         )
 
 

@@ -7,6 +7,7 @@ import phyclone.smc.kernels
 import phyclone.smc.samplers.particle_gibbs
 import phyclone.smc.samplers.swarm
 import phyclone.smc.utils
+from phyclone.smc.utils import Configuration
 
 
 class ParticleGibbsTreeSampler(object):
@@ -45,15 +46,15 @@ class ParticleGibbsTreeSampler(object):
 
         return self._sample_tree_from_swarm(swarm)
 
-    def sample_swarm(self, data, tree):
+    def sample_swarm(self, data, config):
         """ Sample a new SMC swarm
         """
-        sigma = phyclone.smc.utils.sample_sigma(tree)
+        sigma = phyclone.smc.utils.sample_sigma(config)
 
         data_sigma = [data[data_idx] for data_idx in sigma]
 
         sampler = phyclone.smc.samplers.particle_gibbs.ParticleGibbsSampler(
-            tree,
+            config,
             data_sigma,
             self.kernel,
             num_particles=self.num_particles,
@@ -76,45 +77,55 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
     """ Particle Gibbs sampler which resamples a sub-tree.
     """
 
-    def sample_tree(self, data, tree):
-        node_idxs = list(tree.nodes.keys())
+    def sample_tree(self, data, config):
+        node_idxs = list(config.tree.nodes.keys())
 
         subtree_root_idx = random.choice(node_idxs)
 
-        parent_node = tree.get_parent_node(tree.nodes[subtree_root_idx])
+        parent_node = config.tree.get_parent_node(config.tree.nodes[subtree_root_idx])
 
         if parent_node.idx == -1:
             parent_node = None
 
-        subtree = tree.get_subtree(tree.nodes[subtree_root_idx])
+        subtree = config.tree.get_subtree(config.tree.nodes[subtree_root_idx])
 
-        tree.remove_subtree(subtree)
+        config.tree.remove_subtree(subtree)
 
         subtree.relabel_nodes(0)
 
+        subtree = Configuration([], subtree)
+
+        for x in config.outliers:
+            if random.random() < 0.5:
+                subtree.outliers.append(x)
+
+                config.outliers.remove(x)
+
         swarm = self.sample_swarm(data, subtree)
 
-        if len(tree.nodes) == 0:
+        if len(config.tree.nodes) == 0:
             min_node_idx = 0
 
         else:
-            min_node_idx = max(tree.nodes.keys()) + 1
+            min_node_idx = max(config.tree.nodes.keys()) + 1
 
-        swarm = self._correct_weights(min_node_idx, parent_node, swarm, tree)
+        swarm = self._correct_weights(min_node_idx, parent_node, swarm, config)
 
         sub_tree = self._sample_tree_from_swarm(swarm)
 
-        sub_tree.relabel_nodes(min_node_idx)
+        sub_tree.tree.relabel_nodes(min_node_idx)
 
-        tree.add_subtree(sub_tree, parent=parent_node)
+        config.tree.add_subtree(sub_tree.tree, parent=parent_node)
 
-        tree.relabel_nodes(0)
+        config.outliers.extend(sub_tree.outliers)
 
-        return tree
+        config.tree.relabel_nodes(0)
+
+        return config
 
     # TODO: Check that this targets the correct distribution.
     # Specifically do we need a term for the random choice of node.
-    def _correct_weights(self, min_node_idx, parent_node, swarm, tree):
+    def _correct_weights(self, min_node_idx, parent_node, swarm, config):
         """ Correct weights so target is the distribtuion on the full tree
         """
         new_swarm = phyclone.smc.samplers.swarm.ParticleSwarm()
@@ -125,14 +136,19 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
 
             t = phyclone.smc.utils.get_tree(p)
 
-            t.relabel_nodes(min_value=min_node_idx)
+            t.tree.relabel_nodes(min_value=min_node_idx)
 
-            tree.add_subtree(t, parent=parent_node)
+            config.tree.add_subtree(t.tree, parent=parent_node)
 
-            w += tree.log_p_one
+            config.outliers.extend(t.outliers)
+
+            w += config.log_p_one
 
             new_swarm.add_particle(w, t)
 
-            tree.remove_subtree(t)
+            config.tree.remove_subtree(t.tree)
+
+            for x in t.outliers:
+                config.outliers.remove(x)
 
         return swarm

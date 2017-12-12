@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 
 from collections import namedtuple
+from scipy.misc import logsumexp as log_sum_exp
 
 import numpy as np
 
@@ -18,10 +19,12 @@ class State(object):
     This class stores the partially constructed tree during the SMC.
     """
 
-    def __init__(self, node_idx, log_p_prior, roots):
+    def __init__(self, node_idx, log_p_prior, outliers, roots):
         self.log_p_prior = log_p_prior
 
         self.node_idx = node_idx
+
+        self.outliers = outliers
 
         self.roots = roots
 
@@ -31,7 +34,7 @@ class State(object):
 
         self._log_p_one = None
 
-        assert node_idx in self.root_idxs
+        assert (node_idx in self.root_idxs) or (node_idx == -1)
 
     def __key(self):
         return (self.node_idx, self.root_idxs)
@@ -46,6 +49,9 @@ class State(object):
     def dummy_root(self):
         """ A node connecting all concrete rootnodes in the tree.
         """
+        if len(self.roots) == 0:
+            return None
+
         if self._dummy_root is None:
             grid_size = self.root_nodes[0].grid_size
 
@@ -58,7 +64,16 @@ class State(object):
         """ Log joint probability of the state marginalizing over value of dummy root.
         """
         if self._log_p is None:
-            self._log_p = self.dummy_root.log_p
+            if self.dummy_root is None:
+                self._log_p = 0
+
+            else:
+                self._log_p = self.dummy_root.log_p
+
+            for data_point in self.outliers:
+                log_norm = np.log(data_point.value.shape[1])
+
+                self._log_p += np.sum(log_sum_exp(data_point.value - log_norm, axis=1))
 
         return self.log_p_prior + self._log_p
 
@@ -67,7 +82,16 @@ class State(object):
         """ Log joint probability of the state with dummy root having value of one.
         """
         if self._log_p_one is None:
-            self._log_p_one = self.dummy_root.log_p_one
+            if self.dummy_root is None:
+                self._log_p_one = 0
+
+            else:
+                self._log_p_one = self.dummy_root.log_p_one
+
+            for data_point in self.outliers:
+                log_norm = np.log(data_point.value.shape[1])
+
+                self._log_p += np.sum(log_sum_exp(data_point.value - log_norm, axis=1))
 
         return self.log_p_prior + self._log_p_one
 
@@ -132,35 +156,55 @@ class Kernel(object):
         log_p_prior = self._compute_log_p_prior(data_point, parent_particle, node_idx, root_idxs)
 
         if parent_particle is None:
-            assert node_idx == 0
-
-            assert root_idxs == set([0, ])
-
-            roots = {0: MarginalNode(node_idx, self.grid_size)}
-
-        elif node_idx in parent_particle.state.roots:
-            assert root_idxs == parent_particle.state.root_idxs
-
-            roots = parent_particle.state.roots.copy()
-
-            roots[node_idx] = roots[node_idx].shallow_copy()
-
-        else:
-            child_idxs = parent_particle.state.root_idxs - root_idxs
-
-            children = [parent_particle.state.roots[idx] for idx in child_idxs]
+            outliers = []
 
             roots = {}
 
-            for idx in root_idxs:
-                if idx in parent_particle.state.root_idxs:
-                    roots[idx] = parent_particle.state.roots[idx]
+            if node_idx == -1:
+                outliers.append(data_point)
 
-            roots[node_idx] = MarginalNode(node_idx, self.grid_size, children=children)
+            else:
+                assert node_idx == 0
 
-        roots[node_idx].add_data_point(data_point)
+                assert root_idxs == set([0, ])
 
-        return State(node_idx, log_p_prior, roots)
+                roots[0] = MarginalNode(node_idx, self.grid_size)
+
+                roots[node_idx].add_data_point(data_point)
+
+        else:
+            outliers = list(parent_particle.state.outliers)
+
+            if node_idx == -1:
+                outliers.append(data_point)
+
+                roots = parent_particle.state.roots.copy()
+
+            elif node_idx in parent_particle.state.roots:
+                assert root_idxs == parent_particle.state.root_idxs
+
+                roots = parent_particle.state.roots.copy()
+
+                roots[node_idx] = roots[node_idx].shallow_copy()
+
+                roots[node_idx].add_data_point(data_point)
+
+            else:
+                child_idxs = parent_particle.state.root_idxs - root_idxs
+
+                children = [parent_particle.state.roots[idx] for idx in child_idxs]
+
+                roots = {}
+
+                for idx in root_idxs:
+                    if idx in parent_particle.state.root_idxs:
+                        roots[idx] = parent_particle.state.roots[idx]
+
+                roots[node_idx] = MarginalNode(node_idx, self.grid_size, children=children)
+
+                roots[node_idx].add_data_point(data_point)
+
+        return State(node_idx, log_p_prior, outliers, roots)
 
     def propose_particle(self, data_point, parent_particle):
         """ Propose a particle for t given a particle from t - 1 and a data point.
@@ -176,32 +220,38 @@ class Kernel(object):
     def _compute_log_p_prior(self, data_point, parent_particle, node_idx, root_idxs):
         """ Compute the incremental FS-CRP prior contribution.
         """
-        if parent_particle is None:
-            log_p = np.log(self.alpha)
-
-        elif node_idx in parent_particle.state.root_idxs:
-            node_counts = get_num_data_points_per_node(parent_particle)
-
-            log_p = np.log(node_counts[node_idx])
+        if node_idx == -1:
+            log_p = np.log(1e-10)
 
         else:
-            child_idxs = parent_particle.state.root_idxs - root_idxs
+            if parent_particle is None:
+                log_p = np.log(self.alpha)
 
-            node_counts = get_num_data_points_per_node(parent_particle)
+            elif node_idx in parent_particle.state.root_idxs:
+                node_counts = get_num_data_points_per_node(parent_particle)
 
-            num_nodes = len(set(node_counts.keys()))
+                log_p = np.log(node_counts[node_idx])
 
-            # CRP prior
-            log_p = np.log(self.alpha)
+            else:
+                child_idxs = parent_particle.state.root_idxs - root_idxs
 
-            # Tree prior
-            log_p += (num_nodes - 1) * np.log(num_nodes + 1) - num_nodes * np.log(num_nodes + 2)
+                node_counts = get_num_data_points_per_node(parent_particle)
 
-            log_perm_norm = log_factorial(sum([node_counts[idx] for idx in child_idxs]))
+                num_nodes = len(set(node_counts.keys()))
 
-            for idx in child_idxs:
-                log_perm_norm -= log_factorial(node_counts[idx])
+                # CRP prior
+                log_p = np.log(self.alpha)
 
-            log_p -= log_perm_norm
+                # Tree prior
+                log_p += (num_nodes - 1) * np.log(num_nodes + 1) - num_nodes * np.log(num_nodes + 2)
+
+                log_perm_norm = log_factorial(sum([node_counts[idx] for idx in child_idxs]))
+
+                for idx in child_idxs:
+                    log_perm_norm -= log_factorial(node_counts[idx])
+
+                log_p -= log_perm_norm
+
+                log_p += np.log(1 - 1e-10)
 
         return log_p
