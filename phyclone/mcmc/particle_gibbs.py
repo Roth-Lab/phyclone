@@ -59,7 +59,7 @@ class ParticleGibbsTreeSampler(object):
         data_sigma = phyclone.smc.utils.sample_sigma(tree)
 
 #         data_sigma = [data[data_idx] for data_idx in sigma]
-        
+
         for i, d in enumerate(data):
             assert i == d.idx
 
@@ -139,24 +139,23 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
         new_swarm = phyclone.smc.samplers.swarm.ParticleSwarm()
 
         for p, w in zip(swarm.particles, swarm.unnormalized_log_weights):
-
             w -= p.state.log_p_one
 
-            t = phyclone.smc.utils.get_tree(p)
+            sub_tree = p.state.tree
 
-            t.relabel_nodes(min_value=min_node_idx)
+            sub_tree.relabel_nodes(min_value=min_node_idx)
 
-            tree.add_subtree(t, parent=parent_node)
+            tree.add_subtree(sub_tree, parent=parent_node)
 
-            tree.outliers.extend(t.outliers)
+            tree.outliers.extend(sub_tree.outliers)
 
             w += tree.log_p_one
 
-            new_swarm.add_particle(w, t)
+            new_swarm.add_particle(w, p)
 
-            tree.remove_subtree(t)
+            tree.remove_subtree(sub_tree)
 
-            for x in t.outliers:
+            for x in sub_tree.outliers:
                 tree.outliers.remove(x)
 
-        return swarm
+        return new_swarm

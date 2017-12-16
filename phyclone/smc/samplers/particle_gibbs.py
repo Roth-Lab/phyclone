@@ -65,15 +65,15 @@ class ParticleGibbsSampler(object):
 
                 node_idx += 1
 
-            proposal_dist = self.kernel.get_proposal_distribution(data_point, constrained_path[-1])
+            parent_particle = constrained_path[-1]
 
-            state = self.kernel.create_state(
-                data_point, constrained_path[-1], old_to_new_node_idx[old_node_idx], root_idxs
-            )
+            proposal_dist = self.kernel.get_proposal_distribution(data_point, parent_particle)
+
+            state = self.kernel.create_state(data_point, parent_particle, old_to_new_node_idx[old_node_idx], root_idxs)
 
             log_q = proposal_dist.get_log_q(state)
 
-            particle = self.kernel.create_particle(data_point, log_q, constrained_path[-1], state)
+            particle = self.kernel.create_particle(data_point, log_q, parent_particle, state)
 
             constrained_path.append(particle)
 

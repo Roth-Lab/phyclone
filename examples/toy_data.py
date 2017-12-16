@@ -54,9 +54,9 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, si
         for _ in range(n):
             data_point = []
 
-            d = stats.poisson.rvs(depth)
-
             for p in params:
+                d = stats.poisson.rvs(depth)
+
                 x = stats.binom.rvs(d, p)
 
                 data_point.append(compute_log_likelihood(x, d))

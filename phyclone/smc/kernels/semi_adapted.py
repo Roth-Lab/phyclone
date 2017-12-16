@@ -34,8 +34,8 @@ class SemiAdaptedProposal(object):
         if self.parent_particle is None:
             log_q = 0
 
-        elif state.node_idx in self.parent_particle.state.root_idxs:
-            log_q = np.log(0.5) + self.log_q[state]
+        elif state.node_idx in self.log_q:
+            log_q = np.log(0.5) + self.log_q[state.node_idx][0]
 
         else:
             old_num_roots = len(self.parent_particle.state.root_idxs)
@@ -52,7 +52,7 @@ class SemiAdaptedProposal(object):
             u = random.random()
 
             if u < 0.5:
-                q = np.exp(list(self.log_q.values()))
+                q = np.exp([x[0] for x in self.log_q.values()])
 
                 assert abs(1 - sum(q)) < 1e-6
 
@@ -60,7 +60,7 @@ class SemiAdaptedProposal(object):
 
                 idx = np.random.multinomial(1, q).argmax()
 
-                state = list(self.log_q.keys())[idx]
+                state = list(self.log_q.values())[idx][1]
 
             else:
                 state = self._propose_new_node()
@@ -77,7 +77,10 @@ class SemiAdaptedProposal(object):
 
         log_q = log_normalize(np.array(log_q))
 
-        self.log_q = dict(zip(states, log_q))
+        self.log_q = {}
+
+        for log_q_state, state in zip(log_q, states):
+            self.log_q[state.node_idx] = (log_q_state, state)
 
     def _propose_existing_node(self):
         proposed_states = []
