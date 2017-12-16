@@ -3,12 +3,13 @@ Created on 16 Sep 2017
 
 @author: Andrew Roth
 '''
+from scipy.misc import logsumexp as log_sum_exp
 from scipy.signal import fftconvolve
 
 import networkx as nx
 import numpy as np
 
-from phyclone.math_utils import log_sum_exp
+from phyclone.math_utils import log_factorial
 
 
 class Tree(object):
@@ -17,25 +18,20 @@ class Tree(object):
     This structure includes the dummy root node.
     """
 
-    def __init__(self, nodes):
+    def __init__(self, grid_size, nodes, outliers, alpha=1.0, outlier_prob=1e-4):
         """
         Parameters
         ----------
-        data_points: dict
-            A mapping from nodes to a list of data points associated with the node.
         nodes: list
             A list of MarginalNodes
         """
+        self.grid_size = grid_size
 
-#         self._nodes = {}
-#
-#         for n in nodes:
-#             self._nodes[n.idx] = n
-        if len(nodes) == 0:
-            self.grid_size = (0, 0)
+        self.outliers = outliers
 
-        else:
-            self.grid_size = nodes[0].grid_size
+        self.alpha = alpha
+
+        self.outlier_prob = outlier_prob
 
         self._init_graph(nodes)
 
@@ -52,11 +48,11 @@ class Tree(object):
                 G.add_edge(node.idx, child.idx)
 
         # Connect roots to dummy root
-        G.add_node(-1)
+        G.add_node('root')
 
         for node in nodes:
             if G.in_degree(node.idx) == 0:
-                G.add_edge(-1, node.idx)
+                G.add_edge('root', node.idx)
 
         self._graph = G
 
@@ -64,11 +60,11 @@ class Tree(object):
         roots = []
 
         for node in nodes:
-            if node.idx in self._graph.successors(-1):
+            if node.idx in self._graph.successors('root'):
                 roots.append(node)
 
         dummy_root = MarginalNode(
-            -1,
+            'root',
             self.grid_size,
             children=roots
         )
@@ -83,28 +79,12 @@ class Tree(object):
         return set(self.labels.keys())
 
     @property
-    def nodes(self):
-        nodes = self._nodes.copy()
-
-        del nodes[-1]
-
-        return nodes
-
-    @property
     def graph(self):
         graph = self._graph.copy()
 
-        graph.remove_node(-1)
+        graph.remove_node('root')
 
         return graph
-
-    @property
-    def log_p(self):
-        return self._nodes[-1].log_p
-
-    @property
-    def log_p_one(self):
-        return self._nodes[-1].log_p_one
 
     @property
     def labels(self):
@@ -114,16 +94,98 @@ class Tree(object):
             for data_point in node.data:
                 labels[data_point.idx] = node.idx
 
+        for data_point in self.outliers:
+            labels[data_point.idx] = -1
+
         return labels
 
     @property
+    def log_likelihood(self):
+        log_p = self._nodes['root'].log_p
+
+        for data_point in self.outliers:
+            log_norm = np.log(data_point.value.shape[1])
+
+            log_p += np.sum(log_sum_exp(data_point.value - log_norm, axis=1))
+
+        return log_p
+
+    @property
+    def log_likelihood_one(self):
+        log_p = self._nodes['root'].log_p_one
+
+        for data_point in self.outliers:
+            log_norm = np.log(data_point.value.shape[1])
+
+            log_p += np.sum(log_sum_exp(data_point.value - log_norm, axis=1))
+
+        return log_p
+
+    @property
+    def log_p(self):
+        return self.log_p_prior + self.log_likelihood
+
+    @property
+    def log_p_one(self):
+        return self.log_p_prior + self.log_likelihood_one
+
+    @property
+    def log_p_prior(self):
+        """ Compute the FS-CRP prior
+        """
+        # Outlier prior
+        log_p = len(self.outliers) * np.log(self.outlier_prob)
+
+        for node in self.nodes.values():
+            num_data_points = len(node.data)
+
+            log_p += num_data_points * np.log(1 - self.outlier_prob)
+
+        # CRP prior
+        num_nodes = len(self.nodes)
+
+        log_p += num_nodes * np.log(self.alpha)
+
+        for node in self.nodes.values():
+            num_data_points = len(node.data)
+
+            log_p += log_factorial(num_data_points - 1)
+
+        # Uniform prior on toplogies
+        log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
+
+        # TODO: Check this. Are we missing a term for the outliers.
+        # Correction for auxillary distribution
+        log_aux_norm = 0
+
+        for node in self.nodes.values():
+            log_aux_norm += log_factorial(sum([len(child.data) for child in node.children]))
+
+            for child in node.children:
+                log_aux_norm -= log_factorial(len(child.data))
+
+            log_aux_norm += log_factorial(len(node.data))
+
+        log_p -= log_aux_norm
+
+        return log_p
+
+    @property
+    def nodes(self):
+        nodes = self._nodes.copy()
+
+        del nodes['root']
+
+        return nodes
+
+    @property
     def roots(self):
-        return [self._nodes[idx] for idx in self._graph.successors(-1)]
+        return [self._nodes[idx] for idx in self._graph.successors('root')]
 
     def copy(self):
-        root = self._nodes[-1].copy()
+        root = self._nodes['root'].copy()
 
-        return Tree(get_nodes(root)[1:])
+        return Tree(self.grid_size, get_nodes(root)[1:], list(self.outliers))
 
     def draw(self, ax=None):
         nx.draw(
@@ -133,74 +195,11 @@ class Tree(object):
             with_labels=True
         )
 
-    def get_children_nodes(self, node):
-        return node.children
-
-    def get_parent_node(self, node):
-        if node.idx == -1:
-            return None
-
-        parent_idxs = list(self._graph.predecessors(node.idx))
-
-        assert len(parent_idxs) == 1
-
-        parent_idx = parent_idxs[0]
-
-        return self._nodes[parent_idx]
-
-#     def add_node(self, data_points, node, children=None, parent=None):
-#         if node.idx in self._nodes:
-#             raise Exception('Node {} exists in tree'.format(node.idx))
-#
-#         self._data_points[node.idx] = data_points
-#
-#         # Node editing
-#         self._nodes[node.idx] = node
-#
-#         if children is not None:
-#             node.update_children(children)
-#
-#             for child in children:
-#                 self._graph.add_edge(node.idx, child.idx)
-#
-#         if parent is not None:
-#             parent.add_child_node(node)
-#
-#             self._update_ancestor_nodes(parent)
-#
-#             self._graph.add_edge(parent.idx, node.idx)
-#
-#         self.get_parent_node(node)
-#
-#     def remove_node(self, node):
-#         if node.idx == -1:
-#             raise Exception('Cannot remove root node')
-#
-#         # Node editing
-#         parent = self.get_parent_node(node)
-#
-#         parent.remove_child_node(node)
-#
-#         self._update_ancestor_nodes(parent)
-#
-#         del self._data_points[node.idx]
-#
-#         del self._nodes[node.idx]
-#
-#         # Graph editing
-#         for edge in self._graph.edges():
-#             if node.idx in edge:
-#                 self._graph.remove_edge(*edge)
-#
-#         self._graph.remove_node(node.idx)
-
     def add_subtree(self, subtree, parent=None):
         if parent is None:
-            parent = self._nodes[-1]
+            parent = self._nodes['root']
 
         assert parent in self._nodes.values()
-
-        assert len(subtree.data_points & self.data_points) == 0
 
         for n in subtree.nodes.values():
             assert n.idx not in self._nodes.keys()
@@ -225,6 +224,18 @@ class Tree(object):
 
         self._validate()
 
+    def get_parent_node(self, node):
+        if node.idx == 'root':
+            return None
+
+        parent_idxs = list(self._graph.predecessors(node.idx))
+
+        assert len(parent_idxs) == 1
+
+        parent_idx = parent_idxs[0]
+
+        return self._nodes[parent_idx]
+
     def get_subtree(self, subtree_root):
         subtree_node_idxs = list(nx.dfs_tree(self._graph, subtree_root.idx))
 
@@ -233,7 +244,7 @@ class Tree(object):
         for node_idx in subtree_node_idxs:
             nodes.append(self._nodes[node_idx])
 
-        t = Tree(nodes)
+        t = Tree(subtree_root.grid_size, nodes, [])
 
         t._validate()
 
@@ -249,11 +260,11 @@ class Tree(object):
         # TODO: Fix this by copy the dicts
         node_map = {}
 
-        self._data_points = {-1: []}
+        self._data_points = {'root': []}
 
-        self._nodes = {-1: self._nodes[-1].copy()}
+        self._nodes = {'root': self._nodes['root'].copy()}
 
-        old_nodes = get_nodes(self._nodes[-1])
+        old_nodes = get_nodes(self._nodes['root'])
 
         for new_idx, old in enumerate(old_nodes[1:], min_value):
             node_map[old.idx] = new_idx
@@ -264,7 +275,7 @@ class Tree(object):
 
         self._graph = nx.relabel_nodes(self._graph, node_map)
 
-        for node_idx in nx.dfs_preorder_nodes(self._graph, -1):
+        for node_idx in nx.dfs_preorder_nodes(self._graph, 'root'):
             node = self._nodes[node_idx]
 
             node._children = {}
@@ -414,7 +425,7 @@ class MarginalNode(object):
     def remove_data_point(self, data_point):
         """ Remove a data point to the collection at this node.
         """
-        self.data.append(data_point)
+        self.data.remove(data_point)
 
         self.log_likelihood -= data_point.value
 
@@ -526,4 +537,4 @@ def get_single_node_tree(data):
 
     nodes[0].data = data
 
-    return Tree(nodes)
+    return Tree(nodes[0].grid_size, nodes, [])

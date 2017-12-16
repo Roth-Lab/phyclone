@@ -1,16 +1,20 @@
 from __future__ import division, print_function
 
-from collections import namedtuple
-from scipy.misc import logsumexp as log_sum_exp
-
-import numpy as np
-
-from phyclone.math_utils import log_factorial
-from phyclone.smc.utils import get_num_data_points_per_node
-from phyclone.tree import MarginalNode
+from phyclone.tree import MarginalNode, Tree
 
 
-Particle = namedtuple('Particle', ['log_w', 'parent_particle', 'state'])
+class Particle(object):
+    __slots__ = 'log_w', 'parent_particle', 'state'
+
+    def __init__(self, log_w, parent_particle, state):
+        self.log_w = log_w
+
+        self.parent_particle = parent_particle
+
+        self.state = state
+
+    def copy(self):
+        return Particle(self.log_w, self.parent_particle, self.state.copy())
 
 
 class State(object):
@@ -19,8 +23,15 @@ class State(object):
     This class stores the partially constructed tree during the SMC.
     """
 
-    def __init__(self, node_idx, log_p_prior, outliers, roots):
-        self.log_p_prior = log_p_prior
+    def __init__(self, grid_size, node_idx, outliers, roots, alpha=1.0, outlier_prob=1e-4):
+
+        def get_nodes(node):
+            nodes = [node, ]
+
+            for child in node.children:
+                nodes.extend(get_nodes(child))
+
+            return nodes
 
         self.node_idx = node_idx
 
@@ -28,13 +39,12 @@ class State(object):
 
         self.roots = roots
 
-        self._dummy_root = None
+        nodes = []
 
-        self._log_p = None
+        for root in roots.values():
+            nodes.extend(get_nodes(root))
 
-        self._log_p_one = None
-
-        assert (node_idx in self.root_idxs) or (node_idx == -1)
+        self.tree = Tree(grid_size, nodes, outliers, alpha=alpha, outlier_prob=outlier_prob)
 
     def __key(self):
         return (self.node_idx, self.root_idxs)
@@ -46,54 +56,16 @@ class State(object):
         return hash(self.__key())
 
     @property
-    def dummy_root(self):
-        """ A node connecting all concrete rootnodes in the tree.
-        """
-        if len(self.roots) == 0:
-            return None
-
-        if self._dummy_root is None:
-            grid_size = self.root_nodes[0].grid_size
-
-            self._dummy_root = MarginalNode(-1, grid_size, children=self.roots.values())
-
-        return self._dummy_root
-
-    @property
     def log_p(self):
         """ Log joint probability of the state marginalizing over value of dummy root.
         """
-        if self._log_p is None:
-            if self.dummy_root is None:
-                self._log_p = 0
-
-            else:
-                self._log_p = self.dummy_root.log_p
-
-            for data_point in self.outliers:
-                log_norm = np.log(data_point.value.shape[1])
-
-                self._log_p += np.sum(log_sum_exp(data_point.value - log_norm, axis=1))
-
-        return self.log_p_prior + self._log_p
+        return self.tree.log_p
 
     @property
     def log_p_one(self):
         """ Log joint probability of the state with dummy root having value of one.
         """
-        if self._log_p_one is None:
-            if self.dummy_root is None:
-                self._log_p_one = 0
-
-            else:
-                self._log_p_one = self.dummy_root.log_p_one
-
-            for data_point in self.outliers:
-                log_norm = np.log(data_point.value.shape[1])
-
-                self._log_p += np.sum(log_sum_exp(data_point.value - log_norm, axis=1))
-
-        return self.log_p_prior + self._log_p_one
+        return self.tree.log_p_one
 
     @property
     def root_idxs(self):
@@ -102,6 +74,21 @@ class State(object):
     @property
     def root_nodes(self):
         return list(self.roots.values())
+
+    def copy(self):
+        roots = {}
+
+        for r in self.root_nodes:
+            roots[r.idx] = r.shallow_copy()
+
+        return State(
+            self.tree.grid_size,
+            self.node_idx,
+            list(self.outliers),
+            roots,
+            alpha=self.tree.alpha,
+            outlier_prob=self.tree.outlier_prob
+        )
 
 
 class Kernel(object):
@@ -115,7 +102,7 @@ class Kernel(object):
         """
         raise NotImplementedError
 
-    def __init__(self, alpha, grid_size):
+    def __init__(self, alpha, grid_size, outlier_prob):
         """
         Parameters
         ----------
@@ -123,10 +110,14 @@ class Kernel(object):
             Concentration parameter of the CRP.
         grid_size: int
             The size of the grid to approximate the recursion integrals.
+        outlier_prob: float
+            The prior probability a data point will not fit the tree.
         """
         self.alpha = alpha
 
         self.grid_size = grid_size
+
+        self.outlier_prob = outlier_prob
 
     def create_particle(self, data_point, log_q, parent_particle, state):
         """  Create a new particle from a parent particle.
@@ -153,8 +144,6 @@ class Kernel(object):
         root_idxs: array_like (int)
             List of indexes for concrete nodes.
         """
-        log_p_prior = self._compute_log_p_prior(data_point, parent_particle, node_idx, root_idxs)
-
         if parent_particle is None:
             outliers = []
 
@@ -204,7 +193,7 @@ class Kernel(object):
 
                 roots[node_idx].add_data_point(data_point)
 
-        return State(node_idx, log_p_prior, outliers, roots)
+        return State(self.grid_size, node_idx, outliers, roots, alpha=self.alpha, outlier_prob=self.outlier_prob)
 
     def propose_particle(self, data_point, parent_particle):
         """ Propose a particle for t given a particle from t - 1 and a data point.
@@ -216,42 +205,3 @@ class Kernel(object):
         log_q = proposal_dist.get_log_q(state)
 
         return self.create_particle(data_point, log_q, parent_particle, state)
-
-    def _compute_log_p_prior(self, data_point, parent_particle, node_idx, root_idxs):
-        """ Compute the incremental FS-CRP prior contribution.
-        """
-        if node_idx == -1:
-            log_p = np.log(1e-10)
-
-        else:
-            if parent_particle is None:
-                log_p = np.log(self.alpha)
-
-            elif node_idx in parent_particle.state.root_idxs:
-                node_counts = get_num_data_points_per_node(parent_particle)
-
-                log_p = np.log(node_counts[node_idx])
-
-            else:
-                child_idxs = parent_particle.state.root_idxs - root_idxs
-
-                node_counts = get_num_data_points_per_node(parent_particle)
-
-                num_nodes = len(set(node_counts.keys()))
-
-                # CRP prior
-                log_p = np.log(self.alpha)
-
-                # Tree prior
-                log_p += (num_nodes - 1) * np.log(num_nodes + 1) - num_nodes * np.log(num_nodes + 2)
-
-                log_perm_norm = log_factorial(sum([node_counts[idx] for idx in child_idxs]))
-
-                for idx in child_idxs:
-                    log_perm_norm -= log_factorial(node_counts[idx])
-
-                log_p -= log_perm_norm
-
-                log_p += np.log(1 - 1e-10)
-
-        return log_p

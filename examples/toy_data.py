@@ -6,7 +6,7 @@ import scipy.stats as stats
 from phyclone.data import DataPoint
 
 
-def load_test_data(cluster_size=5, depth=1000, grid_size=101, single_sample=False):
+def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, single_sample=False):
     """ Simulate a toy Binomial data set.
 
     True tree: (4,(3,2(1,0)))
@@ -46,7 +46,7 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, single_sample=Fals
 
     for i, params in enumerate(cluster_params):
         if i == 5:
-            n = 2
+            n = outlier_size
 
         else:
             n = cluster_size
@@ -54,12 +54,12 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, single_sample=Fals
         for _ in range(n):
             data_point = []
 
-            n = stats.poisson.rvs(depth)
+            d = stats.poisson.rvs(depth)
 
             for p in params:
-                x = stats.binom.rvs(n, p)
+                x = stats.binom.rvs(d, p)
 
-                data_point.append(compute_log_likelihood(x, n))
+                data_point.append(compute_log_likelihood(x, d))
 
             data.append(DataPoint(idx, np.array(data_point)))
 

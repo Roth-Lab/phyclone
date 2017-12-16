@@ -41,10 +41,10 @@ class ParticleGibbsSampler(object):
 
         return self.swarm
 
-    def _get_constrained_path(self, config):
+    def _get_constrained_path(self, tree):
         constrained_path = [None, ]
 
-        data_to_node = config.labels
+        data_to_node = tree.labels
 
         node_idx = 0
 
@@ -56,7 +56,7 @@ class ParticleGibbsSampler(object):
             old_node_idx = data_to_node[data_point.idx]
 
             if old_node_idx not in old_to_new_node_idx:
-                for child in config.tree.nodes[old_node_idx].children:
+                for child in tree.nodes[old_node_idx].children:
                     root_idxs.remove(old_to_new_node_idx[child.idx])
 
                 old_to_new_node_idx[old_node_idx] = node_idx
@@ -77,7 +77,7 @@ class ParticleGibbsSampler(object):
 
             constrained_path.append(particle)
 
-#         assert nx.is_isomorphic(tree.graph, phyclone.smc.utils.get_tree(constrained_path[-1]).graph)
+        assert nx.is_isomorphic(tree.graph, particle.state.tree.graph)
 
         return constrained_path
 
