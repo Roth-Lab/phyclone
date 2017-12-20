@@ -5,8 +5,8 @@ import numpy as np
 from phyclone.smc.samplers.swarm import ParticleSwarm
 
 
-class AdaptiveSampler(object):
-    """ Unconditional SMC sampler with adaptive resampling.
+class Sampler(object):
+    """ Standard SMC sampler with adaptive resampling.
     """
 
     def __init__(self, data_points, kernel, num_particles, resample_threshold=0.5):
