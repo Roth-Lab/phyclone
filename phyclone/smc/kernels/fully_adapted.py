@@ -23,10 +23,10 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         self._init_dist()
 
     def log_p(self, state):
-        return self.log_q[self.states.index(state)]
+        return self.log_q[state.node_idx]
 
     def sample(self):
-        q = np.exp(self.log_q)
+        q = np.exp(np.array(list(self.log_q.values())))
 
         assert abs(1 - sum(q)) < 1e-6
 
@@ -34,56 +34,69 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
         idx = np.random.multinomial(1, q).argmax()
 
-        return self.states[idx]
+        node_idx = list(self.log_q.keys())[idx]
+
+        return self.states[node_idx]
 
     def _init_dist(self):
-        self.states = self._propose_new_node()
+        self.states = {}
+
+        self._propose_new_node()
+
+        self._propose_outlier_node()
 
         if self.parent_particle is not None:
-            self.states.extend(self._propose_existing_node())
+            self._propose_existing_node()
 
-        log_q = [x.log_p for x in self.states]
+        log_q = [x.log_p for x in self.states.values()]
 
-        self.log_q = log_normalize(np.array(log_q))
+        log_q = log_normalize(np.array(log_q))
+
+        self.log_q = dict(zip(self.states.keys(), log_q))
 
     def _propose_existing_node(self):
-        proposed_states = []
-
         for node_idx in self.parent_particle.state.root_idxs:
-            proposed_states.append(
-                self.kernel.create_state(
-                    self.data_point,
-                    self.parent_particle,
-                    node_idx,
-                    self.parent_particle.state.root_idxs
-                )
+            self.states[node_idx] = self.kernel.create_state(
+                self.data_point,
+                self.parent_particle,
+                node_idx,
+                self.parent_particle.state.root_idxs
             )
-
-        return proposed_states
 
     def _propose_new_node(self):
         if self.parent_particle is None:
-            return [
-                self.kernel.create_state(self.data_point, self.parent_particle, 0, set([0, ]))
-            ]
+            self.states[0] = self.kernel.create_state(self.data_point, self.parent_particle, 0, set([0, ]))
 
-        proposed_states = []
+        else:
+            node_idx = max(list(self.parent_particle.state.root_idxs) + [-1, ]) + 1
 
-        node_idx = max(list(self.parent_particle.state.root_idxs) + [-1, ]) + 1
+            num_roots = len(self.parent_particle.state.root_idxs)
 
-        num_roots = len(self.parent_particle.state.root_idxs)
+            for r in range(0, num_roots + 1):
+                for child_idxs in itertools.combinations(self.parent_particle.state.root_idxs, r):
+                    root_idxs = set(self.parent_particle.state.root_idxs - set(child_idxs))
 
-        for r in range(0, num_roots + 1):
-            for child_idxs in itertools.combinations(self.parent_particle.state.root_idxs, r):
-                root_idxs = set(self.parent_particle.state.root_idxs - set(child_idxs))
+                    root_idxs.add(node_idx)
 
-                root_idxs.add(node_idx)
+                    self.states[node_idx] = self.kernel.create_state(
+                        self.data_point, self.parent_particle, node_idx, root_idxs
+                    )
 
-                proposed_states.append(
-                    self.kernel.create_state(self.data_point, self.parent_particle, node_idx, root_idxs)
-                )
+                    node_idx += 1
 
-        return proposed_states
+    def _propose_outlier_node(self):
+        if self.parent_particle is None:
+            root_idxs = set()
+
+        else:
+            root_idxs = self.parent_particle.state.root_idxs
+
+        self.states[-1] = self.kernel.create_state(
+            self.data_point,
+            self.parent_particle,
+            -1,
+            root_idxs
+        )
 
 
 class FullyAdaptedKernel(Kernel):
