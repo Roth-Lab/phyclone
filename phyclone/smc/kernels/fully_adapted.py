@@ -4,10 +4,10 @@ import itertools
 import numpy as np
 
 from phyclone.math_utils import log_normalize
-from phyclone.smc.kernels.base import Kernel
+from phyclone.smc.kernels.base import Kernel, ProposalDistribution
 
 
-class FullyAdaptedProposal(object):
+class FullyAdaptedProposalDistribution(ProposalDistribution):
     """ Fully adapted proposal density.
 
     Considers all possible proposals and weight according to log probability.
@@ -22,10 +22,10 @@ class FullyAdaptedProposal(object):
 
         self._init_dist()
 
-    def get_log_q(self, state):
+    def log_p(self, state):
         return self.log_q[self.states.index(state)]
 
-    def sample_state(self):
+    def sample(self):
         q = np.exp(self.log_q)
 
         assert abs(1 - sum(q)) < 1e-6
@@ -89,4 +89,4 @@ class FullyAdaptedProposal(object):
 class FullyAdaptedKernel(Kernel):
 
     def get_proposal_distribution(self, data_point, parent_particle):
-        return FullyAdaptedProposal(data_point, self, parent_particle)
+        return FullyAdaptedProposalDistribution(data_point, self, parent_particle)

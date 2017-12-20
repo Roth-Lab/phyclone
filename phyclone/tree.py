@@ -1,8 +1,3 @@
-'''
-Created on 16 Sep 2017
-
-@author: Andrew Roth
-'''
 from scipy.misc import logsumexp as log_sum_exp
 from scipy.signal import fftconvolve
 
@@ -22,8 +17,16 @@ class Tree(object):
         """
         Parameters
         ----------
+        grid_size: tuple
+            The size of the grid used for likelihood.
         nodes: list
-            A list of MarginalNodes
+            A list of MarginalNodes that form the tree.
+        outliers: list
+            A list of outlier data points.
+        alpha: float
+            CRP concentration parameter.
+        outlier_prob: float
+            A value between 0 and 1 representing the probability of a node being an outlier.
         """
         self.grid_size = grid_size
 
@@ -37,42 +40,26 @@ class Tree(object):
 
         self._validate()
 
-    def _init_graph(self, nodes):
-        # Create graph
-        G = nx.DiGraph()
+    @staticmethod
+    def get_nodes(source):
+        """ Recursively fetch all nodes in the subtree rooted at source.
+        """
+        nodes = [source, ]
 
-        for node in nodes:
-            G.add_node(node.idx)
+        for child in source.children:
+            nodes.extend(Tree.get_nodes(child))
 
-            for child in node.children:
-                G.add_edge(node.idx, child.idx)
+        return nodes
 
-        # Connect roots to dummy root
-        G.add_node('root')
+    @staticmethod
+    def get_single_node_tree(data):
+        """ Load a tree with all data points assigned single node.
+        """
+        nodes = [MarginalNode(0, data[0].shape, []), ]
 
-        for node in nodes:
-            if G.in_degree(node.idx) == 0:
-                G.add_edge('root', node.idx)
+        nodes[0].data = data
 
-        self._graph = G
-
-        # Instantiate dummy node
-        roots = []
-
-        for node in nodes:
-            if node.idx in self._graph.successors('root'):
-                roots.append(node)
-
-        dummy_root = MarginalNode(
-            'root',
-            self.grid_size,
-            children=roots
-        )
-
-        self._nodes = {}
-
-        for n in get_nodes(dummy_root):
-            self._nodes[n.idx] = n
+        return Tree(nodes[0].grid_size, nodes, [])
 
     @property
     def data_points(self):
@@ -154,21 +141,23 @@ class Tree(object):
         # Uniform prior on toplogies
         log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
 
+        return log_p
+
+    @property
+    def log_p_sigma(self):
         # TODO: Check this. Are we missing a term for the outliers.
         # Correction for auxillary distribution
-        log_aux_norm = 0
+        log_p = 0
 
         for node in self.nodes.values():
-            log_aux_norm += log_factorial(sum([len(child.data) for child in node.children]))
+            log_p += log_factorial(sum([len(child.data) for child in node.children]))
 
             for child in node.children:
-                log_aux_norm -= log_factorial(len(child.data))
+                log_p -= log_factorial(len(child.data))
 
-            log_aux_norm += log_factorial(len(node.data))
+            log_p += log_factorial(len(node.data))
 
-        log_p -= log_aux_norm
-
-        return log_p
+        return -log_p
 
     @property
     def nodes(self):
@@ -185,7 +174,7 @@ class Tree(object):
     def copy(self):
         root = self._nodes['root'].copy()
 
-        return Tree(self.grid_size, get_nodes(root)[1:], list(self.outliers))
+        return Tree(self.grid_size, Tree.get_nodes(root)[1:], list(self.outliers))
 
     def draw(self, ax=None):
         nx.draw(
@@ -264,7 +253,7 @@ class Tree(object):
 
         self._nodes = {'root': self._nodes['root'].copy()}
 
-        old_nodes = get_nodes(self._nodes['root'])
+        old_nodes = Tree.get_nodes(self._nodes['root'])
 
         for new_idx, old in enumerate(old_nodes[1:], min_value):
             node_map[old.idx] = new_idx
@@ -288,6 +277,43 @@ class Tree(object):
                 assert child_idx == child.idx
 
         self._validate()
+
+    def _init_graph(self, nodes):
+        # Create graph
+        G = nx.DiGraph()
+
+        for node in nodes:
+            G.add_node(node.idx)
+
+            for child in node.children:
+                G.add_edge(node.idx, child.idx)
+
+        # Connect roots to dummy root
+        G.add_node('root')
+
+        for node in nodes:
+            if G.in_degree(node.idx) == 0:
+                G.add_edge('root', node.idx)
+
+        self._graph = G
+
+        # Instantiate dummy node
+        roots = []
+
+        for node in nodes:
+            if node.idx in self._graph.successors('root'):
+                roots.append(node)
+
+        dummy_root = MarginalNode(
+            'root',
+            self.grid_size,
+            children=roots
+        )
+
+        self._nodes = {}
+
+        for n in Tree.get_nodes(dummy_root):
+            self._nodes[n.idx] = n
 
     def _remove_subtree(self, subtree):
         assert len(subtree.roots) == 1
@@ -313,9 +339,13 @@ class Tree(object):
         self._validate()
 
     def _update_ancestor_nodes(self, source):
-        '''
-        Update all ancestor _nodes of source sequentially from source to root.
-        '''
+        """ Update all ancestor _nodes of source sequentially from source to root.
+
+        Parameters
+        ----------
+        source: MarginalNode
+            The node to begin updating nodes from.
+        """
         while source is not None:
             self._nodes[source.idx].update()
 
@@ -393,26 +423,6 @@ class MarginalNode(object):
 
         self.update()
 
-    def remove_child_node(self, node):
-        """ Remove a child node.
-        """
-        del self._children[node.idx]
-
-        self.update()
-
-    def update_children(self, children):
-        """ Set the node children
-        """
-        self._children = {}
-
-        if children is not None:
-            for child in children:
-                self._children[child.idx] = child
-
-        self.log_R = np.zeros(self.grid_size)
-
-        self.update()
-
     def add_data_point(self, data_point):
         """ Add a data point to the collection at this node.
         """
@@ -422,39 +432,24 @@ class MarginalNode(object):
 
         self._update_log_R()
 
-    def remove_data_point(self, data_point):
-        """ Remove a data point to the collection at this node.
-        """
-        self.data.remove(data_point)
-
-        self.log_likelihood -= data_point.value
-
-        self._update_log_R()
-
-    def copy(self):
+    def copy(self, deep=True):
         """ Make a deep copy of the node.
 
-        This should return a copy of the node with no shared memory with the original.
+        Parameters
+        ----------
+        deep: bool
+            If true then children will be copied, otherwise they will be shared pointers with the original.
         """
-        # TODO: Replace call to __init__ with __new__ and skip call to update()
-        new_children = [x.copy() for x in self.children]
-
-        new = MarginalNode(self.idx, self.grid_size, children=new_children)
-
-        new.data = list(self.data)
-
-        new.log_likelihood = np.copy(self.log_likelihood)
-
-        new.log_R = np.copy(self.log_R)
-
-        new.log_S = np.copy(self.log_S)
-
-        return new
-
-    def shallow_copy(self):
         new = MarginalNode.__new__(MarginalNode)
 
-        new._children = self._children
+        if deep:
+            new._children = {}
+
+            for child in self.children:
+                new._children[child.idx] = child.copy()
+
+        else:
+            new._children = self._children.copy()
 
         new.grid_size = self.grid_size
 
@@ -469,6 +464,35 @@ class MarginalNode(object):
         new.log_S = np.copy(self.log_S)
 
         return new
+
+    def remove_child_node(self, node):
+        """ Remove a child node.
+        """
+        del self._children[node.idx]
+
+        self.update()
+
+    def remove_data_point(self, data_point):
+        """ Remove a data point to the collection at this node.
+        """
+        self.data.remove(data_point)
+
+        self.log_likelihood -= data_point.value
+
+        self._update_log_R()
+
+    def update_children(self, children):
+        """ Set the node children
+        """
+        self._children = {}
+
+        if children is not None:
+            for child in children:
+                self._children[child.idx] = child
+
+        self.log_R = np.zeros(self.grid_size)
+
+        self.update()
 
     def update(self):
         """ Update the arrays required for the recursion.
@@ -502,7 +526,7 @@ class MarginalNode(object):
 
 
 def _compute_log_D_n(child_log_R, prev_log_D_n):
-    """ Compute the recursion over D using the FFT
+    """ Compute the recursion over D using the FFT.
     """
     log_R_max = child_log_R.max()
 
@@ -519,22 +543,3 @@ def _compute_log_D_n(child_log_R, prev_log_D_n):
     result[result <= 0] = 1e-100
 
     return np.log(result) + log_D_max + log_R_max
-
-
-def get_nodes(source):
-    nodes = [source, ]
-
-    for child in source.children:
-        nodes.extend(get_nodes(child))
-
-    return nodes
-
-
-def get_single_node_tree(data):
-    """ Load a tree with all data points assigned single node.
-    """
-    nodes = [MarginalNode(0, data[0].shape, []), ]
-
-    nodes[0].data = data
-
-    return Tree(nodes[0].grid_size, nodes, [])

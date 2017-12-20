@@ -9,10 +9,10 @@ import numpy as np
 import random
 
 from phyclone.math_utils import log_normalize
-from phyclone.smc.kernels.base import Kernel
+from phyclone.smc.kernels.base import Kernel, ProposalDistribution
 
 
-class SemiAdaptedProposal(object):
+class SemiAdaptedProposalDistribution(ProposalDistribution):
     """ Semi adapted proposal density.
 
     Considers all possible choice of existing nodes and one option for a new node proposed at random. This
@@ -28,7 +28,7 @@ class SemiAdaptedProposal(object):
 
         self._init_dist()
 
-    def get_log_q(self, state):
+    def log_p(self, state):
         """ Get the log probability of the state.
         """
         if self.parent_particle is None:
@@ -44,7 +44,7 @@ class SemiAdaptedProposal(object):
 
         return log_q
 
-    def sample_state(self):
+    def sample(self):
         if self.parent_particle is None:
             state = self.kernel.create_state(self.data_point, self.parent_particle, 0, set([0, ]))
 
@@ -130,4 +130,4 @@ class SemiAdaptedProposal(object):
 class SemiAdaptedKernel(Kernel):
 
     def get_proposal_distribution(self, data_point, parent_particle):
-        return SemiAdaptedProposal(data_point, self, parent_particle)
+        return SemiAdaptedProposalDistribution(data_point, self, parent_particle)

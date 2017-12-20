@@ -71,7 +71,7 @@ class ParticleGibbsSampler(object):
 
             state = self.kernel.create_state(data_point, parent_particle, old_to_new_node_idx[old_node_idx], root_idxs)
 
-            log_q = proposal_dist.get_log_q(state)
+            log_q = proposal_dist.log_p(state)
 
             particle = self.kernel.create_particle(data_point, log_q, parent_particle, state)
 
@@ -150,4 +150,4 @@ class ParticleGibbsSampler(object):
 
         else:
             # Enforce that the sum of the tree is one
-            return particle.log_w - particle.state.log_p + particle.state.log_p_one
+            return particle.log_w - particle.state.log_p + particle.state.log_p_one + particle.state.tree.log_p_sigma

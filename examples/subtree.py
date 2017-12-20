@@ -10,10 +10,10 @@ from phyclone.concentration import GammaPriorConcentrationSampler
 from phyclone.consensus import get_consensus_tree
 from phyclone.mcmc.metropolis_hastings import PruneRegraphSampler
 from phyclone.mcmc.particle_gibbs import ParticleGibbsSubtreeSampler
-from phyclone.tree import get_single_node_tree
+from phyclone.tree import Tree
 
 from toy_data import load_test_data
-from phyclone.math_utils import log_normalize, discrete_rvs, exp_normalize
+from phyclone.math_utils import discrete_rvs, exp_normalize
 
 
 # TODO: Try doing a loop of outliers and attaching to tree nodes in a  Gibbs step
@@ -55,9 +55,9 @@ def resample_outliers(tree):
     return tree
 
 
-data, labels, true_graph = load_test_data(cluster_size=5, outlier_size=2)
+data, labels, true_graph = load_test_data(cluster_size=2, depth=int(1e5), outlier_size=1, single_sample=True)
 
-tree = get_single_node_tree(data)
+tree = Tree.get_single_node_tree(data)
 
 conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
 
@@ -68,13 +68,13 @@ pg_sampler = ParticleGibbsSubtreeSampler(
     alpha=1.0,
     kernel='semi-adapted',
     num_particles=20,
-    outlier_prob=1e-4,
+    outlier_prob=1e-3,
     resample_threshold=0.5
 )
 
 print('Starting sampling')
 
-num_iters = int(1e4)
+num_iters = int(1e3)
 
 trace = []
 
@@ -85,8 +85,8 @@ for i in range(num_iters):
 
     tree = resample_outliers(tree)
 
-    pg_sampler.alpha = conc_sampler.sample(pg_sampler.alpha, len(
-        tree.nodes), len([x for x in tree.labels.values() if x != -1]))
+#     pg_sampler.alpha = conc_sampler.sample(pg_sampler.alpha, len(
+#         tree.nodes), len([x for x in tree.labels.values() if x != -1]))
 
     if i % 10 == 0:
         pred_labels = [tree.labels[x] for x in sorted(tree.labels)]
@@ -94,9 +94,10 @@ for i in range(num_iters):
         print(i, pg_sampler.alpha)
         print(pred_labels)
         print(homogeneity_completeness_v_measure(labels, pred_labels), len(tree.nodes))
-        print(tree.log_p)
+        print(tree.log_p_one)
         print(nx.is_isomorphic(tree._graph, true_graph))
         print([x.idx for x in tree.roots])
+        print(tree.graph.edges)
         print()
 
         for node_idx in tree.nodes:

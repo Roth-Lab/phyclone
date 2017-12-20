@@ -25,14 +25,6 @@ class State(object):
 
     def __init__(self, grid_size, node_idx, outliers, roots, alpha=1.0, outlier_prob=1e-4):
 
-        def get_nodes(node):
-            nodes = [node, ]
-
-            for child in node.children:
-                nodes.extend(get_nodes(child))
-
-            return nodes
-
         self.node_idx = node_idx
 
         self.outliers = outliers
@@ -42,7 +34,7 @@ class State(object):
         nodes = []
 
         for root in roots.values():
-            nodes.extend(get_nodes(root))
+            nodes.extend(Tree.get_nodes(root))
 
         self.tree = Tree(grid_size, nodes, outliers, alpha=alpha, outlier_prob=outlier_prob)
 
@@ -74,21 +66,6 @@ class State(object):
     @property
     def root_nodes(self):
         return list(self.roots.values())
-
-    def copy(self):
-        roots = {}
-
-        for r in self.root_nodes:
-            roots[r.idx] = r.shallow_copy()
-
-        return State(
-            self.tree.grid_size,
-            self.node_idx,
-            list(self.outliers),
-            roots,
-            alpha=self.tree.alpha,
-            outlier_prob=self.tree.outlier_prob
-        )
 
 
 class Kernel(object):
@@ -174,7 +151,7 @@ class Kernel(object):
 
                 roots = parent_particle.state.roots.copy()
 
-                roots[node_idx] = roots[node_idx].shallow_copy()
+                roots[node_idx] = roots[node_idx].copy(deep=False)
 
                 roots[node_idx].add_data_point(data_point)
 
@@ -200,8 +177,23 @@ class Kernel(object):
         """
         proposal_dist = self.get_proposal_distribution(data_point, parent_particle)
 
-        state = proposal_dist.sample_state()
+        state = proposal_dist.sample()
 
-        log_q = proposal_dist.get_log_q(state)
+        log_q = proposal_dist.log_p(state)
 
         return self.create_particle(data_point, log_q, parent_particle, state)
+
+
+class ProposalDistribution(object):
+    """ Abstract class for proposal distribution.
+    """
+
+    def log_p(self, state):
+        """ Get the log probability of the state.
+        """
+        raise NotImplementedError
+
+    def sample(self):
+        """ Sample a new state from the proposal distribution.
+        """
+        raise NotImplementedError

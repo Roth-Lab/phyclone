@@ -3,10 +3,10 @@ from __future__ import division
 import numpy as np
 import random
 
-from phyclone.smc.kernels.base import Kernel
+from phyclone.smc.kernels.base import Kernel, ProposalDistribution
 
 
-class BootstrapProposal(object):
+class BootstrapProposalDistribution(ProposalDistribution):
     """ Bootstrap proposal distribution.
 
     A simple proposal from the prior distribution.
@@ -19,7 +19,7 @@ class BootstrapProposal(object):
 
         self.parent_particle = parent_particle
 
-    def get_log_q(self, state):
+    def log_p(self, state):
         """ Get the log probability of the state.
         """
         if self.parent_particle is None:
@@ -40,7 +40,7 @@ class BootstrapProposal(object):
 
         return log_q
 
-    def sample_state(self):
+    def sample(self):
         """ Sample a new state from the proposal distribution.
         """
         if self.parent_particle is None:
@@ -110,4 +110,4 @@ class BootstrapProposal(object):
 class BootstrapKernel(Kernel):
 
     def get_proposal_distribution(self, data_point, parent_particle):
-        return BootstrapProposal(data_point, self, parent_particle)
+        return BootstrapProposalDistribution(data_point, self, parent_particle)
