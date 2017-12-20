@@ -196,6 +196,23 @@ class Tree(object):
         return nodes
 
     @property
+    def node_sizes(self):
+        """ Dictionary mapping nodes to number of data points.
+        """
+        cluster_sizes = {}
+
+        for node in self.nodes.values():
+            cluster_sizes[node.idx] = len(node.data)
+
+        return cluster_sizes
+
+    @property
+    def num_nodes(self):
+        """ Number of nodes in the forest.
+        """
+        return len(self.nodes)
+
+    @property
     def roots(self):
         """ List of nodes attached to the dummy root.
 
