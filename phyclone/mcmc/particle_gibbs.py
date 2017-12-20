@@ -13,37 +13,19 @@ class ParticleGibbsTreeSampler(object):
     """ Particle Gibbs sampler targeting sampling a full tree.
     """
 
-    def __init__(
-            self,
-            grid_size,
-            alpha=1.0,
-            kernel='bootstrap',
-            num_particles=10,
-            resample_threshold=0.5):
+    def __init__(self, kernel='bootstrap', num_particles=10, resample_threshold=0.5):
 
-        if kernel == 'bootstrap':
-            self.kernel = phyclone.smc.kernels.BootstrapKernel(alpha, grid_size)
+        kernels = {
+            'bootstrap': phyclone.smc.kernels.BootstrapKernel,
+            'fully-adapted': phyclone.smc.kernels.FullyAdaptedKernel,
+            'semi-adapted': phyclone.smc.kernels.SemiAdaptedKernel
+        }
 
-        elif kernel == 'fully-adapted':
-            self.kernel = phyclone.smc.kernels.FullyAdaptedKernel(alpha, grid_size)
-
-        elif kernel == 'semi-adapted':
-            self.kernel = phyclone.smc.kernels.SemiAdaptedKernel(alpha, grid_size)
-
-        else:
-            raise Exception('Unrecognized kernel: {}'.format(kernel))
+        self.kernel_cls = kernels[kernel]
 
         self.num_particles = num_particles
 
         self.resample_threshold = resample_threshold
-
-    @property
-    def alpha(self):
-        return self.kernel.alpha
-
-    @alpha.setter
-    def alpha(self, x):
-        self.kernel.alpha = x
 
     def sample_tree(self, data, tree):
         """ Sample a new tree
@@ -57,15 +39,15 @@ class ParticleGibbsTreeSampler(object):
         """
         data_sigma = phyclone.smc.utils.sample_sigma(tree)
 
-#         data_sigma = [data[data_idx] for data_idx in sigma]
-
         for i, d in enumerate(data):
             assert i == d.idx
+
+        kernel = self.kernel_cls(tree.alpha, tree.grid_size)
 
         sampler = phyclone.smc.samplers.particle_gibbs.ParticleGibbsSampler(
             tree,
             data_sigma,
-            self.kernel,
+            kernel,
             num_particles=self.num_particles,
             resample_threshold=self.resample_threshold
         )
