@@ -8,8 +8,7 @@ import random
 
 from phyclone.concentration import GammaPriorConcentrationSampler
 from phyclone.consensus import get_consensus_tree
-from phyclone.mcmc.metropolis_hastings import PruneRegraphSampler
-from phyclone.mcmc.particle_gibbs import ParticleGibbsSubtreeSampler
+from phyclone.mcmc import ParticleGibbsSubtreeSampler, PruneRegraphSampler
 from phyclone.tree import Tree
 
 from toy_data import load_test_data
@@ -55,7 +54,7 @@ def resample_outliers(tree):
     return tree
 
 
-data, labels, true_graph = load_test_data(cluster_size=2, depth=int(1e5), outlier_size=1, single_sample=True)
+data, labels, true_graph = load_test_data(cluster_size=2, depth=int(1e5), outlier_size=1, single_sample=False)
 
 tree = Tree.get_single_node_tree(data)
 
@@ -63,14 +62,7 @@ conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
 
 mh_sampler = PruneRegraphSampler()
 
-pg_sampler = ParticleGibbsSubtreeSampler(
-    data[0].shape,
-    alpha=1.0,
-    kernel='semi-adapted',
-    num_particles=20,
-    outlier_prob=1e-3,
-    resample_threshold=0.5
-)
+pg_sampler = ParticleGibbsSubtreeSampler(kernel='fully-adapted', num_particles=20, resample_threshold=0.5)
 
 print('Starting sampling')
 
@@ -85,13 +77,12 @@ for i in range(num_iters):
 
     tree = resample_outliers(tree)
 
-#     pg_sampler.alpha = conc_sampler.sample(pg_sampler.alpha, len(
-#         tree.nodes), len([x for x in tree.labels.values() if x != -1]))
+    tree.alpha = conc_sampler.sample(tree.alpha, tree.num_nodes, sum(tree.node_sizes.values()))
 
     if i % 10 == 0:
         pred_labels = [tree.labels[x] for x in sorted(tree.labels)]
         print()
-        print(i, pg_sampler.alpha)
+        print(i, tree.alpha)
         print(pred_labels)
         print(homogeneity_completeness_v_measure(labels, pred_labels), len(tree.nodes))
         print(tree.log_p_one)

@@ -4,8 +4,8 @@ import random
 
 import phyclone.math_utils
 import phyclone.smc.kernels
-import phyclone.smc.samplers.conditional
-import phyclone.smc.samplers.swarm
+import phyclone.smc.samplers
+import phyclone.smc.swarm
 import phyclone.smc.utils
 
 
@@ -44,7 +44,7 @@ class ParticleGibbsTreeSampler(object):
 
         kernel = self.kernel_cls(tree.alpha, tree.grid_size)
 
-        sampler = phyclone.smc.samplers.conditional.ConditionalSampler(
+        sampler = phyclone.smc.samplers.ConditionalSMCSampler(
             tree,
             data_sigma,
             kernel,
@@ -117,7 +117,7 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
     def _correct_weights(self, min_node_idx, parent_node, swarm, tree):
         """ Correct weights so target is the distribtuion on the full tree
         """
-        new_swarm = phyclone.smc.samplers.swarm.ParticleSwarm()
+        new_swarm = phyclone.smc.swarm.ParticleSwarm()
 
         for p, w in zip(swarm.particles, swarm.unnormalized_log_weights):
             w -= p.state.log_p_one

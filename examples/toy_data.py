@@ -61,7 +61,7 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, si
 
                 data_point.append(compute_log_likelihood(x, d))
 
-            data.append(DataPoint(idx, np.array(data_point)))
+            data.append(DataPoint(idx, np.array(data_point), outlier_prob=1e-4))
 
             labels.append(i)
 

@@ -3,42 +3,19 @@ from __future__ import division, print_function
 import networkx as nx
 import numpy as np
 
-import phyclone.smc.samplers.swarm
+from phyclone.smc.samplers.base import AbstractSMCSampler
+
+import phyclone.smc.swarm
 
 
-class ConditionalSampler(object):
+class ConditionalSMCSampler(AbstractSMCSampler):
     """ SMC sampler which conditions a fixed path.
     """
 
     def __init__(self, current_tree, data_points, kernel, num_particles, resample_threshold=0.5):
-        self.data_points = data_points
-
-        self.kernel = kernel
-
-        self.num_particles = num_particles
-
-        self.resample_threshold = resample_threshold
-
-        self.iteration = 0
-
-        self.num_iterations = len(data_points)
+        super().__init__(data_points, kernel, num_particles, resample_threshold=resample_threshold)
 
         self.constrained_path = self._get_constrained_path(current_tree)
-
-    def sample(self):
-        self._init_swarm()
-
-        while self.iteration < self.num_iterations:
-            self._sample_new_particles()
-
-            if self.iteration < self.num_iterations - 1:
-                self._resample_if_necessary()
-
-            self.iteration += 1
-
-            assert self.constrained_path[self.iteration] is self.swarm.particles[0]
-
-        return self.swarm
 
     def _get_constrained_path(self, tree):
         constrained_path = [None, ]
@@ -80,8 +57,16 @@ class ConditionalSampler(object):
 
         return constrained_path
 
+    def _get_log_w(self, particle):
+        if self.iteration < self.num_iterations - 1:
+            return particle.log_w
+
+        else:
+            # Enforce that the sum of the tree is one and add auxillary term for permutation
+            return particle.log_w - particle.state.log_p + particle.state.log_p_one + particle.state.tree.log_p_sigma
+
     def _init_swarm(self):
-        self.swarm = phyclone.smc.samplers.swarm.ParticleSwarm()
+        self.swarm = phyclone.smc.swarm.ParticleSwarm()
 
         uniform_weight = -np.log(self.num_particles)
 
@@ -93,42 +78,30 @@ class ConditionalSampler(object):
         for particle in self.swarm.particles:
             assert particle.parent_particle is None
 
-        self._resample_if_necessary()
-
         self.iteration += 1
 
-    def _propose_particle(self, parent_particle):
-        data_point = self.data_points[self.iteration]
-
-        return self.kernel.propose_particle(data_point, parent_particle)
-
-    def _resample_if_necessary(self):
-        swarm = self.swarm
-
-        if swarm.relative_ess <= self.resample_threshold:
-            new_swarm = phyclone.smc.samplers.swarm.ParticleSwarm()
+    def _resample_swarm(self):
+        if self.swarm.relative_ess <= self.resample_threshold:
+            new_swarm = phyclone.smc.swarm.ParticleSwarm()
 
             log_uniform_weight = -np.log(self.num_particles)
 
-            multiplicities = np.random.multinomial(self.num_particles - 1, swarm.weights)
+            multiplicities = np.random.multinomial(self.num_particles - 1, self.swarm.weights)
 
             assert not np.isneginf(self.constrained_path[self.iteration + 1].log_w)
 
             new_swarm.add_particle(log_uniform_weight, self.constrained_path[self.iteration + 1])
 
-            for particle, multiplicity in zip(swarm.particles, multiplicities):
+            for particle, multiplicity in zip(self.swarm.particles, multiplicities):
                 for _ in range(multiplicity):
                     assert not np.isneginf(particle.log_w)
 
                     new_swarm.add_particle(log_uniform_weight, particle)
 
-        else:
-            new_swarm = swarm
+            self.swarm = new_swarm
 
-        self.swarm = new_swarm
-
-    def _sample_new_particles(self):
-        new_swarm = phyclone.smc.samplers.swarm.ParticleSwarm()
+    def _update_swarm(self):
+        new_swarm = phyclone.smc.swarm.ParticleSwarm()
 
         particle = self.constrained_path[self.iteration + 1]
 
@@ -142,11 +115,3 @@ class ConditionalSampler(object):
             new_swarm.add_particle(parent_log_W + self._get_log_w(particle), particle)
 
         self.swarm = new_swarm
-
-    def _get_log_w(self, particle):
-        if self.iteration < self.num_iterations - 1:
-            return particle.log_w
-
-        else:
-            # Enforce that the sum of the tree is one
-            return particle.log_w - particle.state.log_p + particle.state.log_p_one + particle.state.tree.log_p_sigma
