@@ -19,17 +19,16 @@ class ParticleGibbsTreeSampler(object):
             alpha=1.0,
             kernel='bootstrap',
             num_particles=10,
-            outlier_prob=1e-4,
             resample_threshold=0.5):
 
         if kernel == 'bootstrap':
-            self.kernel = phyclone.smc.kernels.BootstrapKernel(alpha, grid_size, outlier_prob)
+            self.kernel = phyclone.smc.kernels.BootstrapKernel(alpha, grid_size)
 
         elif kernel == 'fully-adapted':
-            self.kernel = phyclone.smc.kernels.FullyAdaptedKernel(alpha, grid_size, outlier_prob)
+            self.kernel = phyclone.smc.kernels.FullyAdaptedKernel(alpha, grid_size)
 
         elif kernel == 'semi-adapted':
-            self.kernel = phyclone.smc.kernels.SemiAdaptedKernel(alpha, grid_size, outlier_prob)
+            self.kernel = phyclone.smc.kernels.SemiAdaptedKernel(alpha, grid_size)
 
         else:
             raise Exception('Unrecognized kernel: {}'.format(kernel))
@@ -80,7 +79,7 @@ class ParticleGibbsTreeSampler(object):
 
         particle = swarm.particles[particle_idx]
 
-        return phyclone.smc.utils.get_tree(particle)
+        return particle.state.tree
 
 
 class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):

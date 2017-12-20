@@ -23,7 +23,7 @@ class State(object):
     This class stores the partially constructed tree during the SMC.
     """
 
-    def __init__(self, grid_size, node_idx, outliers, roots, alpha=1.0, outlier_prob=1e-4):
+    def __init__(self, alpha, grid_size, node_idx, outliers, roots):
 
         self.node_idx = node_idx
 
@@ -36,7 +36,7 @@ class State(object):
         for root in roots.values():
             nodes.extend(Tree.get_nodes(root))
 
-        self.tree = Tree(grid_size, nodes, outliers, alpha=alpha, outlier_prob=outlier_prob)
+        self.tree = Tree(alpha, grid_size, nodes, outliers)
 
     def __key(self):
         return (self.node_idx, self.root_idxs)
@@ -79,7 +79,7 @@ class Kernel(object):
         """
         raise NotImplementedError
 
-    def __init__(self, alpha, grid_size, outlier_prob):
+    def __init__(self, alpha, grid_size):
         """
         Parameters
         ----------
@@ -87,14 +87,10 @@ class Kernel(object):
             Concentration parameter of the CRP.
         grid_size: int
             The size of the grid to approximate the recursion integrals.
-        outlier_prob: float
-            The prior probability a data point will not fit the tree.
         """
         self.alpha = alpha
 
         self.grid_size = grid_size
-
-        self.outlier_prob = outlier_prob
 
     def create_particle(self, data_point, log_q, parent_particle, state):
         """  Create a new particle from a parent particle.
@@ -170,7 +166,7 @@ class Kernel(object):
 
                 roots[node_idx].add_data_point(data_point)
 
-        return State(self.grid_size, node_idx, outliers, roots, alpha=self.alpha, outlier_prob=self.outlier_prob)
+        return State(self.alpha, self.grid_size, node_idx, outliers, roots)
 
     def propose_particle(self, data_point, parent_particle):
         """ Propose a particle for t given a particle from t - 1 and a data point.

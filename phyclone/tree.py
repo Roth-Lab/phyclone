@@ -13,7 +13,7 @@ class Tree(object):
     This structure includes the dummy root node.
     """
 
-    def __init__(self, grid_size, nodes, outliers, alpha=1.0, outlier_prob=1e-4):
+    def __init__(self, alpha, grid_size, nodes, outliers):
         """
         Parameters
         ----------
@@ -25,16 +25,12 @@ class Tree(object):
             A list of outlier data points.
         alpha: float
             CRP concentration parameter.
-        outlier_prob: float
-            A value between 0 and 1 representing the probability of a node being an outlier.
         """
         self.grid_size = grid_size
 
         self.outliers = outliers
 
         self.alpha = alpha
-
-        self.outlier_prob = outlier_prob
 
         self._init_graph(nodes)
 
@@ -59,7 +55,7 @@ class Tree(object):
 
         nodes[0].data = data
 
-        return Tree(nodes[0].grid_size, nodes, [])
+        return Tree(1.0, nodes[0].grid_size, nodes, [])
 
     @property
     def data_points(self):
@@ -120,13 +116,15 @@ class Tree(object):
     def log_p_prior(self):
         """ Compute the FS-CRP prior
         """
+        log_p = 0
+
         # Outlier prior
-        log_p = len(self.outliers) * np.log(self.outlier_prob)
+        for data_point in self.outliers:
+            log_p += np.log(data_point.outlier_prob)
 
         for node in self.nodes.values():
-            num_data_points = len(node.data)
-
-            log_p += num_data_points * np.log(1 - self.outlier_prob)
+            for data_point in node.data:
+                log_p += np.log(1 - data_point.outlier_prob)
 
         # CRP prior
         num_nodes = len(self.nodes)
@@ -174,7 +172,7 @@ class Tree(object):
     def copy(self):
         root = self._nodes['root'].copy()
 
-        return Tree(self.grid_size, Tree.get_nodes(root)[1:], list(self.outliers))
+        return Tree(self.alpha, self.grid_size, Tree.get_nodes(root)[1:], list(self.outliers))
 
     def draw(self, ax=None):
         nx.draw(
@@ -233,7 +231,7 @@ class Tree(object):
         for node_idx in subtree_node_idxs:
             nodes.append(self._nodes[node_idx])
 
-        t = Tree(subtree_root.grid_size, nodes, [])
+        t = Tree(self.alpha, subtree_root.grid_size, nodes, [])
 
         t._validate()
 
