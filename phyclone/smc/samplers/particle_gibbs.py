@@ -4,7 +4,6 @@ import networkx as nx
 import numpy as np
 
 import phyclone.smc.samplers.swarm
-import phyclone.smc.utils
 
 
 class ParticleGibbsSampler(object):
