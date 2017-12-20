@@ -17,20 +17,20 @@ class Tree(object):
         """
         Parameters
         ----------
+        alpha: float
+            CRP concentration parameter.
         grid_size: tuple
             The size of the grid used for likelihood.
         nodes: list
             A list of MarginalNodes that form the tree.
         outliers: list
             A list of outlier data points.
-        alpha: float
-            CRP concentration parameter.
         """
+        self.alpha = alpha
+
         self.grid_size = grid_size
 
         self.outliers = outliers
-
-        self.alpha = alpha
 
         self._init_graph(nodes)
 
@@ -38,7 +38,12 @@ class Tree(object):
 
     @staticmethod
     def get_nodes(source):
-        """ Recursively fetch all nodes in the subtree rooted at source.
+        """ Recursively fetch all nodes in the subtree rooted at source node.
+
+        Parameters
+        ----------
+        source: MarginalNode
+            Root node to fetch descendants below.
         """
         nodes = [source, ]
 
@@ -50,6 +55,11 @@ class Tree(object):
     @staticmethod
     def get_single_node_tree(data):
         """ Load a tree with all data points assigned single node.
+
+        Parameters
+        ----------
+        data: list
+            Data points.
         """
         nodes = [MarginalNode(0, data[0].shape, []), ]
 
@@ -59,10 +69,14 @@ class Tree(object):
 
     @property
     def data_points(self):
+        """ Set of data points in the tree.
+        """
         return set(self.labels.keys())
 
     @property
     def graph(self):
+        """ NetworkX graph representing tree.
+        """
         graph = self._graph.copy()
 
         graph.remove_node('root')
@@ -71,6 +85,10 @@ class Tree(object):
 
     @property
     def labels(self):
+        """ Cluster assignment of data points.
+
+        Outliers are numbered -1. All other clusters are from 0 onwards.
+        """
         labels = {}
 
         for node in self.nodes.values():
@@ -84,6 +102,8 @@ class Tree(object):
 
     @property
     def log_likelihood(self):
+        """ The log likelihood of the data marginalized over root node parameters.
+        """
         log_p = self._nodes['root'].log_p
 
         for data_point in self.outliers:
@@ -95,6 +115,8 @@ class Tree(object):
 
     @property
     def log_likelihood_one(self):
+        """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
+        """
         log_p = self._nodes['root'].log_p_one
 
         for data_point in self.outliers:
@@ -106,15 +128,19 @@ class Tree(object):
 
     @property
     def log_p(self):
+        """ Log joint probability.
+        """
         return self.log_p_prior + self.log_likelihood
 
     @property
     def log_p_one(self):
+        """ The joint probability of the data conditioned on the root having value 1.0 in all dimensions.
+        """
         return self.log_p_prior + self.log_likelihood_one
 
     @property
     def log_p_prior(self):
-        """ Compute the FS-CRP prior
+        """ Log prior from the FSCRP and outlier contributions.
         """
         log_p = 0
 
@@ -143,6 +169,8 @@ class Tree(object):
 
     @property
     def log_p_sigma(self):
+        """ Log probability of the permutation.
+        """
         # TODO: Check this. Are we missing a term for the outliers.
         # Correction for auxillary distribution
         log_p = 0
@@ -159,6 +187,8 @@ class Tree(object):
 
     @property
     def nodes(self):
+        """ Dictionary of nodes keyed by node index.
+        """
         nodes = self._nodes.copy()
 
         del nodes['root']
@@ -167,14 +197,22 @@ class Tree(object):
 
     @property
     def roots(self):
+        """ List of nodes attached to the dummy root.
+
+        These are the actual root nodes in the forest.
+        """
         return [self._nodes[idx] for idx in self._graph.successors('root')]
 
     def copy(self):
+        """ Make a copy of the tree which shares no memory with the original.
+        """
         root = self._nodes['root'].copy()
 
         return Tree(self.alpha, self.grid_size, Tree.get_nodes(root)[1:], list(self.outliers))
 
     def draw(self, ax=None):
+        """ Draw the tree.
+        """
         nx.draw(
             self.graph,
             ax=ax,
@@ -183,6 +221,14 @@ class Tree(object):
         )
 
     def add_subtree(self, subtree, parent=None):
+        """ Add a subtree to the current tree.
+
+        Parameters:
+            subtree: Tree
+                The subtree to add to tree.
+            parent: MarginalNode
+                The node in the tree to use as a parent. If this none the subtree is joined to the dummy root.
+        """
         if parent is None:
             parent = self._nodes['root']
 
@@ -212,6 +258,8 @@ class Tree(object):
         self._validate()
 
     def get_parent_node(self, node):
+        """ Retrieve the parent of a node.
+        """
         if node.idx == 'root':
             return None
 
@@ -224,6 +272,11 @@ class Tree(object):
         return self._nodes[parent_idx]
 
     def get_subtree(self, subtree_root):
+        """ Get a subtree.
+
+        subtree_root: MarginalNode
+            Root node of the subtree.
+        """
         subtree_node_idxs = list(nx.dfs_tree(self._graph, subtree_root.idx))
 
         nodes = []
@@ -238,12 +291,26 @@ class Tree(object):
         return t
 
     def remove_subtree(self, tree):
+        """ Remove a subtree of the current tree.
+
+        Parameters
+        ----------
+        tree: Tree
+            Subtree to remove from the tree. This should come from the get_subtree method.
+        """
         for root in tree.roots:
             subtree = tree.get_subtree(root)
 
             self._remove_subtree(subtree)
 
     def relabel_nodes(self, min_value=0):
+        """ Relabel all nodes in the tree so their indexes are sequential from a minimum value.
+
+        Parameters
+        ----------
+        min_value: int
+            The lowest node index in the tree.
+        """
         # TODO: Fix this by copy the dicts
         node_map = {}
 
@@ -337,7 +404,7 @@ class Tree(object):
         self._validate()
 
     def _update_ancestor_nodes(self, source):
-        """ Update all ancestor _nodes of source sequentially from source to root.
+        """ Update all ancestor nodes of source sequentially from source to root.
 
         Parameters
         ----------
