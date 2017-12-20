@@ -6,7 +6,7 @@ from phyclone.smc.samplers.swarm import ParticleSwarm
 
 
 class AdaptiveSampler(object):
-    """ Unconditional SMC sampler.
+    """ Unconditional SMC sampler with adaptive resampling.
     """
 
     def __init__(self, data_points, kernel, num_particles, resample_threshold=0.5):

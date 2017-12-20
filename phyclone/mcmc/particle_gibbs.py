@@ -4,7 +4,7 @@ import random
 
 import phyclone.math_utils
 import phyclone.smc.kernels
-import phyclone.smc.samplers.particle_gibbs
+import phyclone.smc.samplers.conditional
 import phyclone.smc.samplers.swarm
 import phyclone.smc.utils
 
@@ -44,7 +44,7 @@ class ParticleGibbsTreeSampler(object):
 
         kernel = self.kernel_cls(tree.alpha, tree.grid_size)
 
-        sampler = phyclone.smc.samplers.particle_gibbs.ParticleGibbsSampler(
+        sampler = phyclone.smc.samplers.conditional.ConditionalSampler(
             tree,
             data_sigma,
             kernel,

@@ -6,7 +6,7 @@ import numpy as np
 import phyclone.smc.samplers.swarm
 
 
-class ParticleGibbsSampler(object):
+class ConditionalSampler(object):
     """ SMC sampler which conditions a fixed path.
     """
 
