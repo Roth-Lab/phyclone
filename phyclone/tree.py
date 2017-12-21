@@ -1,4 +1,4 @@
-from scipy.misc import logsumexp as log_sum_exp
+from scipy.special import logsumexp as log_sum_exp
 from scipy.signal import fftconvolve
 
 import networkx as nx
@@ -99,6 +99,14 @@ class Tree(object):
             labels[data_point.idx] = -1
 
         return labels
+
+    @property
+    def leafs(self):
+        G = self.graph
+
+        leaf_idxs = [x for x in G.nodes() if G.out_degree(x) == 0 and G.in_degree(x) == 1]
+
+        return [self.nodes[idx] for idx in leaf_idxs]
 
     @property
     def log_likelihood(self):
@@ -359,6 +367,10 @@ class Tree(object):
                 assert child_idx == child.idx
 
         self._validate()
+
+    def update_likelihood(self):
+        for node in self.leafs:
+            self._update_ancestor_nodes(node)
 
     def _init_graph(self, nodes):
         # Create graph
