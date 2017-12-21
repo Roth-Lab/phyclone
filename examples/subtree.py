@@ -4,57 +4,16 @@ from sklearn.metrics import homogeneity_completeness_v_measure
 
 import networkx as nx
 import numpy as np
-import random
 
 from phyclone.concentration import GammaPriorConcentrationSampler
 from phyclone.consensus import get_consensus_tree
-from phyclone.mcmc import ParticleGibbsSubtreeSampler, PruneRegraphSampler
+from phyclone.mcmc import ParticleGibbsSubtreeSampler, OutlierSampler, PruneRegraphSampler
 from phyclone.tree import Tree
 
 from toy_data import load_test_data
-from phyclone.math_utils import discrete_rvs, exp_normalize
 
 
-# TODO: Try doing a loop of outliers and attaching to tree nodes in a  Gibbs step
-def resample_outliers(tree):
-    outliers = list(tree.outliers)
-
-    random.shuffle(outliers)
-
-    for data_point in outliers:
-        log_p = {-1: tree.log_p}
-
-        tree.outliers.remove(data_point)
-
-        for node in tree.nodes.values():
-            node.add_data_point(data_point)
-
-            tree._update_ancestor_nodes(node)
-
-            log_p[node.idx] = tree.log_p
-
-            node.remove_data_point(data_point)
-
-            tree._update_ancestor_nodes(node)
-
-        p, _ = exp_normalize(np.array(list(log_p.values())).astype(float))
-
-        x = discrete_rvs(p)
-
-        node_idx = list(log_p.keys())[x]
-
-        if node_idx == -1:
-            tree.outliers.append(data_point)
-
-        else:
-            tree.nodes[node_idx].add_data_point(data_point)
-
-            tree._update_ancestor_nodes(tree.nodes[node_idx])
-
-    return tree
-
-
-data, labels, true_graph = load_test_data(cluster_size=2, depth=int(1e5), outlier_size=1, single_sample=False)
+data, labels, true_graph = load_test_data(cluster_size=1, depth=int(1e5), outlier_size=0, single_sample=False)
 
 tree = Tree.get_single_node_tree(data)
 
@@ -62,11 +21,13 @@ conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
 
 mh_sampler = PruneRegraphSampler()
 
-pg_sampler = ParticleGibbsSubtreeSampler(kernel='fully-adapted', num_particles=20, resample_threshold=0.5)
+outlier_sampler = OutlierSampler()
+
+pg_sampler = ParticleGibbsSubtreeSampler(kernel='semi-adapted', num_particles=20, resample_threshold=0.5)
 
 print('Starting sampling')
 
-num_iters = int(1e3)
+num_iters = int(1e4)
 
 trace = []
 
@@ -75,7 +36,7 @@ for i in range(num_iters):
 
     tree = mh_sampler.sample_tree(data, tree)
 
-    tree = resample_outliers(tree)
+    tree = outlier_sampler.sample_tree(tree)
 
     tree.alpha = conc_sampler.sample(tree.alpha, tree.num_nodes, sum(tree.node_sizes.values()))
 
