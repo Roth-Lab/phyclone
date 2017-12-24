@@ -118,16 +118,11 @@ class SimpleSampler(object):
             node.remove_data_point(data_point)
 
             if phyclone.math_utils.bernoulli_rvs():
-                parent = new_tree.get_parent_node(node)
+                new_node = random.choice(list(new_tree.nodes.values()))
 
-                if parent is None:
-                    return tree
+                new_node.add_data_point(data_point)
 
-                parent.add_data_point(data_point)
-
-                assert parent in list(new_tree.nodes.values())
-
-                assert data_point in parent.data
+                assert data_point in new_node.data
 
                 assert data_point.idx in new_tree.data_points
 
