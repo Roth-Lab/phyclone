@@ -69,20 +69,22 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
     """
 
     def sample_tree(self, data, tree):
-        node_idxs = list(tree.nodes.keys())
+        if phyclone.math_utils.bernoulli_rvs(0.25):
+            return self._sample_tree_from_swarm(self.sample_swarm(data, tree))
 
-        subtree_root_idx = random.choice(node_idxs)
+        subtree_root = random.choice(list(tree.nodes.values()))
 
-        parent_node = tree.get_parent_node(tree.nodes[subtree_root_idx])
+        parent_node = tree.get_parent_node(subtree_root)
 
-        if parent_node.idx == 'root':
-            parent_node = None
+        if parent_node is None:
+            parent_idx = None
 
-        subtree = tree.get_subtree(tree.nodes[subtree_root_idx])
+        else:
+            parent_idx = parent_node.idx
+
+        subtree = tree.get_subtree(subtree_root)
 
         tree.remove_subtree(subtree)
-
-        subtree.relabel_nodes(0)
 
         for x in tree.outliers:
             if random.random() < 0.5:
@@ -92,51 +94,36 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
 
         swarm = self.sample_swarm(data, subtree)
 
-        if len(tree.nodes) == 0:
-            min_node_idx = 0
+        swarm = self._correct_weights(parent_idx, swarm, tree)
 
-        else:
-            min_node_idx = max(tree.nodes.keys()) + 1
-
-        swarm = self._correct_weights(min_node_idx, parent_node, swarm, tree)
-
-        sub_tree = self._sample_tree_from_swarm(swarm)
-
-        sub_tree.relabel_nodes(min_node_idx)
-
-        tree.add_subtree(sub_tree, parent=parent_node)
-
-        tree.outliers.extend(sub_tree.outliers)
-
-        tree.relabel_nodes(0)
-
-        return tree
+        return self._sample_tree_from_swarm(swarm)
 
     # TODO: Check that this targets the correct distribution.
     # Specifically do we need a term for the random choice of node.
-    def _correct_weights(self, min_node_idx, parent_node, swarm, tree):
+    def _correct_weights(self, parent_idx, swarm, tree):
         """ Correct weights so target is the distribtuion on the full tree
         """
         new_swarm = phyclone.smc.swarm.ParticleSwarm()
 
         for p, w in zip(swarm.particles, swarm.unnormalized_log_weights):
-            w -= p.state.log_p_one
+            subtree = p.tree
 
-            sub_tree = p.state.tree
+            w -= subtree.log_p_one
 
-            sub_tree.relabel_nodes(min_value=min_node_idx)
+            new_tree = tree.copy()
 
-            tree.add_subtree(sub_tree, parent=parent_node)
+            new_tree.add_subtree(subtree, parent_idx=parent_idx)
 
-            tree.outliers.extend(sub_tree.outliers)
+            new_tree.outliers.extend(subtree.outliers)
 
-            w += tree.log_p_one
+            new_tree.update_likelihood()
+
+            new_tree.relabel_nodes()
+
+            w += new_tree.log_p_one
+
+            p.tree = new_tree
 
             new_swarm.add_particle(w, p)
-
-            tree.remove_subtree(sub_tree)
-
-            for x in sub_tree.outliers:
-                tree.outliers.remove(x)
 
         return new_swarm
