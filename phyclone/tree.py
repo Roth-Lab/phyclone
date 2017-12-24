@@ -296,21 +296,37 @@ class Tree(object):
         """
         return [self._nodes[idx] for idx in self._graph.successors('root')]
 
-    def copy(self):
+    def copy(self, deep=True):
         """ Make a copy of the tree which shares no memory with the original.
         """
         new = Tree(self.alpha, self.grid_size)
 
         new._graph = self._graph.copy()
 
-        root = self._nodes['root'].copy()
+        if deep:
+            root = self._nodes['root'].copy()
 
-        for node in Tree.get_nodes(root):
-            new._nodes[node.idx] = node
+            for node in Tree.get_nodes(root):
+                new._nodes[node.idx] = node
+
+        else:
+            new._nodes['root'] = self._nodes['root'].copy(deep=False)
+
+            children = []
+
+            for child in new._nodes['root'].children:
+                new._nodes[child.idx] = child.copy(deep=False)
+
+                children.append(new._nodes[child.idx])
+
+                for node in Tree.get_nodes(child)[1:]:
+                    new._nodes[node.idx] = node
+
+            new._nodes['root'].update_children(children)
 
         new.outliers = list(self.outliers)
 
-        new.update_likelihood()
+#         new.update_likelihood()
 
         return new
 
@@ -400,7 +416,7 @@ class Tree(object):
         if parent.idx == 'root':
             parent = None
 
-        return None
+        return parent
 
     def get_subtree(self, subtree_root):
         """ Get a subtree.
