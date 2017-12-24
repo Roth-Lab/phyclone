@@ -54,7 +54,7 @@ def get_fscrp_tree(alpha, grid_size, clusters, parent_pointers):
     for node_idx, node_children in children.items():
         nodes[node_idx].update_children(node_children)
 
-    tree = Tree(1.0, grid_size, nodes, [])
+    tree = Tree.create_tree_from_nodes(1.0, grid_size, nodes, [])
 
     tree.update_likelihood()
 
