@@ -33,7 +33,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         elif tree.labels[self.data_point.idx] == -1:
             log_q = np.log(self.outlier_proposal_prop)
 
-        elif tree in self.log_q:
+        elif tree.labels[self.data_point.idx] in self.parent_particle.tree.nodes:
             log_q = np.log((1 - self.outlier_proposal_prop) / 2) + self.log_q[tree]
 
         else:
