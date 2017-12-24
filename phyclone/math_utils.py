@@ -8,6 +8,11 @@ from __future__ import division
 import math
 import numba
 import numpy as np
+import random
+
+
+def bernoulli_rvs(p=0.5):
+    return (random.random() < p)
 
 
 def discrete_rvs(p):
