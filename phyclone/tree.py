@@ -4,6 +4,7 @@ from scipy.signal import fftconvolve
 import networkx as nx
 import numpy as np
 
+from phyclone.consensus import get_clades
 from phyclone.math_utils import log_factorial
 
 
@@ -35,6 +36,16 @@ class Tree(object):
         self.outliers = []
 
         self._validate()
+
+    def __hash__(self):
+        return hash((self.alpha, get_clades(self), frozenset(self.outliers)))
+
+    def __eq__(self, other):
+        self_key = (self.alpha, get_clades(self), frozenset(self.outliers))
+
+        other_key = (other.alpha, get_clades(other), frozenset(other.outliers))
+
+        return self_key == other_key
 
     @staticmethod
     def get_nodes(source):
