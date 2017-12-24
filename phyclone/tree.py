@@ -326,8 +326,6 @@ class Tree(object):
 
         new.outliers = list(self.outliers)
 
-#         new.update_likelihood()
-
         return new
 
     def draw(self, ax=None):
