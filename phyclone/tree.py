@@ -48,6 +48,54 @@ class Tree(object):
         return self_key == other_key
 
     @staticmethod
+    def create_tree_from_nodes(alpha, grid_size, nodes, outliers):
+        new = Tree(alpha, grid_size)
+
+        new.outliers = outliers
+
+        # Create graph
+        G = nx.DiGraph()
+
+        for node in nodes:
+            G.add_node(node.idx)
+
+            for child in node.children:
+                G.add_edge(node.idx, child.idx)
+
+        # Connect roots to dummy root
+        G.add_node('root')
+
+        for node in nodes:
+            if G.in_degree(node.idx) == 0:
+                G.add_edge('root', node.idx)
+
+        new._graph = G
+
+        # Instantiate dummy node
+        roots = []
+
+        for node in nodes:
+            if node.idx in new._graph.successors('root'):
+                roots.append(node)
+
+        dummy_root = MarginalNode(
+            'root',
+            grid_size,
+            children=roots
+        )
+
+        new._nodes = {}
+
+        for n in Tree.get_nodes(dummy_root):
+            new._nodes[n.idx] = n
+
+        new._validate()
+
+        new.update_likelihood()
+
+        return new
+
+    @staticmethod
     def get_nodes(source):
         """ Recursively fetch all nodes in the subtree rooted at source node.
 
@@ -285,7 +333,7 @@ class Tree(object):
 
             self._update_ancestor_nodes(node)
 
-    def add_subtree(self, subtree, parent=None):
+    def add_subtree(self, subtree, parent_idx=None):
         """ Add a subtree to the current tree.
 
         Parameters:
@@ -294,10 +342,16 @@ class Tree(object):
             parent: MarginalNode
                 The node in the tree to use as a parent. If this none the subtree is joined to the dummy root.
         """
-        if parent is None:
-            parent = self._nodes['root']
+        subtree = subtree.copy()
+
+        if parent_idx is None:
+            parent_idx = 'root'
+
+        parent = self._nodes[parent_idx]
 
         assert parent in self._nodes.values()
+
+        subtree.relabel_nodes(self.new_node_idx)
 
         for n in subtree.nodes.values():
             assert n.idx not in self._nodes.keys()
@@ -446,19 +500,19 @@ class Tree(object):
 
         parent.remove_child_node(subtree_root)
 
-        assert subtree_root not in parent.children
+        # Update data structures
+        for node in Tree.get_nodes(subtree_root):
+            assert node.idx != 'root'
+
+            del self._nodes[node.idx]
+
+            self._graph.remove_node(node.idx)
 
         self._update_ancestor_nodes(parent)
 
-        subtree_node_idxs = list(nx.dfs_tree(self._graph, subtree_root.idx))
-
-        # Update data structures
-        for node_idx in subtree_node_idxs:
-            del self._nodes[node_idx]
-
-            self._graph.remove_node(node_idx)
-
         self._validate()
+
+        assert subtree_root not in parent.children
 
     def _update_ancestor_nodes(self, source):
         """ Update all ancestor nodes of source sequentially from source to root.
