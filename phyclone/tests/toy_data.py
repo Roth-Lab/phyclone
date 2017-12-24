@@ -17,7 +17,7 @@ def load_test_data(cluster_size, depth=1000, grid_size=101, single_sample=False)
 
         return stats.binom.logpmf(x, n, grid)
 
-    cluster_params = [[0.1, 0.1, 0.9], [0.2, 0.1, 0.02], [0.3, 0.2, 0.92]]
+    cluster_params = [[0.1, 0.1, 0.9], [0.7, 0.1, 0.02], [0.3, 0.8, 0.0], [1.0, 1.0, 1.0]]
 
     if single_sample:
         cluster_params = [[x[0], ] for x in cluster_params]
