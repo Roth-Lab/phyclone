@@ -166,7 +166,7 @@ class Tree(object):
 
     @property
     def leafs(self):
-        G = self.graph
+        G = self._graph
 
         leaf_idxs = [x for x in G.nodes() if G.out_degree(x) == 0 and G.in_degree(x) == 1]
 
@@ -368,7 +368,7 @@ class Tree(object):
 
             parent.add_child_node(node)
 
-            assert parent == self.get_parent_node(node)
+            assert parent == self._get_parent_node(node)
 
             assert node in parent.children
 
@@ -395,18 +395,12 @@ class Tree(object):
         return self._nodes[node_idx]
 
     def get_parent_node(self, node):
-        """ Retrieve the parent of a node.
-        """
-        if node.idx == 'root':
-            return None
+        parent = self._get_parent_node(node)
 
-        parent_idxs = list(self._graph.predecessors(node.idx))
+        if parent.idx == 'root':
+            parent = None
 
-        assert len(parent_idxs) == 1
-
-        parent_idx = parent_idxs[0]
-
-        return self._nodes[parent_idx]
+        return None
 
     def get_subtree(self, subtree_root):
         """ Get a subtree.
@@ -491,12 +485,26 @@ class Tree(object):
         for node in self.leafs:
             self._update_ancestor_nodes(node)
 
+    def _get_parent_node(self, node):
+        """ Retrieve the parent of a node.
+        """
+        if node.idx == 'root':
+            return None
+
+        parent_idxs = list(self._graph.predecessors(node.idx))
+
+        assert len(parent_idxs) == 1
+
+        parent_idx = parent_idxs[0]
+
+        return self._nodes[parent_idx]
+
     def _remove_subtree(self, subtree):
         assert len(subtree.roots) == 1
 
         subtree_root = subtree.roots[0]
 
-        parent = self.get_parent_node(subtree_root)
+        parent = self._get_parent_node(subtree_root)
 
         parent.remove_child_node(subtree_root)
 
@@ -525,7 +533,7 @@ class Tree(object):
         while source is not None:
             self._nodes[source.idx].update()
 
-            source = self.get_parent_node(source)
+            source = self._get_parent_node(source)
 
     def _validate(self):
         for node in self._nodes.values():
