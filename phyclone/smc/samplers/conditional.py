@@ -63,7 +63,7 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
         else:
             # Enforce that the sum of the tree is one and add auxillary term for permutation
-            return particle.log_w - particle.state.log_p + particle.state.log_p_one + particle.state.tree.log_p_sigma
+            return particle.log_w - particle.state.log_p + particle.state.log_p_one
 
     def _init_swarm(self):
         self.swarm = phyclone.smc.swarm.ParticleSwarm()

@@ -96,10 +96,10 @@ class Kernel(object):
         """  Create a new particle from a parent particle.
         """
         if parent_particle is None:
-            log_w = state.log_p - log_q
+            log_w = state.log_p + state.tree.log_p_sigma - log_q
 
         else:
-            log_w = state.log_p - parent_particle.state.log_p - log_q
+            log_w = state.log_p + state.tree.log_p_sigma - parent_particle.state.log_p - parent_particle.state.tree.log_p_sigma - log_q
 
         return Particle(log_w, parent_particle, state)
 
