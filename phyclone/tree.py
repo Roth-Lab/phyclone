@@ -360,18 +360,25 @@ class Tree(object):
         subtree_root: MarginalNode
             Root node of the subtree.
         """
-        subtree_node_idxs = list(nx.dfs_tree(self._graph, subtree_root.idx))
+        subtree_nodes = Tree.get_nodes(subtree_root)
 
-        nodes = []
+        new = Tree(self.alpha, self.grid_size)
 
-        for node_idx in subtree_node_idxs:
-            nodes.append(self._nodes[node_idx])
+        new._graph.add_edge('root', subtree_root.idx)
 
-        t = Tree(self.alpha, subtree_root.grid_size, nodes, [])
+        new._nodes['root'].add_child_node(subtree_root)
 
-        t._validate()
+        for node in subtree_nodes:
+            for child in node.children:
+                new._graph.add_edge(node.idx, child.idx)
 
-        return t
+            new._nodes[node.idx] = node
+
+        new.update_likelihood()
+
+        new._validate()
+
+        return new
 
     def remove_subtree(self, tree):
         """ Remove a subtree of the current tree.
