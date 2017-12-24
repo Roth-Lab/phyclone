@@ -19,12 +19,14 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     should provide a computational advantage over the fully adapted proposal.
     """
 
-    def __init__(self, data_point, kernel, parent_particle):
+    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prop=0):
         self.data_point = data_point
 
         self.kernel = kernel
 
         self.parent_particle = parent_particle
+
+        self.outlier_proposal_prop = 0
 
         self._init_dist()
 
@@ -34,13 +36,16 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         if self.parent_particle is None:
             log_q = 0
 
+        elif state.node_idx == -1:
+            log_q = np.log(self.outlier_proposal_prop)
+
         elif state.node_idx in self.log_q:
-            log_q = np.log(0.5) + self.log_q[state.node_idx][0]
+            log_q = np.log((1 - self.outlier_proposal_prop) / 2) + self.log_q[state.node_idx][0]
 
         else:
             old_num_roots = len(self.parent_particle.state.root_idxs)
 
-            log_q = np.log(0.5) - old_num_roots * np.log(2)
+            log_q = np.log((1 - self.outlier_proposal_prop) / 2) - old_num_roots * np.log(2)
 
         return log_q
 
@@ -51,7 +56,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         else:
             u = random.random()
 
-            if u < 0.5:
+            if u < (1 - self.outlier_proposal_prop) / 2:
                 q = np.exp([x[0] for x in self.log_q.values()])
 
                 assert abs(1 - sum(q)) < 1e-6
@@ -62,8 +67,11 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
                 state = list(self.log_q.values())[idx][1]
 
-            else:
+            elif u < (1 - self.outlier_proposal_prop):
                 state = self._propose_new_node()
+
+            else:
+                state = self._propose_outlier()
 
         return state
 
@@ -95,15 +103,6 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
                 )
             )
 
-        proposed_states.append(
-            self.kernel.create_state(
-                self.data_point,
-                self.parent_particle,
-                -1,
-                self.parent_particle.state.root_idxs
-            )
-        )
-
         return proposed_states
 
     def _propose_new_node(self):
@@ -124,6 +123,14 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
             self.parent_particle,
             node_idx,
             root_idxs
+        )
+
+    def _propose_outlier(self):
+        return self.kernel.create_state(
+            self.data_point,
+            self.parent_particle,
+            -1,
+            self.parent_particle.state.root_idxs
         )
 
 
