@@ -61,7 +61,7 @@ class ParticleGibbsTreeSampler(object):
 
         particle = swarm.particles[particle_idx]
 
-        return particle.state.tree
+        return particle.tree
 
 
 class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):

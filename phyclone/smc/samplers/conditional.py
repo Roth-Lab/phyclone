@@ -1,9 +1,8 @@
-from __future__ import division, print_function
-
 import networkx as nx
 import numpy as np
 
 from phyclone.smc.samplers.base import AbstractSMCSampler
+from phyclone.tree import Tree
 
 import phyclone.smc.swarm
 
@@ -22,38 +21,46 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
         data_to_node = tree.labels
 
-        node_idx = 0
+        node_map = {}
 
-        old_to_new_node_idx = {-1: -1}
-
-        root_idxs = set()
+        new_tree = Tree(tree.alpha, tree.grid_size)
 
         for data_point in self.data_points:
-            old_node_idx = data_to_node[data_point.idx]
+            new_tree = new_tree.copy()
 
-            if old_node_idx not in old_to_new_node_idx:
-                for child in tree.nodes[old_node_idx].children:
-                    root_idxs.remove(old_to_new_node_idx[child.idx])
+            node_idx = data_to_node[data_point.idx]
 
-                old_to_new_node_idx[old_node_idx] = node_idx
+            if node_idx == -1:
+                new_tree.add_data_point(data_point, None)
 
-                root_idxs.add(node_idx)
+            elif node_idx in node_map:
+                new_tree.add_data_point(data_point, new_tree.nodes[node_map[node_idx]])
 
-                node_idx += 1
+            else:
+                node = tree.nodes[node_idx]
+
+                children = []
+
+                for child in node.children:
+                    children.append(new_tree.nodes[node_map[child.idx]])
+
+                node = new_tree.create_root_node(children)
+
+                node_map[node_idx] = node.idx
+
+                new_tree.add_data_point(data_point, node)
 
             parent_particle = constrained_path[-1]
 
             proposal_dist = self.kernel.get_proposal_distribution(data_point, parent_particle)
 
-            state = self.kernel.create_state(data_point, parent_particle, old_to_new_node_idx[old_node_idx], root_idxs)
+            log_q = proposal_dist.log_p(new_tree)
 
-            log_q = proposal_dist.log_p(state)
-
-            particle = self.kernel.create_particle(data_point, log_q, parent_particle, state)
+            particle = self.kernel.create_particle(data_point, log_q, parent_particle, new_tree)
 
             constrained_path.append(particle)
 
-        assert nx.is_isomorphic(tree.graph, particle.state.tree.graph)
+        assert nx.is_isomorphic(tree.graph, particle.tree.graph)
 
         return constrained_path
 
@@ -63,7 +70,7 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
         else:
             # Enforce that the sum of the tree is one and add auxillary term for permutation
-            return particle.log_w - particle.state.log_p + particle.state.log_p_one
+            return particle.log_w - particle.tree.log_p + particle.tree.log_p_one
 
     def _init_swarm(self):
         self.swarm = phyclone.smc.swarm.ParticleSwarm()

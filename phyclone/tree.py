@@ -13,26 +13,26 @@ class Tree(object):
     This structure includes the dummy root node.
     """
 
-    def __init__(self, alpha, grid_size, nodes, outliers):
+    def __init__(self, alpha, grid_size):
         """
         Parameters
         ----------
         alpha: float
             CRP concentration parameter.
         grid_size: tuple
-            The size of the grid used for likelihood.
-        nodes: list
-            A list of MarginalNodes that form the tree.
-        outliers: list
-            A list of outlier data points.
+            The size of the grid used for likelihood..
         """
         self.alpha = alpha
 
         self.grid_size = grid_size
 
-        self.outliers = outliers
+        self._graph = nx.DiGraph()
 
-        self._init_graph(nodes)
+        self._graph.add_node('root')
+
+        self._nodes = {'root': MarginalNode('root', grid_size)}
+
+        self.outliers = []
 
         self._validate()
 
@@ -61,11 +61,16 @@ class Tree(object):
         data: list
             Data points.
         """
-        nodes = [MarginalNode(0, data[0].shape, []), ]
+        tree = Tree(1.0, data[0].grid_size)
 
-        nodes[0].data = data
+        node = tree.create_root_node([])
 
-        return Tree(1.0, nodes[0].grid_size, nodes, [])
+        for data_point in data:
+            node.add_data_point(data_point)
+
+        tree.update_likelihood()
+
+        return tree
 
     @property
     def data_points(self):
@@ -194,6 +199,10 @@ class Tree(object):
         return -log_p
 
     @property
+    def new_node_idx(self):
+        return max(list(self.nodes.keys()) + [-1, ]) + 1
+
+    @property
     def nodes(self):
         """ Dictionary of nodes keyed by node index.
         """
@@ -231,9 +240,20 @@ class Tree(object):
     def copy(self):
         """ Make a copy of the tree which shares no memory with the original.
         """
+        new = Tree(self.alpha, self.grid_size)
+
+        new._graph = self._graph.copy()
+
         root = self._nodes['root'].copy()
 
-        return Tree(self.alpha, self.grid_size, Tree.get_nodes(root)[1:], list(self.outliers))
+        for node in Tree.get_nodes(root):
+            new._nodes[node.idx] = node
+
+        new.outliers = list(self.outliers)
+
+        new.update_likelihood()
+
+        return new
 
     def draw(self, ax=None):
         """ Draw the tree.
@@ -244,6 +264,15 @@ class Tree(object):
             pos=nx.drawing.nx_agraph.graphviz_layout(self.graph, prog='dot'),
             with_labels=True
         )
+
+    def add_data_point(self, data_point, node):
+        if node is None:
+            self.outliers.append(data_point)
+
+        else:
+            node.add_data_point(data_point)
+
+            self._update_ancestor_nodes(node)
 
     def add_subtree(self, subtree, parent=None):
         """ Add a subtree to the current tree.
@@ -281,6 +310,24 @@ class Tree(object):
         self._update_ancestor_nodes(parent)
 
         self._validate()
+
+    def create_root_node(self, children):
+        node_idx = self.new_node_idx
+
+        for child in children:
+            self._graph.add_edge(node_idx, child.idx)
+
+            self._graph.remove_edge('root', child.idx)
+
+            self._nodes['root'].remove_child_node(self._nodes[child.idx])
+
+        self._graph.add_edge('root', node_idx)
+
+        self._nodes[node_idx] = MarginalNode(node_idx, self.grid_size, children=children)
+
+        self._nodes['root'].add_child_node(self._nodes[node_idx])
+
+        return self._nodes[node_idx]
 
     def get_parent_node(self, node):
         """ Retrieve the parent of a node.
@@ -371,43 +418,6 @@ class Tree(object):
     def update_likelihood(self):
         for node in self.leafs:
             self._update_ancestor_nodes(node)
-
-    def _init_graph(self, nodes):
-        # Create graph
-        G = nx.DiGraph()
-
-        for node in nodes:
-            G.add_node(node.idx)
-
-            for child in node.children:
-                G.add_edge(node.idx, child.idx)
-
-        # Connect roots to dummy root
-        G.add_node('root')
-
-        for node in nodes:
-            if G.in_degree(node.idx) == 0:
-                G.add_edge('root', node.idx)
-
-        self._graph = G
-
-        # Instantiate dummy node
-        roots = []
-
-        for node in nodes:
-            if node.idx in self._graph.successors('root'):
-                roots.append(node)
-
-        dummy_root = MarginalNode(
-            'root',
-            self.grid_size,
-            children=roots
-        )
-
-        self._nodes = {}
-
-        for n in Tree.get_nodes(dummy_root):
-            self._nodes[n.idx] = n
 
     def _remove_subtree(self, subtree):
         assert len(subtree.roots) == 1
