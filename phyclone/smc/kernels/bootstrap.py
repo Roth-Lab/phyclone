@@ -68,11 +68,11 @@ class BootstrapProposalDistribution(ProposalDistribution):
         return tree
 
     def _propose_existing_node(self):
-        node_idx = random.choice(list(self.parent_particle.tree.nodes))
+        node = random.choice(list(self.parent_particle.tree.roots))
 
         tree = self.parent_particle.tree.copy()
 
-        tree.add_data_point(self.data_point, tree.nodes[node_idx])
+        tree.add_data_point(self.data_point, tree.nodes[node.idx])
 
         return tree
 

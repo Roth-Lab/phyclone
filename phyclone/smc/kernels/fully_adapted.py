@@ -69,10 +69,10 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         self._log_p = dict(zip(self.trees, log_p))
 
     def _propose_existing_node(self):
-        for node_idx in self.parent_particle.tree.nodes:
+        for node in self.parent_particle.tree.roots:
             tree = self.parent_particle.tree.copy()
 
-            tree.add_data_point(self.data_point, tree.nodes[node_idx])
+            tree.add_data_point(self.data_point, tree.nodes[node.idx])  # tree.nodes[node_idx])
 
             self.trees.append(tree)
 
