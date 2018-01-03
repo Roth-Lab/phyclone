@@ -16,6 +16,8 @@ def bernoulli_rvs(p=0.5):
 
 
 def discrete_rvs(p):
+    p = p / np.sum(p)
+
     return np.random.multinomial(1, p).argmax()
 
 
