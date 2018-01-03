@@ -3,3 +3,5 @@
 *__pycache__
 *.settings
 *.pyc
+*egg-info
+sandbox/*
