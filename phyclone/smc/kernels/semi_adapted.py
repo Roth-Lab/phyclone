@@ -13,14 +13,14 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     should provide a computational advantage over the fully adapted proposal.
     """
 
-    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prop=0):
+    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0):
         self.data_point = data_point
 
         self.kernel = kernel
 
         self.parent_particle = parent_particle
 
-        self.outlier_proposal_prop = 0
+        self.outlier_proposal_prob = 0
 
         self._init_dist()
 
@@ -31,15 +31,15 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
             log_q = 0
 
         elif tree.labels[self.data_point.idx] == -1:
-            log_q = np.log(self.outlier_proposal_prop)
+            log_q = np.log(self.outlier_proposal_prob)
 
         elif tree.labels[self.data_point.idx] in self.parent_particle.tree.nodes:
-            log_q = np.log((1 - self.outlier_proposal_prop) / 2) + self.log_q[tree]
+            log_q = np.log((1 - self.outlier_proposal_prob) / 2) + self.log_q[tree]
 
         else:
             old_num_roots = len(self.parent_particle.tree.roots)
 
-            log_q = np.log((1 - self.outlier_proposal_prop) / 2) - old_num_roots * np.log(2)
+            log_q = np.log((1 - self.outlier_proposal_prob) / 2) - old_num_roots * np.log(2)
 
         return log_q
 
@@ -54,7 +54,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         else:
             u = random.random()
 
-            if u < (1 - self.outlier_proposal_prop) / 2:
+            if u < (1 - self.outlier_proposal_prob) / 2:
                 q = np.exp(list(self.log_q.values()))
 
                 assert abs(1 - sum(q)) < 1e-6
@@ -65,7 +65,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
                 tree = list(self.log_q.keys())[idx]
 
-            elif u < (1 - self.outlier_proposal_prop):
+            elif u < (1 - self.outlier_proposal_prob):
                 tree = self._propose_new_node()
 
             else:

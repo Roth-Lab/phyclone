@@ -12,14 +12,14 @@ class BootstrapProposalDistribution(ProposalDistribution):
     A simple proposal from the prior distribution.
     """
 
-    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prop=0):
+    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0):
         self.data_point = data_point
 
         self.kernel = kernel
 
         self.parent_particle = parent_particle
 
-        self.outlier_proposal_prop = outlier_proposal_prop
+        self.outlier_proposal_prob = outlier_proposal_prob
 
     def log_p(self, state):
         """ Get the log probability of the state.
@@ -28,17 +28,17 @@ class BootstrapProposalDistribution(ProposalDistribution):
             log_q = 0
 
         elif state.node_idx == -1:
-            log_q = np.log(self.outlier_proposal_prop)
+            log_q = np.log(self.outlier_proposal_prob)
 
         elif state.node_idx in self.parent_particle.state.root_idxs:
             num_roots = len(state.root_idxs)
 
-            log_q = np.log((1 - self.outlier_proposal_prop) / 2) - np.log(num_roots)
+            log_q = np.log((1 - self.outlier_proposal_prob) / 2) - np.log(num_roots)
 
         else:
             old_num_roots = len(self.parent_particle.state.root_idxs)
 
-            log_q = np.log((1 - self.outlier_proposal_prop) / 2) - old_num_roots * np.log(2)
+            log_q = np.log((1 - self.outlier_proposal_prob) / 2) - old_num_roots * np.log(2)
 
         return log_q
 
@@ -52,17 +52,17 @@ class BootstrapProposalDistribution(ProposalDistribution):
             u = random.random()
 
             if len(self.parent_particle.state.roots) == 0:
-                if u < (1 - self.outlier_proposal_prop):
+                if u < (1 - self.outlier_proposal_prob):
                     state = self._propose_new_node()
 
                 else:
                     state = self._propose_outlier()
 
             else:
-                if u < (1 - self.outlier_proposal_prop) / 2:
+                if u < (1 - self.outlier_proposal_prob) / 2:
                     state = self._propose_existing_node()
 
-                elif u < (1 - self.outlier_proposal_prop):
+                elif u < (1 - self.outlier_proposal_prob):
                     state = self._propose_new_node()
 
                 else:
