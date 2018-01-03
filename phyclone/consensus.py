@@ -76,7 +76,7 @@ def clade_probabilities(trees, weighted=False):
     clades_counter = defaultdict(float)
 
     for tree in trees:
-        for clade in clades(tree):
+        for clade in get_clades(tree):
             if weighted:
                 clades_counter[clade] += trees[tree]
 
@@ -96,13 +96,13 @@ def key_above_threshold(counter, threshold):
     return set([key for key, value in counter.items() if value > threshold])
 
 
-def clades(tree):
+def get_clades(tree):
     result = set()
 
     for root in tree.roots:
         _clades(result, root, tree)
 
-    return result
+    return frozenset(result)
 
 
 def _clades(clades, node, tree):

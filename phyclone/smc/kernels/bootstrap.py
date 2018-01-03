@@ -3,41 +3,46 @@ from __future__ import division
 import numpy as np
 import random
 
-from phyclone.smc.kernels.base import Kernel
+from phyclone.smc.kernels.base import Kernel, ProposalDistribution
 
 
-class BootstrapProposal(object):
+class BootstrapProposalDistribution(ProposalDistribution):
     """ Bootstrap proposal distribution.
 
     A simple proposal from the prior distribution.
     """
 
-    def __init__(self, data_point, kernel, parent_particle):
+    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prop=0):
         self.data_point = data_point
 
         self.kernel = kernel
 
         self.parent_particle = parent_particle
 
-    def get_log_q(self, state):
+        self.outlier_proposal_prop = outlier_proposal_prop
+
+    def log_p(self, state):
         """ Get the log probability of the state.
         """
         if self.parent_particle is None:
             log_q = 0
 
+        elif state.node_idx == -1:
+            log_q = np.log(self.outlier_proposal_prop)
+
         elif state.node_idx in self.parent_particle.state.root_idxs:
             num_roots = len(state.root_idxs)
 
-            log_q = np.log(0.5) - np.log(num_roots)
+            log_q = np.log((1 - self.outlier_proposal_prop) / 2) - np.log(num_roots)
 
         else:
             old_num_roots = len(self.parent_particle.state.root_idxs)
 
-            log_q = np.log(0.5) - old_num_roots * np.log(2)
+            log_q = np.log((1 - self.outlier_proposal_prop) / 2) - old_num_roots * np.log(2)
 
         return log_q
 
-    def sample_state(self):
+    def sample(self):
         """ Sample a new state from the proposal distribution.
         """
         if self.parent_particle is None:
@@ -46,11 +51,22 @@ class BootstrapProposal(object):
         else:
             u = random.random()
 
-            if u < 0.5:
-                state = self._propose_existing_node()
+            if len(self.parent_particle.state.roots) == 0:
+                if u < (1 - self.outlier_proposal_prop):
+                    state = self._propose_new_node()
+
+                else:
+                    state = self._propose_outlier()
 
             else:
-                state = self._propose_new_node()
+                if u < (1 - self.outlier_proposal_prop) / 2:
+                    state = self._propose_existing_node()
+
+                elif u < (1 - self.outlier_proposal_prop):
+                    state = self._propose_new_node()
+
+                else:
+                    state = self._propose_outlier()
 
         return state
 
@@ -84,8 +100,16 @@ class BootstrapProposal(object):
             root_idxs
         )
 
+    def _propose_outlier(self):
+        return self.kernel.create_state(
+            self.data_point,
+            self.parent_particle,
+            -1,
+            self.parent_particle.state.root_idxs
+        )
+
 
 class BootstrapKernel(Kernel):
 
     def get_proposal_distribution(self, data_point, parent_particle):
-        return BootstrapProposal(data_point, self, parent_particle)
+        return BootstrapProposalDistribution(data_point, self, parent_particle)

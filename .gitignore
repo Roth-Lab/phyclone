@@ -5,3 +5,5 @@
 *.pyc
 *egg-info
 sandbox/*
+sandbox/
+/phyclone.egg-info/

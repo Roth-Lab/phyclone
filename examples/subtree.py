@@ -7,29 +7,27 @@ import numpy as np
 
 from phyclone.concentration import GammaPriorConcentrationSampler
 from phyclone.consensus import get_consensus_tree
-from phyclone.mcmc.metropolis_hastings import PruneRegraphSampler
-from phyclone.mcmc.particle_gibbs import ParticleGibbsSubtreeSampler
-from phyclone.tree import get_single_node_tree
+from phyclone.mcmc import ParticleGibbsSubtreeSampler, OutlierSampler, PruneRegraphSampler
+from phyclone.tree import Tree
 
 from toy_data import load_test_data
 
-data, labels, true_graph = load_test_data()
 
-tree = get_single_node_tree(data)
+data, labels, true_graph = load_test_data(cluster_size=1, depth=int(1e5), outlier_size=0, single_sample=False)
+
+tree = Tree.get_single_node_tree(data)
 
 conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
 
 mh_sampler = PruneRegraphSampler()
 
-pg_sampler = ParticleGibbsSubtreeSampler(
-    data[0].shape,
-    alpha=1.0,
-    kernel='bootstrap',
-    num_particles=10,
-    resample_threshold=0.5
-)
+outlier_sampler = OutlierSampler()
 
-num_iters = int(1e3)
+pg_sampler = ParticleGibbsSubtreeSampler(kernel='semi-adapted', num_particles=20, resample_threshold=0.5)
+
+print('Starting sampling')
+
+num_iters = int(1e4)
 
 trace = []
 
@@ -38,23 +36,26 @@ for i in range(num_iters):
 
     tree = mh_sampler.sample_tree(data, tree)
 
-    pg_sampler.alpha = conc_sampler.sample(pg_sampler.alpha, len(tree.nodes), len(data))
+    tree = outlier_sampler.sample_tree(tree)
+
+    tree.alpha = conc_sampler.sample(tree.alpha, tree.num_nodes, sum(tree.node_sizes.values()))
 
     if i % 10 == 0:
         pred_labels = [tree.labels[x] for x in sorted(tree.labels)]
         print()
-        print(i, pg_sampler.alpha)
+        print(i, tree.alpha)
         print(pred_labels)
         print(homogeneity_completeness_v_measure(labels, pred_labels), len(tree.nodes))
-        print(tree.log_p)
+        print(tree.log_p_one)
         print(nx.is_isomorphic(tree._graph, true_graph))
         print([x.idx for x in tree.roots])
+        print(tree.graph.edges)
         print()
 
         for node_idx in tree.nodes:
             print(node_idx, [(x + 1) / 101 for x in np.argmax(tree.nodes[node_idx].log_R, axis=1)])
 
-        if i >= (num_iters / 2):
+        if i >= min((num_iters / 2), 1000):
             trace.append(tree)
 
 consensus_tree = get_consensus_tree(trace)
