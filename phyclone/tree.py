@@ -247,7 +247,7 @@ class Tree(object):
         # Correction for auxillary distribution
         log_p = 0
 
-        for node in self.nodes.values():
+        for node in self._nodes.values():
             log_p += log_factorial(sum([len(child.data) for child in node.children]))
 
             for child in node.children:
