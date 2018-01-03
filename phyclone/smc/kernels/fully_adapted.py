@@ -3,8 +3,9 @@ from __future__ import division
 import itertools
 import numpy as np
 
-from phyclone.math_utils import log_normalize
+from phyclone.math_utils import log_normalize, discrete_rvs
 from phyclone.smc.kernels.base import Kernel, ProposalDistribution
+from phyclone.tree import Tree
 
 
 class FullyAdaptedProposalDistribution(ProposalDistribution):
@@ -24,82 +25,76 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
         self._init_dist()
 
-    def log_p(self, state):
-        return self.log_q[state.node_idx]
+    def log_p(self, tree):
+        """ Get the log probability of the tree.
+        """
+        return self._log_p[tree]
 
     def sample(self):
-        q = np.exp(np.array(list(self.log_q.values())))
+        """ Sample a new tree from the proposal distribution.
+        """
+        p = np.exp(np.array(list(self._log_p.values())))
 
-        assert abs(1 - sum(q)) < 1e-6
+        idx = discrete_rvs(p)
 
-        q = q / sum(q)
+        tree = list(self._log_p.keys())[idx]
 
-        idx = np.random.multinomial(1, q).argmax()
-
-        node_idx = list(self.log_q.keys())[idx]
-
-        return self.states[node_idx]
+        return tree
 
     def _init_dist(self):
-        self.states = {}
+        self.trees = []
 
-        self._propose_new_node()
+        if self.parent_particle is None:
+            tree = Tree(self.kernel.alpha, self.kernel.grid_size)
 
-        if self.use_outliers:
-            self._propose_outlier_node()
+            node = tree.create_root_node([])
 
-        if self.parent_particle is not None:
-            self._propose_existing_node()
+            tree.add_data_point(self.data_point, node)
 
-        log_q = [x.log_p for x in self.states.values()]
+            self.trees.append(tree)
 
-        log_q = log_normalize(np.array(log_q))
+        else:
+            self._propose_new_node()
 
-        self.log_q = dict(zip(self.states.keys(), log_q))
+            if self.use_outliers:
+                self._propose_outlier_node()
+
+            if self.parent_particle is not None:
+                self._propose_existing_node()
+
+        log_p = [t.log_p for t in self.trees]
+
+        log_p = log_normalize(np.array(log_p))
+
+        self._log_p = dict(zip(self.trees, log_p))
 
     def _propose_existing_node(self):
-        for node_idx in self.parent_particle.state.root_idxs:
-            self.states[node_idx] = self.kernel.create_state(
-                self.data_point,
-                self.parent_particle,
-                node_idx,
-                self.parent_particle.state.root_idxs
-            )
+        for node_idx in self.parent_particle.tree.nodes:
+            tree = self.parent_particle.tree.copy()
+
+            tree.add_data_point(self.data_point, tree.nodes[node_idx])
+
+            self.trees.append(tree)
 
     def _propose_new_node(self):
-        if self.parent_particle is None:
-            self.states[0] = self.kernel.create_state(self.data_point, self.parent_particle, 0, set([0, ]))
+        num_roots = len(self.parent_particle.tree.roots)
 
-        else:
-            node_idx = max(list(self.parent_particle.state.root_idxs) + [-1, ]) + 1
+        for r in range(0, num_roots + 1):
+            for children in itertools.combinations(self.parent_particle.tree.roots, r):
+                tree = self.parent_particle.tree.copy()
 
-            num_roots = len(self.parent_particle.state.root_idxs)
+                node = tree.create_root_node(children)
 
-            for r in range(0, num_roots + 1):
-                for child_idxs in itertools.combinations(self.parent_particle.state.root_idxs, r):
-                    root_idxs = set(self.parent_particle.state.root_idxs - set(child_idxs))
+                tree.add_data_point(self.data_point, node)
 
-                    root_idxs.add(node_idx)
-
-                    self.states[node_idx] = self.kernel.create_state(
-                        self.data_point, self.parent_particle, node_idx, root_idxs
-                    )
-
-                    node_idx += 1
+                self.trees.append(tree)
 
     def _propose_outlier_node(self):
-        if self.parent_particle is None:
-            root_idxs = set()
+        tree = self.parent_particle.tree.copy()
 
-        else:
-            root_idxs = self.parent_particle.state.root_idxs
+        tree.add_data_point(self.data_point, None)
 
-        self.states[-1] = self.kernel.create_state(
-            self.data_point,
-            self.parent_particle,
-            -1,
-            root_idxs
-        )
+        self.trees.append(tree)
 
 
 class FullyAdaptedKernel(Kernel):

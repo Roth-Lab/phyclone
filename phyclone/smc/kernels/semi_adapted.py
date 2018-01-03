@@ -20,7 +20,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         self.parent_particle = parent_particle
 
-        self.outlier_proposal_prob = 0
+        self.outlier_proposal_prob = outlier_proposal_prob
 
         self._init_dist()
 
@@ -34,7 +34,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
             log_q = np.log(self.outlier_proposal_prob)
 
         elif tree.labels[self.data_point.idx] in self.parent_particle.tree.nodes:
-            log_q = np.log((1 - self.outlier_proposal_prob) / 2) + self.log_q[tree]
+            log_q = np.log((1 - self.outlier_proposal_prob) / 2) + self.log_p[tree]
 
         else:
             old_num_roots = len(self.parent_particle.tree.roots)
@@ -44,6 +44,8 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         return log_q
 
     def sample(self):
+        """ Sample a new tree from the proposal distribution.
+        """
         if self.parent_particle is None:
             tree = Tree(self.kernel.alpha, self.kernel.grid_size)
 
@@ -55,7 +57,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
             u = random.random()
 
             if u < (1 - self.outlier_proposal_prob) / 2:
-                q = np.exp(list(self.log_q.values()))
+                q = np.exp(list(self.log_p.values()))
 
                 assert abs(1 - sum(q)) < 1e-6
 
@@ -63,7 +65,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
                 idx = np.random.multinomial(1, q).argmax()
 
-                tree = list(self.log_q.keys())[idx]
+                tree = list(self.log_p.keys())[idx]
 
             elif u < (1 - self.outlier_proposal_prob):
                 tree = self._propose_new_node()
@@ -83,7 +85,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         log_q = log_normalize(log_q)
 
-        self.log_q = dict(zip(trees, log_q))
+        self.log_p = dict(zip(trees, log_q))
 
     def _propose_existing_node(self):
         proposed_trees = []

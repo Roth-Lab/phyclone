@@ -4,6 +4,7 @@ import numpy as np
 import random
 
 from phyclone.smc.kernels.base import Kernel, ProposalDistribution
+from phyclone.tree import Tree
 
 
 class BootstrapProposalDistribution(ProposalDistribution):
@@ -21,92 +22,81 @@ class BootstrapProposalDistribution(ProposalDistribution):
 
         self.outlier_proposal_prob = outlier_proposal_prob
 
-    def log_p(self, state):
-        """ Get the log probability of the state.
+    def log_p(self, tree):
+        """ Get the log probability of the tree.
         """
         if self.parent_particle is None:
             log_q = 0
 
-        elif state.node_idx == -1:
+        elif tree.labels[self.data_point.idx] == -1:
             log_q = np.log(self.outlier_proposal_prob)
 
-        elif state.node_idx in self.parent_particle.state.root_idxs:
-            num_roots = len(state.root_idxs)
+        elif tree.labels[self.data_point.idx] in self.parent_particle.tree.nodes:
+            num_nodes = len(self.parent_particle.tree.nodes)
 
-            log_q = np.log((1 - self.outlier_proposal_prob) / 2) - np.log(num_roots)
+            log_q = np.log((1 - self.outlier_proposal_prob) / 2) - np.log(num_nodes)
 
         else:
-            old_num_roots = len(self.parent_particle.state.root_idxs)
+            old_num_roots = len(self.parent_particle.tree.roots)
 
             log_q = np.log((1 - self.outlier_proposal_prob) / 2) - old_num_roots * np.log(2)
 
         return log_q
 
     def sample(self):
-        """ Sample a new state from the proposal distribution.
+        """ Sample a new tree from the proposal distribution.
         """
         if self.parent_particle is None:
-            state = self.kernel.create_state(self.data_point, self.parent_particle, 0, set([0, ]))
+            tree = Tree(self.kernel.alpha, self.kernel.grid_size)
+
+            node = tree.create_root_node([])
+
+            tree.add_data_point(self.data_point, node)
 
         else:
             u = random.random()
 
-            if len(self.parent_particle.state.roots) == 0:
-                if u < (1 - self.outlier_proposal_prob):
-                    state = self._propose_new_node()
+            if u < (1 - self.outlier_proposal_prob) / 2:
+                tree = self._propose_existing_node()
 
-                else:
-                    state = self._propose_outlier()
+            elif u < (1 - self.outlier_proposal_prob):
+                tree = self._propose_new_node()
 
             else:
-                if u < (1 - self.outlier_proposal_prob) / 2:
-                    state = self._propose_existing_node()
+                tree = self._propose_outlier()
 
-                elif u < (1 - self.outlier_proposal_prob):
-                    state = self._propose_new_node()
-
-                else:
-                    state = self._propose_outlier()
-
-        return state
+        return tree
 
     def _propose_existing_node(self):
-        node_idx = random.choice(list(self.parent_particle.state.root_idxs))
+        node_idx = random.choice(list(self.parent_particle.tree.nodes))
 
-        return self.kernel.create_state(
-            self.data_point,
-            self.parent_particle,
-            node_idx,
-            self.parent_particle.state.root_idxs
-        )
+        tree = self.parent_particle.tree.copy()
+
+        tree.add_data_point(self.data_point, tree.nodes[node_idx])
+
+        return tree
 
     def _propose_new_node(self):
-        num_roots = len(self.parent_particle.state.roots)
+        num_roots = len(self.parent_particle.tree.roots)
 
         num_children = random.randint(0, num_roots)
 
-        children = random.sample(self.parent_particle.state.root_idxs, num_children)
+        children = random.sample(self.parent_particle.tree.roots, num_children)
 
-        node_idx = max(list(self.parent_particle.state.root_idxs) + [-1, ]) + 1
+        tree = self.parent_particle.tree.copy()
 
-        root_idxs = set(self.parent_particle.state.root_idxs - set(children))
+        node = tree.create_root_node(children)
 
-        root_idxs.add(node_idx)
+        tree.add_data_point(self.data_point, node)
 
-        return self.kernel.create_state(
-            self.data_point,
-            self.parent_particle,
-            node_idx,
-            root_idxs
-        )
+        return tree
 
     def _propose_outlier(self):
-        return self.kernel.create_state(
-            self.data_point,
-            self.parent_particle,
-            -1,
-            self.parent_particle.state.root_idxs
-        )
+        tree = self.parent_particle.tree.copy()
+
+        tree.add_data_point(self.data_point, None)
+
+        return tree
 
 
 class BootstrapKernel(Kernel):
