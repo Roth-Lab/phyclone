@@ -12,19 +12,18 @@ import phyclone.tests.simulate as simulate
 
 class Test(unittest.TestCase):
 
+    def setUp(self):
+        self.sampler = ParticleGibbsTreeSampler('semi-adapted')
+
     def test_single_data_point_1d(self):
         data = [simulate.simulate_binomial_data(0, 100, 1.0), ]
 
-        sampler = ParticleGibbsTreeSampler('semi-adapted')
-
-        self._run_exact_posterior_test(data, sampler, burnin=100, num_iters=100)
+        self._run_exact_posterior_test(data, burnin=100, num_iters=100)
 
     def test_single_data_point_2d(self):
         data = [simulate.simulate_binomial_data(0, 100, [1.0, 1.0]), ]
 
-        sampler = ParticleGibbsTreeSampler('semi-adapted')
-
-        self._run_exact_posterior_test(data, sampler, burnin=100, num_iters=100)
+        self._run_exact_posterior_test(data, burnin=100, num_iters=100)
 
     def test_two_data_point_1d_single_cluster(self):
         data = [
@@ -32,9 +31,7 @@ class Test(unittest.TestCase):
             simulate.simulate_binomial_data(1, 100, 1.0)
         ]
 
-        sampler = ParticleGibbsTreeSampler('semi-adapted')
-
-        self._run_exact_posterior_test(data, sampler, burnin=100, num_iters=1000)
+        self._run_exact_posterior_test(data, burnin=100, num_iters=1000)
 
     def test_two_data_point_1d_two_cluster(self):
         data = [
@@ -42,9 +39,7 @@ class Test(unittest.TestCase):
             simulate.simulate_binomial_data(1, 100, 0.5)
         ]
 
-        sampler = ParticleGibbsTreeSampler('semi-adapted')
-
-        self._run_exact_posterior_test(data, sampler, burnin=100, num_iters=1000)
+        self._run_exact_posterior_test(data, burnin=100, num_iters=1000)
 
     def test_two_data_point_2d_two_cluster(self):
         data = [
@@ -52,18 +47,16 @@ class Test(unittest.TestCase):
             simulate.simulate_binomial_data(1, 100, [0.5, 0.7])
         ]
 
-        sampler = ParticleGibbsTreeSampler('semi-adapted')
+        self._run_exact_posterior_test(data, burnin=100, num_iters=1000)
 
-        self._run_exact_posterior_test(data, sampler, burnin=100, num_iters=1000)
-
-    def _run_exact_posterior_test(self, data, sampler, burnin=100, num_iters=1000):
-        pred_probs = self._run_sampler(data, sampler, burnin=burnin, num_iters=num_iters)
+    def _run_exact_posterior_test(self, data, burnin=100, num_iters=1000):
+        pred_probs = self._run_sampler(data, burnin=burnin, num_iters=num_iters)
 
         true_probs = get_exact_posterior(data)
 
         self._test_posterior(pred_probs, true_probs)
 
-    def _run_sampler(self, data, sampler, burnin=0, num_iters=int(1e3)):
+    def _run_sampler(self, data, burnin=0, num_iters=int(1e3)):
 
         test_counts = Counter()
 
@@ -73,7 +66,7 @@ class Test(unittest.TestCase):
             if i % 10 == 0:
                 print(i)
 
-            tree = sampler.sample_tree(data, tree)
+            tree = self.sampler.sample_tree(data, tree)
 
             if i > 0:
                 test_counts[get_clades(tree)] += 1
