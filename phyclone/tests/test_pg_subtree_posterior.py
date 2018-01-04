@@ -13,17 +13,17 @@ import phyclone.tests.simulate as simulate
 class Test(unittest.TestCase):
 
     def setUp(self):
-        self.sampler = ParticleGibbsSubtreeSampler('semi-adapted')
+        self.sampler = ParticleGibbsSubtreeSampler('fully-adapted')
 
-#     def test_single_data_point_1d(self):
-#         data = [simulate.simulate_binomial_data(0, 100, 1.0), ]
-#
-#         self._run_exact_posterior_test(data, burnin=100, num_iters=100)
-#
-#     def test_single_data_point_2d(self):
-#         data = [simulate.simulate_binomial_data(0, 100, [1.0, 1.0]), ]
-#
-#         self._run_exact_posterior_test(data, burnin=100, num_iters=100)
+    def test_single_data_point_1d(self):
+        data = [simulate.simulate_binomial_data(0, 100, 1.0), ]
+
+        self._run_exact_posterior_test(data, burnin=100, num_iters=100)
+
+    def test_single_data_point_2d(self):
+        data = [simulate.simulate_binomial_data(0, 100, [1.0, 1.0]), ]
+
+        self._run_exact_posterior_test(data, burnin=100, num_iters=100)
 
     def test_two_data_point_1d_single_cluster(self):
         data = [
@@ -32,23 +32,23 @@ class Test(unittest.TestCase):
             simulate.simulate_binomial_data(2, 0, 1.0),
         ]
 
-        self._run_exact_posterior_test(data, burnin=100, num_iters=5000)
-#
-#     def test_two_data_point_1d_two_cluster(self):
-#         data = [
-#             simulate.simulate_binomial_data(0, 10, 1.0),
-#             simulate.simulate_binomial_data(1, 10, 0.5)
-#         ]
-#
-#         self._run_exact_posterior_test(data, burnin=100, num_iters=10000)
-#
-#     def test_two_data_point_2d_two_cluster(self):
-#         data = [
-#             simulate.simulate_binomial_data(0, 100, [1.0, 1.0]),
-#             simulate.simulate_binomial_data(1, 100, [0.5, 0.7])
-#         ]
-#
-#         self._run_exact_posterior_test(data, burnin=100, num_iters=1000)
+        self._run_exact_posterior_test(data, burnin=100, num_iters=1000)
+
+    def test_two_data_point_1d_two_cluster(self):
+        data = [
+            simulate.simulate_binomial_data(0, 10, 1.0),
+            simulate.simulate_binomial_data(1, 10, 0.5)
+        ]
+
+        self._run_exact_posterior_test(data, burnin=100, num_iters=10000)
+
+    def test_two_data_point_2d_two_cluster(self):
+        data = [
+            simulate.simulate_binomial_data(0, 100, [1.0, 1.0]),
+            simulate.simulate_binomial_data(1, 100, [0.5, 0.7])
+        ]
+
+        self._run_exact_posterior_test(data, burnin=100, num_iters=1000)
 
     def _run_exact_posterior_test(self, data, burnin=100, num_iters=1000):
         pred_probs = self._run_sampler(data, burnin=burnin, num_iters=num_iters)
@@ -67,7 +67,7 @@ class Test(unittest.TestCase):
             if i % 10 == 0:
                 print(i)
 
-            tree = self.sampler.sample_tree(data, tree)
+            tree = self.sampler.sample_tree(tree)
 
             if i > 0:
                 test_counts[get_clades(tree)] += 1

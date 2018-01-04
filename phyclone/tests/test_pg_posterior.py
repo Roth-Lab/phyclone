@@ -83,7 +83,7 @@ class Test(unittest.TestCase):
             if i % 10 == 0:
                 print(i)
 
-            tree = self.sampler.sample_tree(data, tree)
+            tree = self.sampler.sample_tree(tree)
 
             if i > 0:
                 test_counts[get_clades(tree)] += 1
