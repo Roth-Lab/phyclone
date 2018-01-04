@@ -7,7 +7,7 @@ import networkx as nx
 import numpy as np
 
 from phyclone.consensus import get_clades
-from phyclone.math_utils import log_factorial, log_normalize
+from phyclone.math_utils import log_factorial
 
 
 class Tree(object):
@@ -22,9 +22,7 @@ class Tree(object):
 
         self._graph = nx.DiGraph()
 
-        self._graph.add_node('root')
-
-        self._graph.nodes['root']['log_D'] = np.zeros(grid_size)
+        self._add_node('root')
 
     def __hash__(self):
         return hash((self.alpha, get_clades(self), frozenset(self.outliers)))
@@ -85,7 +83,7 @@ class Tree(object):
     def data_log_likelihood(self):
         """ The log likelihood grid of the data for all values of the root node.
         """
-        return self._graph.nodes['root']['log_D']
+        return self._graph.nodes['root']['log_R']
 
     @property
     def data_marginal_log_likelihood(self):
@@ -297,13 +295,9 @@ class Tree(object):
     def _update_node(self, node):
         child_log_R_values = [self._graph.nodes[child]['log_R'] for child in self._graph.successors(node)]
 
-        if node == 'root':
-            self._graph.nodes[node]['log_D'] = compute_log_D(child_log_R_values)
+        self._graph.nodes[node]['log_S'] = compute_log_S(child_log_R_values)
 
-        else:
-            self._graph.nodes[node]['log_S'] = compute_log_S(child_log_R_values)
-
-            self._graph.nodes[node]['log_R'] = self._graph.nodes[node]['log_p'] + self._graph.nodes[node]['log_S']
+        self._graph.nodes[node]['log_R'] = self._graph.nodes[node]['log_p'] + self._graph.nodes[node]['log_S']
 
 
 def compute_log_S(child_log_R_values):
@@ -911,230 +905,230 @@ def _compute_log_D_n(child_log_R, prev_log_D_n):
 #                 assert len(parents) == 1
 #
 #                 assert parents[0] == node.idx
-
-
-class Node(object):
-    def __init__(self, idx, grid_size):
-        self.idx = idx
-
-        self.data = []
-
-        self.data_marginal_log_likelihood = np.zeros(grid_size)
-
-    def __deepcopy__(self, memo):
-        cls = self.__class__
-
-        new = cls.__new__(cls)
-
-        new.idx = self.idx
-
-        new.data = list(self.data)
-
-        new.data_marginal_log_likelihood = self.data_marginal_log_likelihood.copy()
-
-    @property
-    def log_p(self):
-        """ Log probability of sub-tree rooted at node, marginalizing node parameter.
-        """
-        log_p = 0
-
-        for i in range(self.grid_size[0]):
-            log_p += log_sum_exp(self.log_R[i, :])
-
-        return log_p
-
-    def add_data_point(self, data_point):
-        """ Add a data point to the collection at this node.
-        """
-        self.data.append(data_point)
-
-        self.data_marginal_log_likelihood += data_point.value
-
-    def remove_data_point(self, data_point):
-        """ Remove a data point to the collection at this node.
-        """
-        self.data.remove(data_point)
-
-        self.data_marginal_log_likelihood -= data_point.value
-
-
-class MarginalNode(object):
-    """ A node in FS-CRP forest with parameters marginalized.
-    """
-
-    def __init__(self, idx, grid_size, children=None):
-        self.idx = idx
-
-        self.grid_size = grid_size
-
-        self._children = {}
-
-        if children is not None:
-            for child in children:
-                self._children[child.idx] = child
-
-        self.data = []
-
-        self.data_marginal_log_likelihood = np.ones(grid_size) * -np.log(grid_size[1])
-
-        self.log_R = np.zeros(grid_size)
-
-        self.update()
-
-    @property
-    def children(self):
-        """ List of child nodes.
-        """
-        return list(self._children.values())
-
-    @property
-    def log_p(self):
-        """ Log probability of sub-tree rooted at node, marginalizing node parameter.
-        """
-        log_p = 0
-
-        for i in range(self.grid_size[0]):
-            log_p += log_sum_exp(self.log_R[i, :])
-
-        return log_p
-
-    @property
-    def log_p_one(self):
-        """ Log probability of sub-tree rooted at node, conditioned on node parameter of one.
-        """
-        log_p = 0
-
-        for i in range(self.grid_size[0]):
-            log_p += self.log_R[i, -1]
-
-        return log_p
-
-    def add_child_node(self, node):
-        """ Add a child node.
-        """
-        assert node.idx not in self.children
-
-        self._children[node.idx] = node
-
-        self.update()
-
-    def add_data_point(self, data_point):
-        """ Add a data point to the collection at this node.
-        """
-        self.data.append(data_point)
-
-        self.data_marginal_log_likelihood += data_point.value
-
-        self._update_log_R()
-
-    def copy(self, deep=True):
-        """ Make a deep copy of the node.
-
-        Parameters
-        ----------
-        deep: bool
-            If true then children will be copied, otherwise they will be shared pointers with the original.
-        """
-        new = MarginalNode.__new__(MarginalNode)
-
-        if deep:
-            new._children = {}
-
-            for child in self.children:
-                new._children[child.idx] = child.copy()
-
-        else:
-            new._children = self._children.copy()
-
-        new.grid_size = self.grid_size
-
-        new.idx = self.idx
-
-        new.data = list(self.data)
-
-        new.data_marginal_log_likelihood = np.copy(self.data_marginal_log_likelihood)
-
-        new.log_R = np.copy(self.log_R)
-
-        new.log_S = np.copy(self.log_S)
-
-        return new
-
-    def remove_child_node(self, node):
-        """ Remove a child node.
-        """
-        del self._children[node.idx]
-
-        self.update()
-
-    def remove_data_point(self, data_point):
-        """ Remove a data point to the collection at this node.
-        """
-        self.data.remove(data_point)
-
-        self.data_marginal_log_likelihood -= data_point.value
-
-        self._update_log_R()
-
-    def update_children(self, children):
-        """ Set the node children
-        """
-        self._children = {}
-
-        if children is not None:
-            for child in children:
-                self._children[child.idx] = child
-
-        self.log_R = np.zeros(self.grid_size)
-
-        self.update()
-
-    def update(self):
-        """ Update the arrays required for the recursion.
-        """
-        self._update_log_S()
-
-        self._update_log_R()
-
-    def _compute_log_D(self):
-        for child_id, child in enumerate(self.children):
-            if child_id == 0:
-                log_D = child.log_R.copy()
-
-            else:
-                for i in range(self.grid_size[0]):
-                    log_D[i, :] = _compute_log_D_n(child.log_R[i, :], log_D[i, :])
-
-        return log_D
-
-    def _update_log_R(self):
-        self.log_R = self.data_marginal_log_likelihood + self.log_S
-
-    def _update_log_S(self):
-        self.log_S = np.zeros(self.grid_size)
-
-        if len(self.children) > 0:
-            log_D = self._compute_log_D()
-
-            for i in range(self.grid_size[0]):
-                self.log_S[i, :] = np.logaddexp.accumulate(log_D[i, :])
-
-
-def _compute_log_D_n(child_log_R, prev_log_D_n):
-    """ Compute the recursion over D using the FFT.
-    """
-    log_R_max = child_log_R.max()
-
-    log_D_max = prev_log_D_n.max()
-
-    R_norm = np.exp(child_log_R - log_R_max)
-
-    D_norm = np.exp(prev_log_D_n - log_D_max)
-
-    result = fftconvolve(R_norm, D_norm)
-
-    result = result[:len(child_log_R)]
-
-    result[result <= 0] = 1e-100
-
-    return np.log(result) + log_D_max + log_R_max
+#
+#
+# class Node(object):
+#     def __init__(self, idx, grid_size):
+#         self.idx = idx
+#
+#         self.data = []
+#
+#         self.data_marginal_log_likelihood = np.zeros(grid_size)
+#
+#     def __deepcopy__(self, memo):
+#         cls = self.__class__
+#
+#         new = cls.__new__(cls)
+#
+#         new.idx = self.idx
+#
+#         new.data = list(self.data)
+#
+#         new.data_marginal_log_likelihood = self.data_marginal_log_likelihood.copy()
+#
+#     @property
+#     def log_p(self):
+#         """ Log probability of sub-tree rooted at node, marginalizing node parameter.
+#         """
+#         log_p = 0
+#
+#         for i in range(self.grid_size[0]):
+#             log_p += log_sum_exp(self.log_R[i, :])
+#
+#         return log_p
+#
+#     def add_data_point(self, data_point):
+#         """ Add a data point to the collection at this node.
+#         """
+#         self.data.append(data_point)
+#
+#         self.data_marginal_log_likelihood += data_point.value
+#
+#     def remove_data_point(self, data_point):
+#         """ Remove a data point to the collection at this node.
+#         """
+#         self.data.remove(data_point)
+#
+#         self.data_marginal_log_likelihood -= data_point.value
+#
+#
+# class MarginalNode(object):
+#     """ A node in FS-CRP forest with parameters marginalized.
+#     """
+#
+#     def __init__(self, idx, grid_size, children=None):
+#         self.idx = idx
+#
+#         self.grid_size = grid_size
+#
+#         self._children = {}
+#
+#         if children is not None:
+#             for child in children:
+#                 self._children[child.idx] = child
+#
+#         self.data = []
+#
+#         self.data_marginal_log_likelihood = np.ones(grid_size) * -np.log(grid_size[1])
+#
+#         self.log_R = np.zeros(grid_size)
+#
+#         self.update()
+#
+#     @property
+#     def children(self):
+#         """ List of child nodes.
+#         """
+#         return list(self._children.values())
+#
+#     @property
+#     def log_p(self):
+#         """ Log probability of sub-tree rooted at node, marginalizing node parameter.
+#         """
+#         log_p = 0
+#
+#         for i in range(self.grid_size[0]):
+#             log_p += log_sum_exp(self.log_R[i, :])
+#
+#         return log_p
+#
+#     @property
+#     def log_p_one(self):
+#         """ Log probability of sub-tree rooted at node, conditioned on node parameter of one.
+#         """
+#         log_p = 0
+#
+#         for i in range(self.grid_size[0]):
+#             log_p += self.log_R[i, -1]
+#
+#         return log_p
+#
+#     def add_child_node(self, node):
+#         """ Add a child node.
+#         """
+#         assert node.idx not in self.children
+#
+#         self._children[node.idx] = node
+#
+#         self.update()
+#
+#     def add_data_point(self, data_point):
+#         """ Add a data point to the collection at this node.
+#         """
+#         self.data.append(data_point)
+#
+#         self.data_marginal_log_likelihood += data_point.value
+#
+#         self._update_log_R()
+#
+#     def copy(self, deep=True):
+#         """ Make a deep copy of the node.
+#
+#         Parameters
+#         ----------
+#         deep: bool
+#             If true then children will be copied, otherwise they will be shared pointers with the original.
+#         """
+#         new = MarginalNode.__new__(MarginalNode)
+#
+#         if deep:
+#             new._children = {}
+#
+#             for child in self.children:
+#                 new._children[child.idx] = child.copy()
+#
+#         else:
+#             new._children = self._children.copy()
+#
+#         new.grid_size = self.grid_size
+#
+#         new.idx = self.idx
+#
+#         new.data = list(self.data)
+#
+#         new.data_marginal_log_likelihood = np.copy(self.data_marginal_log_likelihood)
+#
+#         new.log_R = np.copy(self.log_R)
+#
+#         new.log_S = np.copy(self.log_S)
+#
+#         return new
+#
+#     def remove_child_node(self, node):
+#         """ Remove a child node.
+#         """
+#         del self._children[node.idx]
+#
+#         self.update()
+#
+#     def remove_data_point(self, data_point):
+#         """ Remove a data point to the collection at this node.
+#         """
+#         self.data.remove(data_point)
+#
+#         self.data_marginal_log_likelihood -= data_point.value
+#
+#         self._update_log_R()
+#
+#     def update_children(self, children):
+#         """ Set the node children
+#         """
+#         self._children = {}
+#
+#         if children is not None:
+#             for child in children:
+#                 self._children[child.idx] = child
+#
+#         self.log_R = np.zeros(self.grid_size)
+#
+#         self.update()
+#
+#     def update(self):
+#         """ Update the arrays required for the recursion.
+#         """
+#         self._update_log_S()
+#
+#         self._update_log_R()
+#
+#     def _compute_log_D(self):
+#         for child_id, child in enumerate(self.children):
+#             if child_id == 0:
+#                 log_D = child.log_R.copy()
+#
+#             else:
+#                 for i in range(self.grid_size[0]):
+#                     log_D[i, :] = _compute_log_D_n(child.log_R[i, :], log_D[i, :])
+#
+#         return log_D
+#
+#     def _update_log_R(self):
+#         self.log_R = self.data_marginal_log_likelihood + self.log_S
+#
+#     def _update_log_S(self):
+#         self.log_S = np.zeros(self.grid_size)
+#
+#         if len(self.children) > 0:
+#             log_D = self._compute_log_D()
+#
+#             for i in range(self.grid_size[0]):
+#                 self.log_S[i, :] = np.logaddexp.accumulate(log_D[i, :])
+#
+#
+# def _compute_log_D_n(child_log_R, prev_log_D_n):
+#     """ Compute the recursion over D using the FFT.
+#     """
+#     log_R_max = child_log_R.max()
+#
+#     log_D_max = prev_log_D_n.max()
+#
+#     R_norm = np.exp(child_log_R - log_R_max)
+#
+#     D_norm = np.exp(prev_log_D_n - log_D_max)
+#
+#     result = fftconvolve(R_norm, D_norm)
+#
+#     result = result[:len(child_log_R)]
+#
+#     result[result <= 0] = 1e-100
+#
+#     return np.log(result) + log_D_max + log_R_max
