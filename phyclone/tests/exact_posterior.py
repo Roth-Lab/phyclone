@@ -5,7 +5,7 @@ import numpy as np
 
 from phyclone.consensus import get_clades
 from phyclone.math_utils import exp_normalize
-from phyclone.tree import MarginalNode, Tree
+from phyclone.tree import Tree
 
 
 def get_exact_posterior(data, alpha=1.0):
