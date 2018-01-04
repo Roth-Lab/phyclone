@@ -25,7 +25,7 @@ def sample_sigma(tree, source=None):
 
     child_sigma = []
 
-    children = list(source.children)
+    children = tree.get_children(source)
 
     random.shuffle(children)
 
@@ -34,7 +34,7 @@ def sample_sigma(tree, source=None):
 
     sigma = interleave_lists(child_sigma)
 
-    source_sigma = list(tree.nodes[source.idx].data)
+    source_sigma = tree.get_data(source)
 
     random.shuffle(source_sigma)
 

@@ -49,7 +49,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
             node = tree.create_root_node([])
 
-            tree.add_data_point(self.data_point, node)
+            tree.add_data_point_to_node(self.data_point, node)
 
             self.trees.append(tree)
 
@@ -72,7 +72,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         for node in self.parent_particle.tree.roots:
             tree = self.parent_particle.tree.copy()
 
-            tree.add_data_point(self.data_point, tree.nodes[node.idx])  # tree.nodes[node_idx])
+            tree.add_data_point_to_node(self.data_point, node)
 
             self.trees.append(tree)
 
@@ -85,14 +85,14 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
                 node = tree.create_root_node(children)
 
-                tree.add_data_point(self.data_point, node)
+                tree.add_data_point_to_node(self.data_point, node)
 
                 self.trees.append(tree)
 
     def _propose_outlier_node(self):
         tree = self.parent_particle.tree.copy()
 
-        tree.add_data_point(self.data_point, None)
+        tree.add_data_point_to_outliers(self.data_point)
 
         self.trees.append(tree)
 

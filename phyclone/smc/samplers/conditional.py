@@ -28,27 +28,25 @@ class ConditionalSMCSampler(AbstractSMCSampler):
         for data_point in self.data_points:
             new_tree = new_tree.copy()
 
-            node_idx = data_to_node[data_point.idx]
+            old_node = data_to_node[data_point.idx]
 
-            if node_idx == -1:
-                new_tree.add_data_point(data_point, None)
+            if old_node == -1:
+                new_tree.add_data_point_to_outliers(data_point)
 
-            elif node_idx in node_map:
-                new_tree.add_data_point(data_point, new_tree.nodes[node_map[node_idx]])
+            elif old_node in node_map:
+                new_tree.add_data_point_to_node(data_point, node_map[old_node])
 
             else:
-                node = tree.nodes[node_idx]
-
                 children = []
 
-                for child in node.children:
-                    children.append(new_tree.nodes[node_map[child.idx]])
+                for child in tree.get_children(old_node):
+                    children.append(node_map[child])
 
-                node = new_tree.create_root_node(children)
+                new_node = new_tree.create_root_node(children)
 
-                node_map[node_idx] = node.idx
+                node_map[old_node] = new_node
 
-                new_tree.add_data_point(data_point, node)
+                new_tree.add_data_point_to_node(data_point, new_node)
 
             parent_particle = constrained_path[-1]
 

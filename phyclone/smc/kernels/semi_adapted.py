@@ -51,7 +51,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
             node = tree.create_root_node([])
 
-            tree.add_data_point(self.data_point, node)
+            tree.add_data_point_to_node(self.data_point, node)
 
         else:
             u = random.random()
@@ -93,7 +93,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         for node in self.parent_particle.tree.roots:
             tree = self.parent_particle.tree.copy()
 
-            tree.add_data_point(self.data_point, tree.nodes[node.idx])
+            tree.add_data_point_to_node(self.data_point, node)
 
             proposed_trees.append(tree)
 
@@ -110,14 +110,14 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         node = tree.create_root_node(children)
 
-        tree.add_data_point(self.data_point, node)
+        tree.add_data_point_to_node(self.data_point, node)
 
         return tree
 
     def _propose_outlier(self):
         tree = self.parent_particle.tree.copy()
 
-        tree.add_data_point(self.data_point, None)
+        tree.add_data_point_to_outliers(self.data_point)
 
         return tree
 

@@ -34,29 +34,30 @@ def get_exact_posterior(data, alpha=1.0):
 
 
 def get_fscrp_tree(alpha, grid_size, clusters, parent_pointers):
-    nodes = []
+    data = defaultdict(list)
 
-    for node_idx, node_data in enumerate(clusters):
-        node = MarginalNode(node_idx, node_data[0].grid_size)
-
+    for node, node_data in enumerate(clusters):
         for data_point in node_data:
-            node.add_data_point(data_point)
+            data[node].append(data_point)
 
-        nodes.append(node)
+    tree = Tree(1.0, grid_size)
 
-    children = defaultdict(list)
+    for child, parent in enumerate(parent_pointers, -1):
+        parent -= 1
 
-    for node_idx, parent_idx in enumerate(parent_pointers, -1):
-        parent_idx -= 1
-        if parent_idx >= 0:
-            children[parent_idx].append(nodes[node_idx])
+        if parent == -1:
+            tree._graph.add_edge('root', child)
 
-    for node_idx, node_children in children.items():
-        nodes[node_idx].update_children(node_children)
+        elif parent >= 0:
+            tree._graph.add_edge(parent, child)
 
-    tree = Tree.create_tree_from_nodes(1.0, grid_size, nodes, [])
+        if child >= 0:
+            tree._add_node(child)
 
-    tree.update_likelihood()
+            for data_point in data[child]:
+                tree.add_data_point_to_node(data_point, child)
+
+    tree.update()
 
     return tree
 
