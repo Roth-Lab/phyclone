@@ -208,6 +208,29 @@ class Tree(object):
     def add_data_point_to_outliers(self, data_point):
         self._data[-1].append(data_point)
 
+    def add_subtree(self, subtree, parent=None):
+        first_label = max(self.nodes + [-1, ]) + 1
+
+        node_map = {}
+
+        subtree = subtree.copy()
+
+        for new_node, old_node in enumerate(subtree.nodes, first_label):
+            node_map[old_node] = new_node
+
+            self._data[new_node] = subtree._data[old_node]
+
+        nx.relabel_nodes(subtree._graph, node_map, copy=False)
+
+        self._graph = nx.compose(self._graph, subtree.graph)
+
+        # Connect subtree
+        if parent is None:
+            parent = 'root'
+
+        for node in subtree.roots:
+            self._graph.add_edge(parent, node)
+
     def create_root_node(self, children=[]):
         """ Create a new root node in the forest.
 
@@ -256,8 +279,31 @@ class Tree(object):
     def get_children(self, node):
         return list(self._graph.successors(node))
 
+    def get_parent(self, node):
+        return list(self._graph.predecessors(node))[0]
+
     def get_data(self, node):
         return list(self._data[node])
+
+    def get_subtree(self, subtree_root):
+        new = Tree(self.alpha, self.grid_size)
+
+        subtree_graph = nx.dfs_tree(self._graph, subtree_root)
+
+        new._graph = nx.compose(new._graph, subtree_graph)
+
+        new._graph.add_edge('root', subtree_root)
+
+        for node in new.nodes:
+            new._data[node] = list(self._data[node])
+
+        return new
+
+    def remove_subtree(self, subtree):
+        self._graph.remove_nodes_from(subtree.nodes)
+
+        for node in subtree.nodes:
+            del self._data[node]
 
     def update(self):
         for node in nx.dfs_postorder_nodes(self._graph, 'root'):
