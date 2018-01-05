@@ -14,14 +14,14 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
     Considers all possible proposals and weight according to log probability.
     """
 
-    def __init__(self, data_point, kernel, parent_particle, use_outliers=False):
+    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0):
         self.data_point = data_point
 
         self.kernel = kernel
 
         self.parent_particle = parent_particle
 
-        self.use_outliers = use_outliers
+        self.use_outliers = (outlier_proposal_prob > 0)
 
         self._init_dist()
 
@@ -100,4 +100,6 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 class FullyAdaptedKernel(Kernel):
 
     def get_proposal_distribution(self, data_point, parent_particle):
-        return FullyAdaptedProposalDistribution(data_point, self, parent_particle)
+        return FullyAdaptedProposalDistribution(
+            data_point, self, parent_particle, outlier_proposal_probs=self.outlier_proposal_prob
+        )

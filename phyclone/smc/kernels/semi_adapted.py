@@ -125,4 +125,6 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 class SemiAdaptedKernel(Kernel):
 
     def get_proposal_distribution(self, data_point, parent_particle):
-        return SemiAdaptedProposalDistribution(data_point, self, parent_particle)
+        return SemiAdaptedProposalDistribution(
+            data_point, self, parent_particle, outlier_proposal_prob=self.outlier_proposal_prob
+        )

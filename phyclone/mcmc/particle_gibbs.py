@@ -13,7 +13,7 @@ class ParticleGibbsTreeSampler(object):
     """ Particle Gibbs sampler targeting sampling a full tree.
     """
 
-    def __init__(self, kernel='bootstrap', num_particles=10, resample_threshold=0.5):
+    def __init__(self, kernel='bootstrap', num_particles=10, outlier_proposal_prob=0, resample_threshold=0.5):
 
         kernels = {
             'bootstrap': phyclone.smc.kernels.BootstrapKernel,
@@ -24,6 +24,8 @@ class ParticleGibbsTreeSampler(object):
         self.kernel_cls = kernels[kernel]
 
         self.num_particles = num_particles
+
+        self.outlier_proposal_prob = outlier_proposal_prob
 
         self.resample_threshold = resample_threshold
 
@@ -39,7 +41,7 @@ class ParticleGibbsTreeSampler(object):
         """
         data_sigma = phyclone.smc.utils.sample_sigma(tree)
 
-        kernel = self.kernel_cls(tree.alpha, tree.grid_size)
+        kernel = self.kernel_cls(tree.alpha, tree.grid_size, outlier_proposal_prob=self.outlier_proposal_prob)
 
         sampler = phyclone.smc.samplers.ConditionalSMCSampler(
             tree,
@@ -66,7 +68,13 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
     """
 
     def sample_tree(self, tree):
-        subtree_root_child = random.choice(list(tree.labels.values()))
+        labels = []
+
+        for label in tree.labels.values():
+            if label != -1:
+                labels.append(label)
+
+        subtree_root_child = random.choice(labels)
 
         subtree_root = tree.get_parent(subtree_root_child)
 

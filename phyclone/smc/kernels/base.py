@@ -23,7 +23,7 @@ class Kernel(object):
         """
         raise NotImplementedError
 
-    def __init__(self, alpha, grid_size):
+    def __init__(self, alpha, grid_size, outlier_proposal_prob=0):
         """
         Parameters
         ----------
@@ -31,10 +31,14 @@ class Kernel(object):
             Concentration parameter of the CRP.
         grid_size: int
             The size of the grid to approximate the recursion integrals.
+        outlier_proposal_prob: float
+            Probability of proposing an outlier.
         """
         self.alpha = alpha
 
         self.grid_size = grid_size
+
+        self.outlier_proposal_prob = outlier_proposal_prob
 
     def create_particle(self, data_point, log_q, parent_particle, tree):
         """  Create a new particle from a parent particle.
