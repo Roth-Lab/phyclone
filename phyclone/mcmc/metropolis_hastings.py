@@ -4,8 +4,6 @@ import random
 
 import phyclone.math_utils
 
-from phyclone.tree import MarginalNode, Tree
-
 
 class DataPointSwapSampler(object):
     def sample_tree(self, data, tree):
@@ -90,67 +88,67 @@ class ParentChildSwap(object):
             tree = new_tree
 
         return tree
-
-
-class SimpleSampler(object):
-    def sample_tree(self, data, tree):
-        new_tree = tree.copy()
-
-        node = random.choice(list(new_tree.nodes.values()))
-
-        if len(node.data) == 1:
-            parent = new_tree.get_parent_node(node)
-
-            if parent is None:
-                return tree
-
-            new_tree.remove_subtree(new_tree.get_subtree(node))
-
-            new_tree.add_subtree(
-                Tree.create_tree_from_nodes(new_tree.alpha, new_tree.grid_size, Tree.get_nodes(node)[1:], [])
-            )
-
-            parent.add_data_point(node.data[0])
-
-        else:
-            data_point = random.choice(node.data)
-
-            node.remove_data_point(data_point)
-
-            if phyclone.math_utils.bernoulli_rvs():
-                new_node = random.choice(list(new_tree.nodes.values()))
-
-                new_node.add_data_point(data_point)
-
-                assert data_point in new_node.data
-
-                assert data_point.idx in new_tree.data_points
-
-            else:
-                idx = new_tree.new_node_idx
-
-                new_node = MarginalNode(idx, new_tree.grid_size, [])
-
-                new_node.add_data_point(data_point)
-
-                node.add_child_node(new_node)
-
-                new_tree._nodes[new_node.idx] = new_node
-
-                new_tree._graph.add_edge(node.idx, new_node.idx)
-
-            assert data_point.idx in new_tree.data_points
-
-        new_tree.update_likelihood()
-
-        u = random.random()
-
-#         print(new_tree.log_p_one, tree.log_p_one)
-
-        if new_tree.log_p_one - tree.log_p_one > np.log(u):
-            tree = new_tree
-
-        return tree
+#
+#
+# class SimpleSampler(object):
+#     def sample_tree(self, data, tree):
+#         new_tree = tree.copy()
+#
+#         node = random.choice(list(new_tree.nodes.values()))
+#
+#         if len(node.data) == 1:
+#             parent = new_tree.get_parent_node(node)
+#
+#             if parent is None:
+#                 return tree
+#
+#             new_tree.remove_subtree(new_tree.get_subtree(node))
+#
+#             new_tree.add_subtree(
+#                 Tree.create_tree_from_nodes(new_tree.alpha, new_tree.grid_size, Tree.get_nodes(node)[1:], [])
+#             )
+#
+#             parent.add_data_point(node.data[0])
+#
+#         else:
+#             data_point = random.choice(node.data)
+#
+#             node.remove_data_point(data_point)
+#
+#             if phyclone.math_utils.bernoulli_rvs():
+#                 new_node = random.choice(list(new_tree.nodes.values()))
+#
+#                 new_node.add_data_point(data_point)
+#
+#                 assert data_point in new_node.data
+#
+#                 assert data_point.idx in new_tree.data_points
+#
+#             else:
+#                 idx = new_tree.new_node_idx
+#
+#                 new_node = MarginalNode(idx, new_tree.grid_size, [])
+#
+#                 new_node.add_data_point(data_point)
+#
+#                 node.add_child_node(new_node)
+#
+#                 new_tree._nodes[new_node.idx] = new_node
+#
+#                 new_tree._graph.add_edge(node.idx, new_node.idx)
+#
+#             assert data_point.idx in new_tree.data_points
+#
+#         new_tree.update_likelihood()
+#
+#         u = random.random()
+#
+# #         print(new_tree.log_p_one, tree.log_p_one)
+#
+#         if new_tree.log_p_one - tree.log_p_one > np.log(u):
+#             tree = new_tree
+#
+#         return tree
 
 
 class OutlierSampler(object):
@@ -162,59 +160,51 @@ class OutlierSampler(object):
         for data_point in outliers:
             log_p = {-1: tree.log_p}
 
-            tree.outliers.remove(data_point)
+            tree.remove_data_point_from_outliers(data_point)
 
-            for node in tree.nodes.values():
-                node.add_data_point(data_point)
+            for node in tree.nodes:
+                tree.add_data_point_to_node(data_point, node)
 
-                tree._update_ancestor_nodes(node)
+                log_p[node] = tree.log_p
 
-                log_p[node.idx] = tree.log_p
-
-                node.remove_data_point(data_point)
-
-                tree._update_ancestor_nodes(node)
+                tree.remove_data_point_from_node(data_point, node)
 
             p, _ = phyclone.math_utils.exp_normalize(np.array(list(log_p.values())).astype(float))
 
             x = phyclone.math_utils.discrete_rvs(p)
 
-            node_idx = list(log_p.keys())[x]
+            node = list(log_p.keys())[x]
 
-            if node_idx == -1:
-                tree.outliers.append(data_point)
+            if node == -1:
+                tree.add_data_point_to_outliers(data_point)
 
             else:
-                tree.nodes[node_idx].add_data_point(data_point)
-
-                tree._update_ancestor_nodes(tree.nodes[node_idx])
+                tree.add_data_point_to_node(data_point, node)
 
         return tree
 
 
 class PruneRegraphSampler(object):
-    def sample_tree(self, data, tree):
+    def sample_tree(self, tree):
         if len(tree.nodes) <= 1:
             return tree
 
         new_tree = tree.copy()
 
-        nodes = list(new_tree.nodes.values())
-
-        subtree_root = random.choice(nodes)
+        subtree_root = random.choice(new_tree.nodes)
 
         subtree = new_tree.get_subtree(subtree_root)
 
         new_tree.remove_subtree(subtree)
 
-        remaining_nodes = list(new_tree.nodes.values())
+        remaining_nodes = new_tree.nodes
 
         if len(remaining_nodes) == 0:
             return tree
 
-        parent_idx = random.choice([x.idx for x in remaining_nodes] + [None, ])
+        parent = random.choice(remaining_nodes + [None, ])
 
-        new_tree.add_subtree(subtree, parent_idx)
+        new_tree.add_subtree(subtree, parent=parent)
 
         old_log_p = tree.log_p_one
 
