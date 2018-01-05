@@ -201,15 +201,13 @@ class Tree(object):
 
         self._graph.nodes[node]['log_p'] += data_point.value
 
-        self._graph.nodes[node]['log_R'] += data_point.value
-
-        self._update_ancestors(node)
+        self._update_path_to_root(node)
 
     def add_data_point_to_outliers(self, data_point):
         self._data[-1].append(data_point)
 
     def add_subtree(self, subtree, parent=None):
-        first_label = max(self.nodes + [-1, ]) + 1
+        first_label = max(self.nodes + subtree.nodes + [-1, ]) + 1
 
         node_map = {}
 
@@ -231,6 +229,8 @@ class Tree(object):
         for node in subtree.roots:
             self._graph.add_edge(parent, node)
 
+        self._update_path_to_root(parent)
+
     def create_root_node(self, children=[]):
         """ Create a new root node in the forest.
 
@@ -250,9 +250,7 @@ class Tree(object):
 
             self._graph.add_edge(node, child)
 
-        self._update_node(node)
-
-        self._update_ancestors(node)
+        self._update_path_to_root(node)
 
         return node
 
@@ -297,13 +295,33 @@ class Tree(object):
         for node in new.nodes:
             new._data[node] = list(self._data[node])
 
+            new._graph.nodes[node]['log_p'] = self._graph.nodes[node]['log_p'].copy()
+
+        new.update()
+
         return new
 
+    def remove_data_point_from_node(self, data_point, node):
+        self._data[node].remove(data_point)
+
+        self._graph.nodes[node]['log_p'] -= data_point.value
+
+        self._update_path_to_root(node)
+
+    def remove_data_point_from_outliers(self, data_point):
+        self._data[-1].remove(data_point)
+
     def remove_subtree(self, subtree):
+        assert len(subtree.roots) == 1
+
+        parent = self.get_parent(subtree.roots[0])
+
         self._graph.remove_nodes_from(subtree.nodes)
 
         for node in subtree.nodes:
             del self._data[node]
+
+        self._update_path_to_root(parent)
 
     def update(self):
         for node in nx.dfs_postorder_nodes(self._graph, 'root'):
@@ -318,25 +336,26 @@ class Tree(object):
 
         self._graph.nodes[node]['log_S'] = np.zeros(self.grid_size)
 
-    def _update_ancestors(self, node):
-        parents = list(self._graph.predecessors(node))
-
-        assert len(parents) == 1
-
-        paths = list(nx.all_simple_paths(self._graph, 'root', parents[0]))
+    def _update_path_to_root(self, source):
+        """ Update recursion values for all nodes on the path between the source node and root inclusive.
+        """
+        paths = list(nx.all_simple_paths(self._graph, 'root', source))
 
         if len(paths) == 0:
-            assert parents[0] == 'root'
+            assert source == 'root'
 
-            path = ['root']
+            paths = [['root']]
 
-        else:
-            assert len(paths) == 1
+        assert len(paths) == 1
 
-            path = paths[0]
+        path = paths[0]
 
-        for node in reversed(path):
-            self._update_node(node)
+        assert path[-1] == source
+
+        assert path[0] == 'root'
+
+        for source in reversed(path):
+            self._update_node(source)
 
     def _update_node(self, node):
         child_log_R_values = [self._graph.nodes[child]['log_R'] for child in self._graph.successors(node)]
