@@ -231,6 +231,8 @@ class Tree(object):
 
         self._update_path_to_root(parent)
 
+        self._relabel_nodes()
+
     def create_root_node(self, children=[]):
         """ Create a new root node in the forest.
 
@@ -335,6 +337,22 @@ class Tree(object):
         self._graph.nodes[node]['log_R'] = np.zeros(self.grid_size)
 
         self._graph.nodes[node]['log_S'] = np.zeros(self.grid_size)
+
+    def _relabel_nodes(self):
+        node_map = {}
+
+        data = defaultdict(list)
+
+        data[-1] = self._data[-1]
+
+        for new_node, old_node in enumerate(self.nodes):
+            node_map[old_node] = new_node
+
+            data[new_node] = self._data[old_node]
+
+        self._data = data
+
+        self._graph = nx.relabel_nodes(self._graph, node_map)
 
     def _update_path_to_root(self, source):
         """ Update recursion values for all nodes on the path between the source node and root inclusive.
