@@ -66,22 +66,15 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
     """
 
     def sample_tree(self, tree):
-        subtree_root = random.choice(tree.nodes + ['root'])
+        subtree_root_child = random.choice(list(tree.labels.values()))
 
-        if subtree_root == 'root':
-            return self._sample_tree_from_swarm(self.sample_swarm(tree))
+        subtree_root = tree.get_parent(subtree_root_child)
 
         parent = tree.get_parent(subtree_root)
 
         subtree = tree.get_subtree(subtree_root)
 
         tree.remove_subtree(subtree)
-
-        for data_point in tree.outliers:
-            if random.random() < 0.5:
-                subtree.add_data_point_to_outliers(data_point)
-
-                tree.remove_data_point_from_outliers(data_point)
 
         swarm = self.sample_swarm(subtree)
 
