@@ -77,11 +77,11 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
 
         tree.remove_subtree(subtree)
 
-        for x in tree.outliers:
+        for data_point in tree.outliers:
             if random.random() < 0.5:
-                subtree.outliers.append(x)
+                subtree.add_data_point_to_outliers(data_point)
 
-                tree.outliers.remove(x)
+                tree.remove_data_point_from_outliers(data_point)
 
         swarm = self.sample_swarm(subtree)
 
@@ -105,7 +105,8 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
 
             new_tree.add_subtree(subtree, parent=parent)
 
-            new_tree.outliers.extend(subtree.outliers)
+            for data_point in subtree.outliers:
+                new_tree.add_data_point_to_outliers(data_point)
 
             new_tree.update()
 
