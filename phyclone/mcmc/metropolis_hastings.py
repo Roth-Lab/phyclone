@@ -6,25 +6,37 @@ import phyclone.math_utils
 
 
 class DataPointSwapSampler(object):
-    def sample_tree(self, data, tree):
+    def sample_tree(self, tree):
+        data = tree.data
+
         new_tree = tree.copy()
 
         labels = new_tree.labels
 
         idx_1, idx_2 = random.sample(list(labels.keys()), 2)
 
-        if labels[idx_1] == labels[idx_2]:
+        node_1 = labels[idx_1]
+
+        node_2 = labels[idx_2]
+
+        if node_1 == node_2:
             return tree
 
-        new_tree._nodes[labels[idx_1]].remove_data_point(data[idx_1])
+        data_point_1 = data[idx_1]
 
-        new_tree._nodes[labels[idx_2]].remove_data_point(data[idx_2])
+        assert data_point_1.idx == idx_1
 
-        new_tree._nodes[labels[idx_1]].add_data_point(data[idx_2])
+        data_point_2 = data[idx_2]
 
-        new_tree._nodes[labels[idx_2]].add_data_point(data[idx_1])
+        assert data_point_2.idx == idx_2
 
-        new_tree.update_likelihood()
+        new_tree.remove_data_point_from_node(data_point_1, node_1)
+
+        new_tree.remove_data_point_from_node(data_point_2, node_2)
+
+        new_tree.add_data_point_to_node(data_point_1, node_2)
+
+        new_tree.add_data_point_to_node(data_point_2, node_1)
 
         u = random.random()
 
@@ -91,12 +103,12 @@ class ParentChildSwap(object):
 #
 #
 # class SimpleSampler(object):
-#     def sample_tree(self, data, tree):
+#     def sample_tree(self, node_data, tree):
 #         new_tree = tree.copy()
 #
 #         node = random.choice(list(new_tree.nodes.values()))
 #
-#         if len(node.data) == 1:
+#         if len(node.node_data) == 1:
 #             parent = new_tree.get_parent_node(node)
 #
 #             if parent is None:
@@ -108,10 +120,10 @@ class ParentChildSwap(object):
 #                 Tree.create_tree_from_nodes(new_tree.alpha, new_tree.grid_size, Tree.get_nodes(node)[1:], [])
 #             )
 #
-#             parent.add_data_point(node.data[0])
+#             parent.add_data_point(node.node_data[0])
 #
 #         else:
-#             data_point = random.choice(node.data)
+#             data_point = random.choice(node.node_data)
 #
 #             node.remove_data_point(data_point)
 #
@@ -120,7 +132,7 @@ class ParentChildSwap(object):
 #
 #                 new_node.add_data_point(data_point)
 #
-#                 assert data_point in new_node.data
+#                 assert data_point in new_node.node_data
 #
 #                 assert data_point.idx in new_tree.data_points
 #
