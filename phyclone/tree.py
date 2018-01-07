@@ -1,13 +1,11 @@
 from collections import defaultdict
-from scipy.special import logsumexp as log_sum_exp
 from scipy.signal import fftconvolve
 
-import copy
 import networkx as nx
 import numpy as np
 
 from phyclone.consensus import get_clades
-from phyclone.math_utils import log_factorial
+from phyclone.math_utils import log_factorial, log_sum_exp
 
 
 class Tree(object):
@@ -84,7 +82,6 @@ class Tree(object):
         log_p = 0
 
         for i in range(self.grid_size[0]):
-            # TODO: Can we get a speed boost using a numba version of log_sum_exp
             log_p += log_sum_exp(self.data_log_likelihood[i, :])
 
         for data_point in self.outliers:
@@ -293,7 +290,14 @@ class Tree(object):
 
         new._log_prior = self._log_prior
 
-        new._graph = copy.deepcopy(self._graph)
+        new._graph = self._graph.copy()
+
+        for node in new._graph:
+            new._graph.nodes[node]['log_p'] = self._graph.nodes[node]['log_p'].copy()
+
+            new._graph.nodes[node]['log_S'] = self._graph.nodes[node]['log_S'].copy()
+
+            new._graph.nodes[node]['log_R'] = self._graph.nodes[node]['log_R'].copy()
 
         return new
 
@@ -412,6 +416,9 @@ class Tree(object):
 
         self._graph.nodes[node]['log_S'] = compute_log_S(child_log_R_values)
 
+        if isinstance(self._graph.nodes[node]['log_S'], float):
+            self._graph.nodes[node]['log_S'] = np.zeros(self.grid_size)
+
         self._graph.nodes[node]['log_R'] = self._graph.nodes[node]['log_p'] + self._graph.nodes[node]['log_S']
 
 
@@ -424,7 +431,7 @@ def compute_log_S(child_log_R_values):
         log_R values from child nodes.
     """
     if len(child_log_R_values) == 0:
-        return 0
+        return 0.0
 
     log_D = compute_log_D(child_log_R_values)
 
