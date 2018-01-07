@@ -46,16 +46,28 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     def sample(self):
         """ Sample a new tree from the proposal distribution.
         """
+        u = random.random()
+
         if self.parent_particle is None:
             tree = Tree(self.kernel.alpha, self.kernel.grid_size)
 
-            node = tree.create_root_node([])
+            if u < (1 - self.outlier_proposal_prob):
+                node = tree.create_root_node([])
 
-            tree.add_data_point_to_node(self.data_point, node)
+                tree.add_data_point_to_node(self.data_point, node)
+
+            else:
+                tree.add_data_point_to_outliers(self.data_point)
+
+        # Only outliers in tree
+        elif len(self.parent_particle.tree.nodes) == 0:
+            if u < (1 - self.outlier_proposal_prob):
+                tree = self._propose_new_node()
+
+            else:
+                tree = self._propose_outlier()
 
         else:
-            u = random.random()
-
             if u < (1 - self.outlier_proposal_prob) / 2:
                 q = np.exp(list(self._log_p.values()))
 
