@@ -101,9 +101,7 @@ class Tree(object):
             log_p += self.data_log_likelihood[i, -1]
 
         for data_point in self.outliers:
-            log_norm = np.log(data_point.value.shape[1])
-
-            log_p += np.sum(log_sum_exp(data_point.value - log_norm, axis=1))
+            log_p += np.sum(log_sum_exp(data_point.value + self._log_prior, axis=1))
 
         return log_p
 
@@ -214,7 +212,9 @@ class Tree(object):
 
         self._graph.nodes[node]['log_p'] += data_point.value
 
-        self._update_path_to_root(node)
+        self._graph.nodes[node]['log_R'] += data_point.value
+
+        self._update_path_to_root(self.get_parent(node))
 
     def add_data_point_to_outliers(self, data_point):
         self._data[-1].append(data_point)
