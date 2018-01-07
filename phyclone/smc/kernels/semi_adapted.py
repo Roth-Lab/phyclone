@@ -120,9 +120,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         tree = self.parent_particle.tree.copy()
 
-        node = tree.create_root_node(children)
-
-        tree.add_data_point_to_node(self.data_point, node)
+        tree.create_root_node(children=children, data=[self.data_point])
 
         return tree
 
