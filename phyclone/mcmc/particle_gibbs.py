@@ -84,6 +84,11 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
 
         tree.remove_subtree(subtree)
 
+        for data_point in tree.outliers:
+            tree.remove_data_point_from_outliers(data_point)
+
+            subtree.add_data_point_to_outliers(data_point)
+
         swarm = self.sample_swarm(subtree)
 
         swarm = self._correct_weights(parent, swarm, tree)
