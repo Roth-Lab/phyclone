@@ -84,10 +84,11 @@ class Tree(object):
         log_p = 0
 
         for i in range(self.grid_size[0]):
+            # TODO: Can we get a speed boost using a numba version of log_sum_exp
             log_p += log_sum_exp(self.data_log_likelihood[i, :])
 
         for data_point in self.outliers:
-            log_p += np.sum(log_sum_exp(data_point.value + self._log_prior, axis=1))
+            log_p += data_point.outlier_marginal_prob
 
         return log_p
 
@@ -101,7 +102,7 @@ class Tree(object):
             log_p += self.data_log_likelihood[i, -1]
 
         for data_point in self.outliers:
-            log_p += np.sum(log_sum_exp(data_point.value + self._log_prior, axis=1))
+            log_p += data_point.outlier_marginal_prob
 
         return log_p
 
@@ -246,17 +247,24 @@ class Tree(object):
 
         self._relabel_nodes()
 
-    def create_root_node(self, children=[]):
+    def create_root_node(self, children=[], data=[]):
         """ Create a new root node in the forest.
 
         Parameters
         ----------
         children: list
             Children of the new node.
+        data: list
+            Data points to add to new node.
         """
         node = nx.number_of_nodes(self._graph) - 1
 
         self._add_node(node)
+
+        for data_point in data:
+            self._data[node].append(data_point)
+
+            self._graph.nodes[node]['log_p'] += data_point.value
 
         self._graph.add_edge('root', node)
 

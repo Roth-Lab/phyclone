@@ -1,5 +1,10 @@
+from scipy.special import logsumexp as log_sum_exp
+
+import numpy as np
+
+
 class DataPoint(object):
-    __slots__ = ('idx', 'value', 'outlier_prob')
+    __slots__ = ('idx', 'value', 'outlier_prob', 'outlier_marginal_prob')
 
     def __init__(self, idx, value, outlier_prob=0):
         self.idx = idx
@@ -7,6 +12,10 @@ class DataPoint(object):
         self.value = value
 
         self.outlier_prob = outlier_prob
+
+        log_prior = -np.log(value.shape[1])
+
+        self.outlier_marginal_prob = np.sum(log_sum_exp(self.value + log_prior, axis=1))
 
     @property
     def grid_size(self):
