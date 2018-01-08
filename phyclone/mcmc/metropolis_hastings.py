@@ -47,51 +47,49 @@ class DataPointSwapSampler(object):
 
 
 class ParentChildSwap(object):
-    def sample_tree(self, data, tree):
+    def sample_tree(self, tree):
         if len(tree.nodes) == 1:
             return tree
 
         new_tree = tree.copy()
 
-        node_1 = random.choice(list(new_tree.nodes.values()))
+        node_1 = random.choice(list(new_tree.nodes))
 
-        node_2 = new_tree.get_parent_node(node_1)
+        node_2 = new_tree.get_parent(node_1)
 
         if node_2 is None:
             return tree
 
-        node_2_parent = new_tree.get_parent_node(node_2)
+        node_2_parent = new_tree.get_parent(node_2)
 
         if node_2_parent is None:
             return tree
 
-        new_node_1_children = node_2.children
+        node_1_children = new_tree.get_children(node_1)
 
-        new_node_2_children = node_1.children
+        node_2_children = new_tree.get_children(node_2)
 
-        new_node_1_children.remove(node_1)
+        node_2_children.remove(node_1)
 
-        new_node_1_children.append(node_2)
+        for child in node_1_children:
+            new_tree._graph.remove_edge(node_1, child)
 
-        node_2.update_children(new_node_2_children)
+            new_tree._graph.add_edge(node_2, child)
 
-        node_1.update_children(new_node_1_children)
+        for child in node_2_children:
+            new_tree._graph.remove_edge(node_2, child)
 
-        new_tree._graph.remove_edge(node_2_parent.idx, node_2.idx)
+            new_tree._graph.add_edge(node_1, child)
 
-        new_tree._graph.add_edge(node_2_parent.idx, node_1.idx)
+        new_tree._graph.remove_edge(node_2_parent, node_2)
 
-        node_2_parent.remove_child_node(node_2)
+        new_tree._graph.remove_edge(node_2, node_1)
 
-        node_2_parent.add_child_node(node_1)
+        new_tree._graph.add_edge(node_2_parent, node_1)
 
-        node_2_parent.update()
+        new_tree._graph.add_edge(node_1, node_2)
 
-        new_tree._graph.remove_edge(node_2.idx, node_1.idx)
-
-        new_tree._graph.add_edge(node_1.idx, node_2.idx)
-
-        new_tree.update_likelihood()
+        new_tree.update()
 
         u = random.random()
 
@@ -248,6 +246,8 @@ class OutlierNodeSampler(object):
             child_subtree = subtree.get_subtree(child)
 
             subtree.remove_subtree(child_subtree)
+
+            print(child, parent)
 
             new_tree.add_subtree(child_subtree, parent=parent)
 
