@@ -228,3 +228,39 @@ class PruneRegraphSampler(object):
             tree = new_tree
 
         return tree
+
+
+class OutlierNodeSampler(object):
+    def sample_tree(self, tree):
+        new_tree = tree.copy()
+
+        node = random.choice(new_tree.nodes)
+
+        parent = tree.get_parent(node)
+
+        subtree = new_tree.get_subtree(node)
+
+        new_tree.remove_subtree(subtree)
+
+        assert len(subtree.roots) == 1
+
+        for child in subtree.get_children(subtree.roots[0]):
+            child_subtree = subtree.get_subtree(child)
+
+            subtree.remove_subtree(child_subtree)
+
+            new_tree.add_subtree(child_subtree, parent=parent)
+
+        for data_point in subtree.data:
+            new_tree.add_data_point_to_outliers(data_point)
+
+        old_log_p = tree.log_p_one
+
+        new_log_p = new_tree.log_p_one
+
+        u = random.random()
+
+        if new_log_p - old_log_p > math.log(u):
+            tree = new_tree
+
+        return tree
