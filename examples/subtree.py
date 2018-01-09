@@ -4,63 +4,136 @@ from sklearn.metrics import homogeneity_completeness_v_measure
 
 import networkx as nx
 import numpy as np
+import random
 
 from phyclone.concentration import GammaPriorConcentrationSampler
 from phyclone.consensus import get_consensus_tree
-from phyclone.mcmc import ParticleGibbsSubtreeSampler, OutlierSampler, PruneRegraphSampler
-from phyclone.tree import Tree
+from phyclone.math_utils import discrete_rvs
+from phyclone.mcmc.particle_gibbs import ParticleGibbsSubtreeSampler
+from phyclone.smc.samplers import SMCSampler
+from phyclone.smc.kernels import SemiAdaptedKernel
+
+import phyclone.mcmc.metropolis_hastings as mh
 
 from toy_data import load_test_data
 
 
-data, labels, true_graph = load_test_data(cluster_size=1, depth=int(1e5), outlier_size=0, single_sample=False)
+def main():
+    data, labels, true_graph = load_test_data(cluster_size=20, depth=int(1e5), outlier_size=5, single_sample=False)
 
-tree = Tree.get_single_node_tree(data)
+    tree = init_tree(data)
 
-conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
+    conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
 
-mh_sampler = PruneRegraphSampler()
+    mh_sampler = mh.PruneRegraphSampler()
 
-outlier_sampler = OutlierSampler()
+    mh_sampler2 = mh.NodeSwap()
 
-pg_sampler = ParticleGibbsSubtreeSampler(kernel='semi-adapted', num_particles=20, resample_threshold=0.5)
+    outlier_node_sampler = mh.OutlierNodeSampler()
 
-print('Starting sampling')
+    outlier_sampler = mh.OutlierSampler()
 
-num_iters = int(1e4)
+    pg_sampler = ParticleGibbsSubtreeSampler(
+        kernel='semi-adapted', num_particles=20, outlier_proposal_prob=0.1, resample_threshold=0.5
+    )
 
-trace = []
+    print('Starting sampling')
 
-for i in range(num_iters):
-    tree = pg_sampler.sample_tree(data, tree)
+    num_iters = int(10000)
 
-    tree = mh_sampler.sample_tree(data, tree)
+    trace = []
 
-    tree = outlier_sampler.sample_tree(tree)
+    for i in range(num_iters):
+        tree = pg_sampler.sample_tree(tree)
 
-    tree.alpha = conc_sampler.sample(tree.alpha, tree.num_nodes, sum(tree.node_sizes.values()))
+        for _ in range(5):
+            tree = mh_sampler.sample_tree(tree)
 
-    if i % 10 == 0:
-        pred_labels = [tree.labels[x] for x in sorted(tree.labels)]
-        print()
-        print(i, tree.alpha)
-        print(pred_labels)
-        print(homogeneity_completeness_v_measure(labels, pred_labels), len(tree.nodes))
-        print(tree.log_p_one)
-        print(nx.is_isomorphic(tree._graph, true_graph))
-        print([x.idx for x in tree.roots])
-        print(tree.graph.edges)
-        print()
+            tree = mh_sampler2.sample_tree(tree)
 
-        for node_idx in tree.nodes:
-            print(node_idx, [(x + 1) / 101 for x in np.argmax(tree.nodes[node_idx].log_R, axis=1)])
+        tree = outlier_sampler.sample_tree(tree)
 
-        if i >= min((num_iters / 2), 1000):
-            trace.append(tree)
+        tree.relabel_nodes()
 
-consensus_tree = get_consensus_tree(trace)
+        tree = outlier_node_sampler.sample_tree(tree)
 
-print(consensus_tree.edges())
+        node_sizes = []
 
-for node in consensus_tree.nodes():
-    print(node, consensus_tree.nodes[node]['data_points'])
+        for node, node_data in tree.node_data.items():
+            if node == -1:
+                continue
+
+            node_sizes.append(len(node_data))
+
+        tree.alpha = conc_sampler.sample(tree.alpha, len(tree.nodes), sum(node_sizes))
+
+        if i % 1 == 0:
+            pred_labels = [tree.labels[x] for x in sorted(tree.labels)]
+            print()
+            print(i, tree.alpha)
+            print(pred_labels)
+            print(homogeneity_completeness_v_measure(labels, pred_labels), len(tree.nodes))
+            print(tree.log_p_one)
+            print(nx.is_isomorphic(tree._graph, true_graph))
+            print(tree.roots)
+            print(tree.graph.edges)
+            print()
+
+            for node in tree.nodes:
+                print(node, [(x + 1) / 101 for x in np.argmax(tree.graph.nodes[node]['log_R'], axis=1)])
+
+            if i >= min((num_iters / 2), 1000):
+                trace.append(tree)
+
+    consensus_tree = get_consensus_tree(trace)
+
+    print(consensus_tree.edges())
+
+    for node in consensus_tree.nodes():
+        print(node, consensus_tree.nodes[node]['data_points'])
+
+    print()
+
+
+def init_tree(data):
+    kernel = SemiAdaptedKernel(1.0, data[0].shape, 0.1)
+
+    sigma = list(range(len(data)))
+
+    random.shuffle(sigma)
+
+    smc_sampler = SMCSampler([data[idx] for idx in sigma], kernel, num_particles=20, resample_threshold=0.5)
+
+    swarm = smc_sampler.sample()
+
+    idx = discrete_rvs(swarm.weights)
+
+    return swarm.particles[idx].tree
+
+
+if __name__ == "__main__":
+    #     import line_profiler
+    #
+    #     import phyclone.smc.kernels.semi_adapted
+    #     import phyclone.smc.samplers
+    #     import phyclone.tree
+    #
+    #     profiler = line_profiler.LineProfiler(
+    #         ParticleGibbsSubtreeSampler.sample_swarm,
+    #         ParticleGibbsSubtreeSampler.sample_tree,
+    #         phyclone.smc.samplers.ConditionalSMCSampler.sample,
+    #         phyclone.smc.kernels.semi_adapted.SemiAdaptedKernel.propose_particle,
+    #         phyclone.smc.kernels.semi_adapted.SemiAdaptedKernel.create_particle,
+    #         phyclone.smc.kernels.semi_adapted.SemiAdaptedProposalDistribution._init_dist,
+    #         phyclone.smc.kernels.semi_adapted.SemiAdaptedProposalDistribution.sample,
+    #         phyclone.smc.kernels.semi_adapted.SemiAdaptedProposalDistribution._propose_existing_node,
+    #         phyclone.smc.kernels.semi_adapted.SemiAdaptedProposalDistribution._propose_new_node,
+    # #         phyclone.tree.Tree.copy,
+    # #         phyclone.tree.Tree.data_marginal_log_likelihood
+    #
+    #     )
+    #
+    #     profiler.run("main()")
+    #
+    #     profiler.print_stats()
+    main()
