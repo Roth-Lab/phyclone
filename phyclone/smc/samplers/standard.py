@@ -17,7 +17,7 @@ class SMCSampler(AbstractSMCSampler):
 
         else:
             # Enforce that the sum of the tree is one
-            return particle.log_w - particle.state.log_p + particle.state.log_p_one
+            return particle.log_w - particle.tree.log_p + particle.tree.log_p_one
 
     def _init_swarm(self):
         self.swarm = phyclone.smc.swarm.ParticleSwarm()
