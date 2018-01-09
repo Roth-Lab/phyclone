@@ -1,4 +1,3 @@
-import math
 import numpy as np
 import random
 
@@ -45,6 +44,71 @@ class DataPointSwapSampler(object):
             tree = new_tree
 
         return tree
+
+
+class NodeSwap(object):
+    def sample_tree(self, tree):
+        if len(tree.nodes) == 1:
+            return tree
+
+        trees = [tree]
+
+        swap_node = random.choice(tree.nodes)
+
+        nodes = [swap_node]
+
+        new_tree = tree.copy()
+
+        for node in tree.nodes:
+            new_tree = tree.copy()
+
+            if node == swap_node:
+                continue
+
+            nodes.append(node)
+
+            new_tree._data[node] = list(tree._data[swap_node])
+
+            new_tree._data[swap_node] = list(tree._data[node])
+
+            new_tree._graph.nodes[node]['log_p'] = sum([x.value for x in new_tree._data[node]]) + \
+                new_tree._log_prior
+
+            new_tree._graph.nodes[swap_node]['log_p'] = sum([x.value for x in new_tree._data[swap_node]]) + \
+                new_tree._log_prior
+
+            new_tree.update()
+
+            trees.append(new_tree)
+
+            new_tree = tree.copy()
+
+        if len(new_tree._data[-1]) > 0:
+            nodes.append(-1)
+
+            new_tree._data[-1] = list(tree._data[swap_node])
+
+            new_tree._data[swap_node] = list(tree._data[-1])
+
+            new_tree._graph.nodes[swap_node]['log_p'] = sum([x.value for x in new_tree._data[swap_node]]) + \
+                new_tree._log_prior
+
+            new_tree.update()
+
+            trees.append(new_tree)
+
+        log_p = np.array([x.log_p for x in trees])
+
+        p, _ = exp_normalize(log_p)
+
+        idx = discrete_rvs(p)
+
+        if idx != 0:
+            print('NS accepted')
+
+#         print(swap_node, dict(zip(nodes, log_p)))
+
+        return trees[idx]
 
 
 class ParentChildSwap(object):
@@ -95,7 +159,7 @@ class ParentChildSwap(object):
         u = random.random()
 
         if new_tree.log_p_one - tree.log_p_one > np.log(u):
-            print('Accepted')
+            print('PCS accepted')
             tree = new_tree
 
         return tree
@@ -213,20 +277,33 @@ class PruneRegraphSampler(object):
         if len(remaining_nodes) == 0:
             return tree
 
-        parent = random.choice(remaining_nodes + [None, ])
+        trees = [tree]
 
-        new_tree.add_subtree(subtree, parent=parent)
+        remaining_nodes.append(None)
 
-        old_log_p = tree.log_p_one
+        for parent in remaining_nodes:
+            new_tree = tree.copy()
 
-        new_log_p = new_tree.log_p_one
+            subtree = new_tree.get_subtree(subtree_root)
 
-        u = random.random()
+            new_tree.remove_subtree(subtree)
 
-        if new_log_p - old_log_p > math.log(u):
-            tree = new_tree
+            new_tree.add_subtree(subtree, parent=parent)
 
-        return tree
+            new_tree.update()
+
+            trees.append(new_tree)
+
+        log_p = np.array([x.log_p for x in trees])
+
+        p, _ = exp_normalize(log_p)
+
+        idx = discrete_rvs(p)
+
+        if idx != 0:
+            print('SPR accepted')
+
+        return trees[idx]
 
 
 class OutlierNodeSampler(object):
@@ -242,40 +319,27 @@ class OutlierNodeSampler(object):
 
         idx = discrete_rvs(p)
 
+        if idx != 0:
+            print('ON accpeted')
+
         return trees[idx]
 
     def _try_node(self, tree, node):
         new_tree = tree.copy()
 
-        print('Trying outlier node {}'.format(node))
-
         parent = new_tree.get_parent(node)
 
-        subtree = new_tree.get_subtree(node)
+        children = new_tree.get_children(node)
 
-        new_tree.remove_subtree(subtree)
+        new_tree._graph.remove_node(node)
 
-        assert len(subtree.roots) == 1
+        for child in children:
+            new_tree._graph.add_edge(parent, child)
 
-        for child in subtree.get_children(subtree.roots[0]):
-            child_subtree = subtree.get_subtree(child)
+        new_tree._data[-1].extend(new_tree._data[node])
 
-            subtree.remove_subtree(child_subtree)
+        del new_tree._data[node]
 
-            new_tree.add_subtree(child_subtree, parent=parent)
-
-        for data_point in subtree.data:
-            new_tree.add_data_point_to_outliers(data_point)
-
-        old_log_p = tree.log_p_one
-
-        new_log_p = new_tree.log_p_one
-
-        u = random.random()
-
-        print(new_log_p, old_log_p)
-
-        if new_log_p - old_log_p > math.log(u):
-            tree = new_tree
+        new_tree.update()
 
         return tree
