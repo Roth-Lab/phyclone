@@ -3,6 +3,7 @@ import numpy as np
 import random
 
 import phyclone.math_utils
+from phyclone.math_utils import exp_normalize, discrete_rvs
 
 
 class DataPointSwapSampler(object):
@@ -168,14 +169,14 @@ class OutlierSampler(object):
         random.shuffle(outliers)
 
         for data_point in outliers:
-            log_p = {-1: tree.log_p}
+            log_p = {-1: tree.log_p_one}
 
             tree.remove_data_point_from_outliers(data_point)
 
             for node in tree.nodes:
                 tree.add_data_point_to_node(data_point, node)
 
-                log_p[node] = tree.log_p
+                log_p[node] = tree.log_p_one
 
                 tree.remove_data_point_from_node(data_point, node)
 
@@ -230,11 +231,25 @@ class PruneRegraphSampler(object):
 
 class OutlierNodeSampler(object):
     def sample_tree(self, tree):
+        trees = [tree]
+
+        for node in tree.nodes:
+            trees.append(self._try_node(tree, node))
+
+        log_p = np.array([x.log_p for x in trees])
+
+        p, _ = exp_normalize(log_p)
+
+        idx = discrete_rvs(p)
+
+        return trees[idx]
+
+    def _try_node(self, tree, node):
         new_tree = tree.copy()
 
-        node = random.choice(new_tree.nodes)
+        print('Trying outlier node {}'.format(node))
 
-        parent = tree.get_parent(node)
+        parent = new_tree.get_parent(node)
 
         subtree = new_tree.get_subtree(node)
 
@@ -247,8 +262,6 @@ class OutlierNodeSampler(object):
 
             subtree.remove_subtree(child_subtree)
 
-            print(child, parent)
-
             new_tree.add_subtree(child_subtree, parent=parent)
 
         for data_point in subtree.data:
@@ -259,6 +272,8 @@ class OutlierNodeSampler(object):
         new_log_p = new_tree.log_p_one
 
         u = random.random()
+
+        print(new_log_p, old_log_p)
 
         if new_log_p - old_log_p > math.log(u):
             tree = new_tree
