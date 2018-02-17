@@ -320,7 +320,7 @@ class OutlierNodeSampler(object):
         idx = discrete_rvs(p)
 
         if idx != 0:
-            print('ON accpeted')
+            print('ON accpeted', idx)
 
         return trees[idx]
 
@@ -342,4 +342,4 @@ class OutlierNodeSampler(object):
 
         new_tree.update()
 
-        return tree
+        return new_tree
