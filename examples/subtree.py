@@ -12,6 +12,8 @@ from phyclone.math_utils import discrete_rvs
 from phyclone.mcmc.particle_gibbs import ParticleGibbsSubtreeSampler
 from phyclone.smc.samplers import SMCSampler
 from phyclone.smc.kernels import SemiAdaptedKernel
+from phyclone.tree import Tree
+from phyclone.smc.utils import PermutationDistribution
 
 import phyclone.mcmc.metropolis_hastings as mh
 
@@ -19,7 +21,7 @@ from toy_data import load_test_data
 
 
 def main():
-    data, labels, true_graph = load_test_data(cluster_size=20, depth=int(1e5), outlier_size=5, single_sample=False)
+    data, labels, true_graph = load_test_data(cluster_size=5, depth=int(1e6), outlier_size=2, single_sample=False)
 
     tree = init_tree(data)
 
@@ -65,7 +67,7 @@ def main():
 
             node_sizes.append(len(node_data))
 
-        tree.alpha = conc_sampler.sample(tree.alpha, len(tree.nodes), sum(node_sizes))
+#         tree.alpha = conc_sampler.sample(tree.alpha, len(tree.nodes), sum(node_sizes))
 
         if i % 1 == 0:
             pred_labels = [tree.labels[x] for x in sorted(tree.labels)]
@@ -74,6 +76,7 @@ def main():
             print(pred_labels)
             print(homogeneity_completeness_v_measure(labels, pred_labels), len(tree.nodes))
             print(tree.log_p_one)
+            print(tree.log_p_one + PermutationDistribution.log_pdf(tree))
             print(nx.is_isomorphic(tree._graph, true_graph))
             print(tree.roots)
             print(tree.graph.edges)
@@ -98,17 +101,20 @@ def main():
 def init_tree(data):
     kernel = SemiAdaptedKernel(1.0, data[0].shape, 0.1)
 
-    sigma = list(range(len(data)))
+    tree = Tree.get_single_node_tree(data)
 
-    random.shuffle(sigma)
+    for _ in range(10):
+        data_sigma = PermutationDistribution.sample(tree)
 
-    smc_sampler = SMCSampler([data[idx] for idx in sigma], kernel, num_particles=20, resample_threshold=0.5)
+        smc_sampler = SMCSampler(data_sigma, kernel, num_particles=20, resample_threshold=0.5)
 
-    swarm = smc_sampler.sample()
+        swarm = smc_sampler.sample()
 
-    idx = discrete_rvs(swarm.weights)
+        idx = discrete_rvs(swarm.weights)
 
-    return swarm.particles[idx].tree
+        tree = swarm.particles[idx].tree
+
+    return tree
 
 
 if __name__ == "__main__":

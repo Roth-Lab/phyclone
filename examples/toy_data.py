@@ -18,12 +18,12 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, si
 
     np.random.seed(0)
 
-    def compute_log_likelihood(x, n, grid_size=grid_size):
+    def compute_log_likelihood(x, d, grid_size=grid_size):
         eps = 1e-10
 
         grid = np.linspace(0 + eps, 1 - eps, grid_size)
 
-        return stats.binom.logpmf(x, n, grid)
+        return stats.binom.logpmf(x, d, grid)
 
     graph = nx.DiGraph()
     graph.add_edge(-1, 4)
@@ -32,11 +32,16 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, si
     graph.add_edge(2, 0)
     graph.add_edge(2, 1)
 
-    cluster_params = [[0.1, 0.1, 0.9], [0.2, 0.1, 0.02], [0.3, 0.2, 0.92],
-                      [0.7, 0.8, 0.0], [1.0, 1.0, 1.0], [0.0, 1.0, 1.0]]
+    cluster_params = [
+        [0.1, 0.2, 0.9, 0.05], [0.2, 0.1, 0.02, 0.9], [0.3, 0.3, 0.92, 0.95],
+        [0.7, 0.7, 0.08, 0.05], [1.0, 1.0, 1.0, 1.0], [0.01, 0.95, 0.95, 0.01]
+    ]
 
     if single_sample:
         cluster_params = [[x[0], ] for x in cluster_params]
+    
+#     else:
+#         cluster_params = [[x[0], x[1], x[2]] for x in cluster_params]
 
     data = []
 
@@ -48,8 +53,12 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, si
         if i == 5:
             n = outlier_size
 
+            outlier_prob = 0.01
+
         else:
             n = cluster_size
+
+            outlier_prob = 0.01
 
         for _ in range(n):
             data_point = []
@@ -61,7 +70,7 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, si
 
                 data_point.append(compute_log_likelihood(x, d))
 
-            data.append(DataPoint(idx, np.array(data_point), outlier_prob=1e-4))
+            data.append(DataPoint(idx, np.array(data_point), outlier_prob=outlier_prob))
 
             labels.append(i)
 
