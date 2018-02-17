@@ -102,7 +102,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     def _propose_existing_node(self):
         proposed_trees = []
 
-        for node in self.parent_particle.tree.roots:
+        for node in self.parent_particle.tree.nodes:
             tree = self.parent_particle.tree.copy()
 
             tree.add_data_point_to_node(self.data_point, node)

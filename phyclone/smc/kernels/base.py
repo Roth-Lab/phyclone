@@ -1,3 +1,6 @@
+from phyclone.smc.utils import PermutationDistribution
+
+
 class Particle(object):
     __slots__ = 'log_w', 'parent_particle', 'tree'
 
@@ -23,7 +26,7 @@ class Kernel(object):
         """
         raise NotImplementedError
 
-    def __init__(self, alpha, grid_size, outlier_proposal_prob=0):
+    def __init__(self, alpha, grid_size, outlier_proposal_prob=0, perm_dist=None):
         """
         Parameters
         ----------
@@ -33,22 +36,35 @@ class Kernel(object):
             The size of the grid to approximate the recursion integrals.
         outlier_proposal_prob: float
             Probability of proposing an outlier.
+        perm_dist: PermutationDistribution
+            The permutation distribution used in a particle Gibbs sampler to reorder data points. Set to None if single
+            pass SMC is being performed.
         """
         self.alpha = alpha
 
         self.grid_size = grid_size
+
+        self.perm_dist = perm_dist
 
         self.outlier_proposal_prob = outlier_proposal_prob
 
     def create_particle(self, data_point, log_q, parent_particle, tree):
         """  Create a new particle from a parent particle.
         """
-        if parent_particle is None:
-            log_w = tree.log_p + tree.log_p_sigma - log_q
+        if self.perm_dist is None:
+            if parent_particle is None:
+                log_w = tree.log_p - log_q
+
+            else:
+                log_w = tree.log_p - parent_particle.tree.log_p - log_q
 
         else:
-            log_w = tree.log_p + tree.log_p_sigma - \
-                parent_particle.tree.log_p - parent_particle.tree.log_p_sigma - log_q
+            if parent_particle is None:
+                log_w = tree.log_p + self.perm_dist.log_pdf(tree) - log_q
+
+            else:
+                log_w = tree.log_p + self.perm_dist.log_pdf(tree) - \
+                    parent_particle.tree.log_p - self.perm_dist.log_pdf(parent_particle.tree) - log_q
 
         return Particle(log_w, parent_particle, tree)
 

@@ -39,9 +39,13 @@ class ParticleGibbsTreeSampler(object):
     def sample_swarm(self, tree):
         """ Sample a new SMC swarm
         """
-        data_sigma = phyclone.smc.utils.sample_sigma(tree)
+        perm_dist = phyclone.smc.utils.PermutationDistribution()
 
-        kernel = self.kernel_cls(tree.alpha, tree.grid_size, outlier_proposal_prob=self.outlier_proposal_prob)
+        data_sigma = perm_dist.sample(tree)
+
+        kernel = self.kernel_cls(
+            tree.alpha, tree.grid_size, outlier_proposal_prob=self.outlier_proposal_prob, perm_dist=perm_dist,
+        )
 
         sampler = phyclone.smc.samplers.ConditionalSMCSampler(
             tree,

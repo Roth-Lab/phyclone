@@ -158,25 +158,59 @@ class Tree(object):
 
         return log_p
 
-    @property
-    def log_p_sigma(self):
-        """ Log probability of the permutation.
-        """
-        # TODO: Check this. Are we missing a term for the outliers.
-        # Correction for auxillary distribution
-        log_p = 0
+#     @property
+#     def log_p_sigma(self):
+#         """ Log probability of the permutation.
+#         """
+#         # TODO: Check this. Are we missing a term for the outliers.
+#         # Correction for auxillary distribution
+#         num_nodes = len(self.nodes)
+# 
+#         num_data_points = len(self.data)
+# 
+#         num_outlier_data_points = len(self.outliers)
+# 
+#         num_tree_data_points = num_data_points - num_outlier_data_points
+# 
+#         # Build list compatible with tree
+#         norm_const = 0
+# 
+#         for node in self.nodes:
+#             children = list(self._graph.successors(node))
+# 
+#             # Shuffle children
+#             norm_const += log_factorial(len(children))
+# 
+#             # Choose one data point from node
+#             norm_const += np.log(len(self._data[node]))
+# 
+#         # Suffle tree points not added
+#         norm_const += log_factorial(num_tree_data_points - num_nodes)
+# 
+#         # Shuffle outliers
+#         norm_const += log_factorial(num_outlier_data_points)
+# 
+#         # Bridge shuffle outliers and tree data
+#         norm_const += log_factorial(num_data_points)
+#         norm_const -= log_factorial(num_tree_data_points)
+#         norm_const -= log_factorial(num_outlier_data_points)
+# 
+#         return -norm_const
 
-        for node in self._graph.nodes():
-            children = list(self._graph.successors(node))
 
-            log_p += log_factorial(sum([len(self._data[child]) for child in children]))
-
-            for child in children:
-                log_p -= log_factorial(len(self._data[child]))
-
-            log_p += log_factorial(len(self._data[node]))
-
-        return -log_p
+#         log_p = 0
+#
+#         for node in self._graph.nodes():
+#             children = list(self._graph.successors(node))
+#
+#             log_p += log_factorial(sum([len(self._data[child]) for child in children]))
+#
+#             for child in children:
+#                 log_p -= log_factorial(len(self._data[child]))
+#
+#             log_p += log_factorial(len(self._data[node]))
+#
+#         return -log_p
 
     @property
     def nodes(self):
@@ -301,6 +335,9 @@ class Tree(object):
 
     def get_children(self, node):
         return list(self._graph.successors(node))
+
+    def get_descendants(self, source='root'):
+        return nx.descendants(self._graph, source=source)
 
     def get_parent(self, node):
         if node == 'root':
