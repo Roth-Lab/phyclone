@@ -1,2 +1,2 @@
-from .metropolis_hastings import OutlierSampler, PruneRegraphSampler
+from .metropolis_hastings import DataPointSwapSampler, OutlierSampler, OutlierNodeSampler, ParentChildSwap, PruneRegraphSampler
 from .particle_gibbs import ParticleGibbsTreeSampler, ParticleGibbsSubtreeSampler
