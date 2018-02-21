@@ -55,17 +55,11 @@ class NodeSwap(object):
 
         swap_node = random.choice(tree.nodes)
 
-        nodes = [swap_node]
-
-        new_tree = tree.copy()
-
         for node in tree.nodes:
-            new_tree = tree.copy()
-
             if node == swap_node:
                 continue
 
-            nodes.append(node)
+            new_tree = tree.copy()
 
             new_tree._data[node] = list(tree._data[swap_node])
 
@@ -81,10 +75,8 @@ class NodeSwap(object):
 
             trees.append(new_tree)
 
-            new_tree = tree.copy()
-
         if len(new_tree._data[-1]) > 0:
-            nodes.append(-1)
+            new_tree = tree.copy()
 
             new_tree._data[-1] = list(tree._data[swap_node])
 
