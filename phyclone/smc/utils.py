@@ -5,6 +5,7 @@ Created on 9 Aug 2017
 '''
 from __future__ import division
 
+import numpy as np
 import random
 
 from phyclone.math_utils import log_factorial
@@ -69,7 +70,7 @@ class PermutationDistribution(object):
             count -= log_factorial(c)
 
         # Select point from source
-        count += len(tree.get_data(source))
+        count += np.log(len(tree.get_data(source)))
 
         return count
 
