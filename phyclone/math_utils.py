@@ -114,6 +114,27 @@ def log_binomial_coefficient(n, x):
     return log_factorial(n) - log_factorial(x) - log_factorial(n - x)
 
 
+def log_multinomial_coefficient(x):
+    """ Compute the multinomial coefficient.
+
+    Parameters
+    ----------
+    x: list
+        The number of elements in each category.
+    """
+    if len(x) == 0:
+        return 0
+
+    n = sum(x)
+
+    result = log_factorial(n)
+
+    for x_i in x:
+        result -= log_factorial(x_i)
+
+    return result
+
+
 @numba.vectorize(["float64(float64)", "int64(float64)"])
 def log_gamma(x):
     return math.lgamma(x)
