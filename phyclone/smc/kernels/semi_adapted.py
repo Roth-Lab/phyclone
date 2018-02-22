@@ -13,7 +13,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     should provide a computational advantage over the fully adapted proposal.
     """
 
-    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0):
+    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0, propose_roots=True):
         self.data_point = data_point
 
         self.kernel = kernel
@@ -21,6 +21,8 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         self.parent_particle = parent_particle
 
         self.outlier_proposal_prob = outlier_proposal_prob
+
+        self.propose_roots = propose_roots
 
         self._init_dist()
 
@@ -102,7 +104,13 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     def _propose_existing_node(self):
         proposed_trees = []
 
-        for node in self.parent_particle.tree.nodes:
+        if self.propose_roots:
+            nodes = self.parent_particle.tree.roots
+
+        else:
+            nodes = self.parent_particle.tree.nodes
+
+        for node in nodes:
             tree = self.parent_particle.tree.copy()
 
             tree.add_data_point_to_node(self.data_point, node)
@@ -136,5 +144,8 @@ class SemiAdaptedKernel(Kernel):
 
     def get_proposal_distribution(self, data_point, parent_particle):
         return SemiAdaptedProposalDistribution(
-            data_point, self, parent_particle, outlier_proposal_prob=self.outlier_proposal_prob
+            data_point,
+            self, parent_particle,
+            outlier_proposal_prob=self.outlier_proposal_prob,
+            propose_roots=self.propose_roots
         )

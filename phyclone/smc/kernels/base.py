@@ -1,6 +1,3 @@
-from phyclone.smc.utils import PermutationDistribution
-
-
 class Particle(object):
     __slots__ = 'log_w', 'parent_particle', 'tree'
 
@@ -26,7 +23,7 @@ class Kernel(object):
         """
         raise NotImplementedError
 
-    def __init__(self, alpha, grid_size, outlier_proposal_prob=0, perm_dist=None):
+    def __init__(self, alpha, grid_size, outlier_proposal_prob=0, perm_dist=None, propose_roots=True):
         """
         Parameters
         ----------
@@ -39,14 +36,19 @@ class Kernel(object):
         perm_dist: PermutationDistribution
             The permutation distribution used in a particle Gibbs sampler to reorder data points. Set to None if single
             pass SMC is being performed.
+        propose_roots: bool
+            Determines whether to propose adding data points to existing nodes that are roots or alternatively adding to
+            any existing node.
         """
         self.alpha = alpha
 
         self.grid_size = grid_size
 
+        self.outlier_proposal_prob = outlier_proposal_prob
+
         self.perm_dist = perm_dist
 
-        self.outlier_proposal_prob = outlier_proposal_prob
+        self.propose_roots = propose_roots
 
     def create_particle(self, data_point, log_q, parent_particle, tree):
         """  Create a new particle from a parent particle.

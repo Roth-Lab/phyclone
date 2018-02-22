@@ -165,36 +165,36 @@ class Tree(object):
 #         # TODO: Check this. Are we missing a term for the outliers.
 #         # Correction for auxillary distribution
 #         num_nodes = len(self.nodes)
-# 
+#
 #         num_data_points = len(self.data)
-# 
+#
 #         num_outlier_data_points = len(self.outliers)
-# 
+#
 #         num_tree_data_points = num_data_points - num_outlier_data_points
-# 
+#
 #         # Build list compatible with tree
 #         norm_const = 0
-# 
+#
 #         for node in self.nodes:
 #             children = list(self._graph.successors(node))
-# 
+#
 #             # Shuffle children
 #             norm_const += log_factorial(len(children))
-# 
+#
 #             # Choose one data point from node
 #             norm_const += np.log(len(self._data[node]))
-# 
+#
 #         # Suffle tree points not added
 #         norm_const += log_factorial(num_tree_data_points - num_nodes)
-# 
+#
 #         # Shuffle outliers
 #         norm_const += log_factorial(num_outlier_data_points)
-# 
+#
 #         # Bridge shuffle outliers and tree data
 #         norm_const += log_factorial(num_data_points)
 #         norm_const -= log_factorial(num_tree_data_points)
 #         norm_const -= log_factorial(num_outlier_data_points)
-# 
+#
 #         return -norm_const
 
 
@@ -369,6 +369,14 @@ class Tree(object):
         new.update()
 
         return new
+
+    def get_subtree_data(self, node):
+        data = self.get_data(node)
+
+        for desc in self.get_descendants(node):
+            data.extend(self.get_data(desc))
+
+        return data
 
     def relabel_nodes(self):
         node_map = {}
