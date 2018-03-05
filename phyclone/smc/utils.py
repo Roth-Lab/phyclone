@@ -29,7 +29,7 @@ class NodePermutationDistribution(object):
             root_counts = []
 
             for node in tree.roots:
-                count += NodePermutationDistribution.count(tree, source=node)
+                count += NodePermutationDistribution.log_count(tree, source=node)
 
                 root_counts.append(len(tree.get_descendants(node)) + 1)
 
@@ -59,7 +59,7 @@ class NodePermutationDistribution(object):
         child_counts = []
 
         for child in children:
-            count += NodePermutationDistribution.count(tree, source=child)
+            count += NodePermutationDistribution.log_count(tree, source=child)
 
             child_counts.append(len(tree.get_descendants(child)) + 1)
 
