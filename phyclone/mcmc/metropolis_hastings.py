@@ -53,9 +53,14 @@ class NodeSwap(object):
 
         trees = [tree]
 
-        swap_node = random.choice(tree.nodes)
+        nodes = tree.nodes
 
-        for node in tree.nodes:
+        if len(tree._data[-1]) > 0:
+            nodes.append(-1)
+
+        swap_node = random.choice(nodes)
+
+        for node in nodes:
             if node == swap_node:
                 continue
 
@@ -65,25 +70,13 @@ class NodeSwap(object):
 
             new_tree._data[swap_node] = list(tree._data[node])
 
-            new_tree._graph.nodes[node]['log_p'] = sum([x.value for x in new_tree._data[node]]) + \
-                new_tree._log_prior
+            if node != -1:
+                new_tree._graph.nodes[node]['log_p'] = sum([x.value for x in new_tree._data[node]]) + \
+                    new_tree._log_prior
 
-            new_tree._graph.nodes[swap_node]['log_p'] = sum([x.value for x in new_tree._data[swap_node]]) + \
-                new_tree._log_prior
-
-            new_tree.update()
-
-            trees.append(new_tree)
-
-        if len(new_tree._data[-1]) > 0:
-            new_tree = tree.copy()
-
-            new_tree._data[-1] = list(tree._data[swap_node])
-
-            new_tree._data[swap_node] = list(tree._data[-1])
-
-            new_tree._graph.nodes[swap_node]['log_p'] = sum([x.value for x in new_tree._data[swap_node]]) + \
-                new_tree._log_prior
+            if swap_node != -1:
+                new_tree._graph.nodes[swap_node]['log_p'] = sum([x.value for x in new_tree._data[swap_node]]) + \
+                    new_tree._log_prior
 
             new_tree.update()
 
@@ -97,8 +90,6 @@ class NodeSwap(object):
 
         if idx != 0:
             print('NS accepted')
-
-#         print(swap_node, dict(zip(nodes, log_p)))
 
         return trees[idx]
 
