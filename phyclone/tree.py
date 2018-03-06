@@ -28,7 +28,7 @@ class FSCRPDistribution(object):
                     log_p += np.log(1 - data_point.outlier_prob)
 
         # CRP prior
-        num_nodes = len(tree.nodes) - 1
+        num_nodes = len(tree.nodes)
 
         log_p += num_nodes * np.log(self.alpha)
 
