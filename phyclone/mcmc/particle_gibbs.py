@@ -12,12 +12,10 @@ class ParticleGibbsTreeSampler(object):
     """ Particle Gibbs sampler targeting sampling a full tree.
     """
 
-    def __init__(self, kernel, num_particles=10, outlier_proposal_prob=0, propose_roots=True, resample_threshold=0.5):
+    def __init__(self, kernel, num_particles=10, propose_roots=True, resample_threshold=0.5):
         self.kernel = kernel
 
         self.num_particles = num_particles
-
-        self.outlier_proposal_prob = outlier_proposal_prob
 
         self.propose_roots = propose_roots
 
