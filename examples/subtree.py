@@ -22,7 +22,7 @@ from toy_data import load_test_data
 
 
 def main():
-    data, labels, true_tree = load_test_data(cluster_size=2, depth=int(1e6), outlier_size=0, single_sample=False)
+    data, true_tree = load_test_data(cluster_size=5, depth=int(1e2), outlier_size=1, single_sample=False)
 
     tree = init_tree(data)
 
@@ -38,10 +38,10 @@ def main():
 
     tree_prior_dist = FSCRPDistribution(1.0)
 
-    kernel = SemiAdaptedKernel(tree_prior_dist)
+    kernel = SemiAdaptedKernel(tree_prior_dist, outlier_proposal_prob=0.1)
 
     pg_sampler = ParticleGibbsTreeSampler(
-        kernel, num_particles=10, outlier_proposal_prob=0.1, propose_roots=True, resample_threshold=0.5
+        kernel, num_particles=20, propose_roots=True, resample_threshold=0.5
     )
 
     print('Starting sampling')
@@ -58,8 +58,8 @@ def main():
 
             tree = mh_sampler2.sample_tree(tree)
 
-#         for _ in range(100):
-#             tree = outlier_sampler.sample_tree(tree)
+        for _ in range(len(data)):
+            tree = outlier_sampler.sample_tree(tree)
 
         tree.relabel_nodes()
 
@@ -77,10 +77,11 @@ def main():
 
         if i % 1 == 0:
             pred_labels = [tree.labels[x] for x in sorted(tree.labels)]
+            true_labels = [true_tree.labels[x] for x in sorted(tree.labels)]
             print()
             print(i, tree_prior_dist.alpha)
             print(pred_labels)
-            print(homogeneity_completeness_v_measure(labels, pred_labels), len(tree.nodes))
+            print(homogeneity_completeness_v_measure(true_labels, pred_labels), len(tree.nodes))
             print(tree.log_p_one)
             print(tree.log_p_one + RootPermutationDistribution.log_pdf(tree))
             print(nx.is_isomorphic(tree.graph, true_tree.graph))

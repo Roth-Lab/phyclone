@@ -67,7 +67,7 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, si
         else:
             n = cluster_size
 
-            outlier_prob = 1e-2
+            outlier_prob = 1e-4
 
         for _ in range(n):
             data_point = []
@@ -91,4 +91,4 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, si
 
             idx += 1
 
-    return data, labels, tree
+    return data, tree
