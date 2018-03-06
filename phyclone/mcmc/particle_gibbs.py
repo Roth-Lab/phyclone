@@ -3,7 +3,6 @@ from __future__ import division
 import random
 
 import phyclone.math_utils
-import phyclone.smc.kernels
 import phyclone.smc.samplers
 import phyclone.smc.swarm
 import phyclone.smc.utils
@@ -13,15 +12,8 @@ class ParticleGibbsTreeSampler(object):
     """ Particle Gibbs sampler targeting sampling a full tree.
     """
 
-    def __init__(self, kernel='bootstrap', num_particles=10, outlier_proposal_prob=0, propose_roots=True, resample_threshold=0.5):
-
-        kernels = {
-            'bootstrap': phyclone.smc.kernels.BootstrapKernel,
-            'fully-adapted': phyclone.smc.kernels.FullyAdaptedKernel,
-            'semi-adapted': phyclone.smc.kernels.SemiAdaptedKernel
-        }
-
-        self.kernel_cls = kernels[kernel]
+    def __init__(self, kernel, num_particles=10, outlier_proposal_prob=0, propose_roots=True, resample_threshold=0.5):
+        self.kernel = kernel
 
         self.num_particles = num_particles
 
@@ -49,18 +41,10 @@ class ParticleGibbsTreeSampler(object):
 
         data_sigma = perm_dist.sample(tree)
 
-        kernel = self.kernel_cls(
-            tree.alpha,
-            tree.grid_size,
-            outlier_proposal_prob=self.outlier_proposal_prob,
-            perm_dist=perm_dist,
-            propose_roots=self.propose_roots
-        )
-
         sampler = phyclone.smc.samplers.ConditionalSMCSampler(
             tree,
             data_sigma,
-            kernel,
+            self.kernel,
             num_particles=self.num_particles,
             resample_threshold=self.resample_threshold
         )

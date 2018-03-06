@@ -8,10 +8,46 @@ from phyclone.consensus import get_clades
 from phyclone.math_utils import log_factorial, log_sum_exp
 
 
-class Tree(object):
-    def __init__(self, alpha, grid_size):
+class FSCRPDistribution(object):
+    """ FSCRP distribution on trees.
+    """
+
+    def __init__(self, alpha):
         self.alpha = alpha
 
+    def log_p(self, tree):
+        log_p = 0
+
+        # Outlier prior
+        for node, node_data in tree.node_data.items():
+            for data_point in node_data:
+                if node == -1:
+                    log_p += np.log(data_point.outlier_prob)
+
+                else:
+                    log_p += np.log(1 - data_point.outlier_prob)
+
+        # CRP prior
+        num_nodes = len(tree.nodes) - 1
+
+        log_p += num_nodes * np.log(self.alpha)
+
+        for node, node_data in tree.node_data.items():
+            if node == -1:
+                continue
+
+            num_data_points = len(node_data)
+
+            log_p += log_factorial(num_data_points - 1)
+
+        # Uniform prior on toplogies
+        log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
+
+        return log_p
+
+
+class Tree(object):
+    def __init__(self, grid_size):
         self.grid_size = grid_size
 
         self._data = defaultdict(list)
@@ -23,12 +59,12 @@ class Tree(object):
         self._add_node('root')
 
     def __hash__(self):
-        return hash((self.alpha, get_clades(self), frozenset(self.outliers)))
+        return hash((get_clades(self), frozenset(self.outliers)))
 
     def __eq__(self, other):
-        self_key = (self.alpha, get_clades(self), frozenset(self.outliers))
+        self_key = (get_clades(self), frozenset(self.outliers))
 
-        other_key = (other.alpha, get_clades(other), frozenset(other.outliers))
+        other_key = (get_clades(other), frozenset(other.outliers))
 
         return self_key == other_key
 
@@ -41,7 +77,7 @@ class Tree(object):
         data: list
             Data points.
         """
-        tree = Tree(1.0, data[0].grid_size)
+        tree = Tree(data[0].grid_size)
 
         node = tree.create_root_node([])
 
@@ -76,7 +112,17 @@ class Tree(object):
         return self._graph.nodes['root']['log_R']
 
     @property
-    def data_marginal_log_likelihood(self):
+    def labels(self):
+        result = {}
+
+        for node, node_data in self.node_data.items():
+            for data_point in node_data:
+                result[data_point.idx] = node
+
+        return result
+
+    @property
+    def log_p(self):
         """ The log likelihood of the data marginalized over root node parameters.
         """
         log_p = 0
@@ -90,7 +136,7 @@ class Tree(object):
         return log_p
 
     @property
-    def data_conditional_log_likelihood(self):
+    def log_p_one(self):
         """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
         """
         log_p = 0
@@ -102,115 +148,6 @@ class Tree(object):
             log_p += data_point.outlier_marginal_prob
 
         return log_p
-
-    @property
-    def labels(self):
-        result = {}
-
-        for node, node_data in self.node_data.items():
-            for data_point in node_data:
-                result[data_point.idx] = node
-
-        return result
-
-    @property
-    def log_p(self):
-        """ Log joint probability.
-        """
-        return self.log_p_prior + self.data_marginal_log_likelihood
-
-    @property
-    def log_p_one(self):
-        """ The joint probability of the data conditioned on the root having value 1.0 in all dimensions.
-        """
-        return self.log_p_prior + self.data_conditional_log_likelihood
-
-    @property
-    def log_p_prior(self):
-        """ Log prior from the FSCRP and outlier contributions.
-        """
-        log_p = 0
-
-        # Outlier prior
-        for node, node_data in self.node_data.items():
-            for data_point in node_data:
-                if node == -1:
-                    log_p += np.log(data_point.outlier_prob)
-
-                else:
-                    log_p += np.log(1 - data_point.outlier_prob)
-
-        # CRP prior
-        num_nodes = nx.number_of_nodes(self._graph) - 1
-
-        log_p += num_nodes * np.log(self.alpha)
-
-        for node, node_data in self.node_data.items():
-            if node == -1:
-                continue
-
-            num_data_points = len(node_data)
-
-            log_p += log_factorial(num_data_points - 1)
-
-        # Uniform prior on toplogies
-        log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
-
-        return log_p
-
-#     @property
-#     def log_p_sigma(self):
-#         """ Log probability of the permutation.
-#         """
-#         # TODO: Check this. Are we missing a term for the outliers.
-#         # Correction for auxillary distribution
-#         num_nodes = len(self.nodes)
-#
-#         num_data_points = len(self.data)
-#
-#         num_outlier_data_points = len(self.outliers)
-#
-#         num_tree_data_points = num_data_points - num_outlier_data_points
-#
-#         # Build list compatible with tree
-#         norm_const = 0
-#
-#         for node in self.nodes:
-#             children = list(self._graph.successors(node))
-#
-#             # Shuffle children
-#             norm_const += log_factorial(len(children))
-#
-#             # Choose one data point from node
-#             norm_const += np.log(len(self._data[node]))
-#
-#         # Suffle tree points not added
-#         norm_const += log_factorial(num_tree_data_points - num_nodes)
-#
-#         # Shuffle outliers
-#         norm_const += log_factorial(num_outlier_data_points)
-#
-#         # Bridge shuffle outliers and tree data
-#         norm_const += log_factorial(num_data_points)
-#         norm_const -= log_factorial(num_tree_data_points)
-#         norm_const -= log_factorial(num_outlier_data_points)
-#
-#         return -norm_const
-
-
-#         log_p = 0
-#
-#         for node in self._graph.nodes():
-#             children = list(self._graph.successors(node))
-#
-#             log_p += log_factorial(sum([len(self._data[child]) for child in children]))
-#
-#             for child in children:
-#                 log_p -= log_factorial(len(self._data[child]))
-#
-#             log_p += log_factorial(len(self._data[node]))
-#
-#         return -log_p
 
     @property
     def nodes(self):
@@ -242,11 +179,12 @@ class Tree(object):
 
         self._data[node].append(data_point)
 
-        self._graph.nodes[node]['log_p'] += data_point.value
+        if node != -1:
+            self._graph.nodes[node]['log_p'] += data_point.value
 
-        self._graph.nodes[node]['log_R'] += data_point.value
+            self._graph.nodes[node]['log_R'] += data_point.value
 
-        self._update_path_to_root(self.get_parent(node))
+            self._update_path_to_root(self.get_parent(node))
 
     def add_data_point_to_outliers(self, data_point):
         self._data[-1].append(data_point)
@@ -311,8 +249,6 @@ class Tree(object):
 
         new = cls.__new__(cls)
 
-        new.alpha = self.alpha
-
         new.grid_size = self.grid_size
 
         new._data = defaultdict(list)
@@ -353,7 +289,7 @@ class Tree(object):
         if subtree_root == 'root':
             return self.copy()
 
-        new = Tree(self.alpha, self.grid_size)
+        new = Tree(self.grid_size)
 
         subtree_graph = nx.dfs_tree(self._graph, subtree_root)
 
@@ -397,16 +333,17 @@ class Tree(object):
     def remove_data_point_from_node(self, data_point, node):
         self._data[node].remove(data_point)
 
-        self._graph.nodes[node]['log_p'] -= data_point.value
+        if node != - 1:
+            self._graph.nodes[node]['log_p'] -= data_point.value
 
-        self._update_path_to_root(node)
+            self._update_path_to_root(node)
 
     def remove_data_point_from_outliers(self, data_point):
         self._data[-1].remove(data_point)
 
     def remove_subtree(self, subtree):
         if subtree == self:
-            self.__init__(self.alpha, self.grid_size)
+            self.__init__(self.grid_size)
 
         else:
             assert len(subtree.roots) == 1

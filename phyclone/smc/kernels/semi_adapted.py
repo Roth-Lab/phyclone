@@ -51,7 +51,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         u = random.random()
 
         if self.parent_particle is None:
-            tree = Tree(self.kernel.alpha, self.kernel.grid_size)
+            tree = Tree(self.data_point.grid_size)
 
             if u < (1 - self.outlier_proposal_prob):
                 node = tree.create_root_node([])

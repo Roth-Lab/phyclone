@@ -23,14 +23,13 @@ class Kernel(object):
         """
         raise NotImplementedError
 
-    def __init__(self, alpha, grid_size, outlier_proposal_prob=0, perm_dist=None, propose_roots=True):
+    def __init__(self, tree_prior_dist, outlier_proposal_prob=0, perm_dist=None, propose_roots=True):
         """
         Parameters
         ----------
-        alpha: float
-            Concentration parameter of the CRP.
-        grid_size: int
-            The size of the grid to approximate the recursion integrals.
+        tree_prior_dist: FSCRPDistribution
+            Prior distribution on tree topology.
+
         outlier_proposal_prob: float
             Probability of proposing an outlier.
         perm_dist: PermutationDistribution
@@ -40,9 +39,7 @@ class Kernel(object):
             Determines whether to propose adding data points to existing nodes that are roots or alternatively adding to
             any existing node.
         """
-        self.alpha = alpha
-
-        self.grid_size = grid_size
+        self.tree_prior_dist = tree_prior_dist
 
         self.outlier_proposal_prob = outlier_proposal_prob
 
@@ -55,18 +52,19 @@ class Kernel(object):
         """
         if self.perm_dist is None:
             if parent_particle is None:
-                log_w = tree.log_p - log_q
+                log_w = self._get_log_p(tree) - log_q
 
             else:
-                log_w = tree.log_p - parent_particle.tree.log_p - log_q
+                log_w = self._get_log_p(tree) - self._get_log_p(parent_particle.tree) - log_q
 
         else:
             if parent_particle is None:
-                log_w = tree.log_p + self.perm_dist.log_pdf(tree) - log_q
+                log_w = self._get_log_p(tree) + self.perm_dist.log_pdf(tree) - log_q
 
             else:
-                log_w = tree.log_p + self.perm_dist.log_pdf(tree) - \
-                    parent_particle.tree.log_p - self.perm_dist.log_pdf(parent_particle.tree) - log_q
+                log_w = self._get_log_p(tree) - self._get_log_p(parent_particle.tree) + \
+                    self.perm_dist.log_pdf(tree) - self.perm_dist.log_pdf(parent_particle.tree) - \
+                    log_q
 
         return Particle(log_w, parent_particle, tree)
 
@@ -80,6 +78,11 @@ class Kernel(object):
         log_q = proposal_dist.log_p(tree)
 
         return self.create_particle(data_point, log_q, parent_particle, tree)
+
+    def _get_log_p(self, tree):
+        """ Compute joint distribution.
+        """
+        return tree.log_p + self.tree_prior_dist.log_p(tree)
 
 
 class ProposalDistribution(object):
