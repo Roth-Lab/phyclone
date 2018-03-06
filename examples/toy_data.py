@@ -4,6 +4,7 @@ import random
 import scipy.stats as stats
 
 from phyclone.data import DataPoint
+from phyclone.tree import Tree
 
 
 def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, single_sample=False):
@@ -39,7 +40,7 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, si
 
     if single_sample:
         cluster_params = [[x[0], ] for x in cluster_params]
-    
+
 #     else:
 #         cluster_params = [[x[0], x[1], x[2]] for x in cluster_params]
 
@@ -49,16 +50,24 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, si
 
     idx = 0
 
-    for i, params in enumerate(cluster_params):
-        if i == 5:
+    tree = Tree((len(cluster_params[0]), grid_size))
+
+    node_0 = tree.create_root_node([], [])
+    node_1 = tree.create_root_node([], [])
+    node_2 = tree.create_root_node([node_0, node_1], [])
+    node_3 = tree.create_root_node([], [])
+    node_4 = tree.create_root_node([node_2, node_3], [])
+
+    for node, params in enumerate(cluster_params):
+        if node == 5:
             n = outlier_size
 
-            outlier_prob = 0.01
+            outlier_prob = 1e-2
 
         else:
             n = cluster_size
 
-            outlier_prob = 0.01
+            outlier_prob = 1e-2
 
         for _ in range(n):
             data_point = []
@@ -72,8 +81,14 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, si
 
             data.append(DataPoint(idx, np.array(data_point), outlier_prob=outlier_prob))
 
-            labels.append(i)
+            if node == 5:
+                tree.add_data_point_to_outliers(data[-1])
+
+            else:
+                tree.add_data_point_to_node(data[-1], node)
+
+            labels.append(node)
 
             idx += 1
 
-    return data, labels, graph
+    return data, labels, tree
