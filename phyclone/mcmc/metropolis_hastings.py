@@ -210,34 +210,39 @@ class ParentChildSwap(object):
 
 
 class OutlierSampler(object):
+    # TODO: Tree prior term
     def sample_tree(self, tree):
-        outliers = list(tree.outliers)
+        data = list(tree.data)
 
-        random.shuffle(outliers)
+        data_point = random.choice(data)
 
-        for data_point in outliers:
-            log_p = {-1: tree.log_p_one}
+        node_data = tree.node_data
 
-            tree.remove_data_point_from_outliers(data_point)
+        for node in node_data:
+            if data_point in node_data[node]:
+                if (len(node_data[node]) == 1) and (node != -1):
+                    return tree
 
-            for node in tree.nodes:
-                tree.add_data_point_to_node(data_point, node)
+                orig_node = node
 
-                log_p[node] = tree.log_p_one
+        tree.remove_data_point_from_node(data_point, orig_node)
 
-                tree.remove_data_point_from_node(data_point, node)
+        log_p = {}
 
-            p, _ = phyclone.math_utils.exp_normalize(np.array(list(log_p.values())).astype(float))
+        for node in node_data:
+            tree.add_data_point_to_node(data_point, node)
 
-            x = phyclone.math_utils.discrete_rvs(p)
+            log_p[node] = tree.log_p_one
 
-            node = list(log_p.keys())[x]
+            tree.remove_data_point_from_node(data_point, node)
 
-            if node == -1:
-                tree.add_data_point_to_outliers(data_point)
+        p, _ = phyclone.math_utils.exp_normalize(np.array(list(log_p.values())).astype(float))
 
-            else:
-                tree.add_data_point_to_node(data_point, node)
+        x = phyclone.math_utils.discrete_rvs(p)
+
+        node = list(log_p.keys())[x]
+
+        tree.add_data_point_to_node(data_point, node)
 
         return tree
 
