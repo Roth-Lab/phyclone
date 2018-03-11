@@ -9,11 +9,9 @@ import phyclone.math_utils
 
 
 def load_data(file_name, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400):
-    df = pd.read_csv(file_name, sep='\t')
+    pyclone_data = load_pyclone_data(file_name)
 
-    pyclone_data = load_pyclone_data(df)
-
-    data = OrderedDict()
+    data = []
 
     for idx, (mut, val) in enumerate(pyclone_data.items()):
         data_point = phyclone.data.base.DataPoint(
@@ -28,7 +26,9 @@ def load_data(file_name, density='beta-binomial', grid_size=101, outlier_prob=1e
     return data
 
 
-def load_pyclone_data(df):
+def load_pyclone_data(file_name):
+    df = pd.read_csv(file_name, sep='\t')
+
     samples = sorted(df['sample_id'].unique())
 
     # Filter for mutations present in all samples
@@ -51,11 +51,11 @@ def load_pyclone_data(df):
     data = OrderedDict()
 
     for name in mutations:
-        mut_df = df[df['mutation'] == name]
+        mut_df = df[df['mutation_id'] == name]
 
         sample_data_points = []
 
-        mut_df = mut_df.set_index('sample')
+        mut_df = mut_df.set_index('sample_id')
 
         for sample in samples:
             row = mut_df.loc[sample]
