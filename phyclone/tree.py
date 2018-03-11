@@ -451,7 +451,11 @@ def _compute_log_D_n(child_log_R, prev_log_D_n):
 
     D_norm = np.exp(prev_log_D_n - log_D_max)
 
-    result = fftconvolve(R_norm, D_norm)
+    if len(child_log_R) < 1000:
+        result = np.convolve(R_norm, D_norm)
+
+    else:
+        result = fftconvolve(R_norm, D_norm)
 
     result = result[:len(child_log_R)]
 
