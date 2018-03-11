@@ -4,12 +4,17 @@ import numpy as np
 
 
 class DataPoint(object):
-    __slots__ = ('idx', 'value', 'outlier_prob', 'outlier_marginal_prob')
+    __slots__ = ('idx', 'value', 'name', 'outlier_prob', 'outlier_marginal_prob')
 
-    def __init__(self, idx, value, outlier_prob=0):
+    def __init__(self, idx, value, name=None, outlier_prob=0):
         self.idx = idx
 
         self.value = value
+
+        if name is None:
+            name = idx
+
+        self.name = name
 
         self.outlier_prob = outlier_prob
 

@@ -70,38 +70,17 @@ def log_normalize(log_p):
     return log_p - log_sum_exp(log_p)
 
 
-@numba.jit(cache=True, nopython=True)
-def cholesky_update(L, x, alpha=1, inplace=True):
-    """ Rank one update of a Cholesky factorized matrix.
-    """
-    dim = len(x)
-
-    x = x.copy()
-
-    if not inplace:
-        L = L.copy()
-
-    for i in range(dim):
-        r = np.sqrt(L[i, i] ** 2 + alpha * x[i] ** 2)
-
-        c = r / L[i, i]
-
-        s = x[i] / L[i, i]
-
-        L[i, i] = r
-
-        idx = i + 1
-
-        L[idx:dim, i] = (L[idx:dim, i] + alpha * s * x[idx:dim]) / c
-
-        x[idx:dim] = c * x[idx:dim] - s * L[idx:dim, i]
-
-    return L
+@numba.vectorize(["float64(float64)", "int64(float64)"])
+def log_gamma(x):
+    return math.lgamma(x)
 
 
 @numba.jit(cache=True, nopython=True)
-def cholesky_log_det(X):
-    return 2 * np.sum(np.log(np.diag(X)))
+def log_beta(a, b):
+    if a <= 0 or b <= 0:
+        return -np.inf
+
+    return log_gamma(a) + log_gamma(b) - log_gamma(a + b)
 
 
 @numba.jit(cache=True, nopython=True)
@@ -135,6 +114,33 @@ def log_multinomial_coefficient(x):
     return result
 
 
-@numba.vectorize(["float64(float64)", "int64(float64)"])
-def log_gamma(x):
-    return math.lgamma(x)
+@numba.jit(cache=True, nopython=True)
+def log_beta_binomial_likelihood(n, x, a, b):
+    return log_beta(a + x, b + n - x) - log_beta(a, b)
+
+
+@numba.jit(cache=True, nopython=True)
+def log_binomial_likelihood(n, x, p):
+    if p == 0:
+        if x == 0:
+            return 0
+        else:
+            return -np.inf
+
+    if p == 1:
+        if x == n:
+            return 0
+        else:
+            return -np.inf
+
+    return x * np.log(p) + (n - x) * np.log(1 - p)
+
+
+@numba.jit(nopython=True)
+def log_binomial_pdf(n, x, p):
+    return log_binomial_coefficient(n, x) + log_binomial_likelihood(n, x, p)
+
+
+@numba.jit(nopython=True)
+def log_beta_binomial_pdf(n, x, a, b):
+    return log_binomial_coefficient(n, x) + log_beta_binomial_likelihood(n, x, a, b)
