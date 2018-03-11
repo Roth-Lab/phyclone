@@ -88,9 +88,6 @@ class NodeSwap(object):
 
         idx = discrete_rvs(p)
 
-        if idx != 0:
-            print('NS accepted')
-
         return trees[idx]
 
 
@@ -142,7 +139,6 @@ class ParentChildSwap(object):
         u = random.random()
 
         if new_tree.log_p_one - tree.log_p_one > np.log(u):
-            print('PCS accepted')
             tree = new_tree
 
         return tree
@@ -288,9 +284,6 @@ class PruneRegraphSampler(object):
 
         idx = discrete_rvs(p)
 
-        if idx != 0:
-            print('SPR accepted')
-
         return trees[idx]
 
 
@@ -306,9 +299,6 @@ class OutlierNodeSampler(object):
         p, _ = exp_normalize(log_p)
 
         idx = discrete_rvs(p)
-
-        if idx != 0:
-            print('ON accpeted', idx)
 
         return trees[idx]
 
