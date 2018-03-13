@@ -174,6 +174,35 @@ class Tree(object):
     def roots(self):
         return list(self._graph.successors('root'))
 
+    @staticmethod
+    def from_dict(data, tree_dict):
+        new = Tree(data[0].grid_size)
+
+        new._graph = nx.DiGraph(tree_dict['graph'])
+
+        data = dict(zip([x.idx for x in data], data))
+
+        for node in new._graph.nodes:
+            new._add_node(node)
+
+        for idx, node in tree_dict['labels'].items():
+            new._data[node].append(data[idx])
+
+            if node != -1:
+                new._graph.nodes[node]['log_p'] += data[idx].value
+
+                new._graph.nodes[node]['log_R'] += data[idx].value
+
+        new.update()
+
+        return new
+
+    def to_dict(self):
+        return {
+            'graph': nx.to_dict_of_dicts(self._graph),
+            'labels': self.labels
+        }
+
     def add_data_point_to_node(self, data_point, node):
         assert data_point.idx not in self.labels.keys()
 
