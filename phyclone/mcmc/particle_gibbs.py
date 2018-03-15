@@ -64,13 +64,13 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
     """
 
     def sample_tree(self, tree):
-        labels = []
+        nodes = []
 
         for label in tree.labels.values():
             if label != -1:
-                labels.append(label)
+                nodes.append(label)
 
-        subtree_root_child = random.choice(labels)
+        subtree_root_child = random.choice(nodes)
 
         subtree_root = tree.get_parent(subtree_root_child)
 
