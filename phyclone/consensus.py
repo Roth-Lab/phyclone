@@ -5,7 +5,7 @@ from collections import defaultdict
 import networkx as nx
 
 
-def get_consensus_tree(trees, threshold=0.5, weighted=False):
+def get_consensus_tree(trees, data=None, threshold=0.5, weighted=False):
     clades_counter = clade_probabilities(trees, weighted=weighted)
 
     consensus_clades = key_above_threshold(clades_counter, threshold)
@@ -14,7 +14,7 @@ def get_consensus_tree(trees, threshold=0.5, weighted=False):
 
     consensus_tree = relabel(consensus_tree)
 
-    consensus_tree = clean_tree(consensus_tree)
+    consensus_tree = clean_tree(consensus_tree, data=data)
 
     return consensus_tree
 
@@ -53,19 +53,29 @@ def relabel(graph):
     return result
 
 
-def clean_tree(tree):
-    new_tree = nx.DiGraph()
+def clean_tree(tree, data=None):
+    node_map = {}
 
-    node_ids = {}
+    for new_node, old_node in enumerate(nx.dfs_preorder_nodes(tree)):
+        node_map[old_node] = new_node
 
-    for i, node in enumerate(nx.dfs_preorder_nodes(tree)):
-        node_ids[node] = "Node {0}".format(i + 1)
+    new_tree = nx.relabel_nodes(tree, node_map)
 
-        new_tree.add_node(node_ids[node], data_points=sorted(node))
+    idx_map = {}
 
-    for node in node_ids:
-        for child in tree.successors(node):
-            new_tree.add_edge(node_ids[node], node_ids[child])
+    for data_points, node in node_map.items():
+        idx_map[node] = sorted(data_points)
+
+    nx.set_node_attributes(new_tree, name='idxs', values=idx_map)
+
+    if data is not None:
+        name_map = defaultdict(list)
+
+        for node in idx_map:
+            for idx in idx_map[node]:
+                name_map[node].append(data[idx].name)
+
+        nx.set_node_attributes(new_tree, name='names', values=name_map)
 
     return new_tree
 
