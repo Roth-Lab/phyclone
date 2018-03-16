@@ -213,13 +213,14 @@ class RootPermutationDistribution(object):
 def interleave_lists(lists):
     result = []
 
-    while len(lists) > 0:
-        x = random.choice(lists)
+    sentinels = []
 
-        if len(x) == 0:
-            lists.remove(x)
+    for i, l in enumerate(lists):
+        sentinels.extend(np.ones(len(l), dtype=int) * i)
 
-        else:
-            result.append(x.pop(0))
+    random.shuffle(sentinels)
+
+    for idx in sentinels:
+        result.append(lists[idx].pop(0))
 
     return result
