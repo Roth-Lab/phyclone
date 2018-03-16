@@ -1,7 +1,7 @@
 import numpy as np
 import random
 
-from phyclone.math_utils import log_normalize
+from phyclone.math_utils import log_binomial_coefficient, log_normalize
 from phyclone.smc.kernels.base import Kernel, ProposalDistribution
 from phyclone.tree import Tree
 
@@ -30,18 +30,28 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         """ Get the log probability of the tree.
         """
         if self.parent_particle is None:
-            log_p = 0
+            if tree.labels[self.data_point.idx] == -1:
+                log_p = np.log(self.outlier_proposal_prob)
 
-        elif tree.labels[self.data_point.idx] == -1:
-            log_p = np.log(self.outlier_proposal_prob)
-
-        elif tree.labels[self.data_point.idx] in self.parent_particle.tree.nodes:
-            log_p = np.log((1 - self.outlier_proposal_prob) / 2) + self._log_p[tree]
+            else:
+                log_p = 0
 
         else:
-            old_num_roots = len(self.parent_particle.tree.roots)
+            node = tree.labels[self.data_point.idx]
 
-            log_p = np.log((1 - self.outlier_proposal_prob) / 2) - old_num_roots * np.log(2)
+            if node == -1:
+                log_p = np.log(self.outlier_proposal_prob)
+
+            elif node in self.parent_particle.tree.nodes:
+                log_p = np.log((1 - self.outlier_proposal_prob) / 2) + self._log_p[tree]
+
+            else:
+                old_num_roots = len(self.parent_particle.tree.roots)
+
+                num_children = len(tree.get_children(node))
+
+                log_p = np.log((1 - self.outlier_proposal_prob) / 2) - \
+                    np.log(old_num_roots) - log_binomial_coefficient(old_num_roots, num_children)
 
         return log_p
 
