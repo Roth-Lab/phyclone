@@ -8,5 +8,10 @@ setup(
     author_email='andrewjlroth@gmail.com',
     url='https://bitbucket.org/aroth85/phyclone',
     packages=find_packages(),
-    license='GPL v3'
+    license='GPL v3',
+    entry_points={
+        'console_scripts': [
+            'phyclone = phyclone.cli:main',
+        ]
+    }
 )

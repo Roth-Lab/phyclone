@@ -1,6 +1,9 @@
+python=3.6*
+click
 matplotlib
 networkx
 numba
 numpy
+pandas
 scikit-learn
 scipy
