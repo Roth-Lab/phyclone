@@ -90,7 +90,7 @@ def run(
         burnin=100,
         concentration_value=1.0,
         density='beta-binomial',
-        grid_size=None,
+        grid_size=101,
         num_iters=1000,
         precision=1.0,
         seed=None):
