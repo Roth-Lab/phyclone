@@ -34,7 +34,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
                 log_p = np.log(self.outlier_proposal_prob)
 
             else:
-                log_p = 0
+                log_p = np.log(1 - self.outlier_proposal_prob)
 
         else:
             node = tree.labels[self.data_point.idx]
