@@ -80,7 +80,7 @@ You can include the following optional columns.
 1. tumour_content - The tumour content (cellularity) of the sample.
 Default value is 1.0 if column is not present. 
 > Note: In principle this could be different for each mutations/sample.
-> However it most cases it should be the same for a mutations in a sample.
+However it most cases it should be the same for all mutations in a sample.
 
 2. error_rate - Sequencing error rate.
 Default value is 0.001 if column is not present. 
@@ -101,7 +101,7 @@ The `-n` command can be used to control the number of iterations of sampling to 
 
 The `-b` command can be used to control the number of burnin iterations to perform.
 > Note: burnin is done using a heuristic strategy of unconditional SMC.
-> All samples from the burnin are discarded as they will not target the posterior.
+All samples from the burnin are discarded as they will not target the posterior.
 
 The `-d` command can be used to select the emission density.
 As in PyClone the `binomial` and `beta-binomial` densities are available.
