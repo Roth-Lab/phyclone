@@ -1,4 +1,5 @@
 python=3.6*
+biopython
 click
 matplotlib
 networkx
