@@ -46,7 +46,7 @@ python setup.py develop
 
 5. If everything worked PhyClone should be available on the command line.
 ```
-PhyClone --help
+phyclone --help
 ```
 
 ## Usage
@@ -55,6 +55,7 @@ PhyClone --help
 
 To run a PhyClone analysis you will need to prepare an input file.
 The file should be in tab delimited tidy data frame format and have the following columns.
+> Note: There is an example file in examples/data/mixing.tsv
 
 1. mutation_id - Unique identifier for the mutation. 
 This is free form but should match across all samples.
