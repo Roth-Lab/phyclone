@@ -29,6 +29,8 @@ def load_data(file_name, density='beta-binomial', grid_size=101, outlier_prob=1e
 def load_pyclone_data(file_name):
     df = pd.read_csv(file_name, sep='\t')
 
+    df['sample_id'] = df['sample_id'].astype(str)
+
     samples = sorted(df['sample_id'].unique())
 
     # Filter for mutations present in all samples
