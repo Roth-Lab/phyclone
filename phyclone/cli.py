@@ -10,8 +10,7 @@ import phyclone.run
     '-d', '--data-file',
     required=True,
     type=click.Path(exists=True, resolve_path=True),
-    help='''Path to TSV format file with copy number and allele count information for all samples. See the examples
-    directory in the GitHub repository for format.'''
+    help='''Path to TSV format file with copy number and allele count information for all samples. See the examples directory in the GitHub repository for format.'''
 )
 @click.option(
     '-t', '--trace-file',
@@ -46,8 +45,7 @@ def consensus(data_file, trace_file, out_table_file, out_tree_file):
     '-i', '--in-file',
     required=True,
     type=click.Path(exists=True, resolve_path=True),
-    help='''Path to TSV format file with copy number and allele count information for all samples. See the examples
-    directory in the GitHub repository for format.'''
+    help='''Path to TSV format file with copy number and allele count information for all samples. See the examples directory in the GitHub repository for format.'''
 )
 @click.option(
     '-t', '--trace-file',
@@ -77,22 +75,19 @@ def consensus(data_file, trace_file, out_table_file, out_tree_file):
     '--concentration-value',
     default=1.0,
     type=float,
-    help='''The (initial) concentration of the Dirichlet process. Higher values will encourage more clusters, lower
-    values have the opposite effect. Default is 1.0.'''
+    help='''The (initial) concentration of the Dirichlet process. Higher values will encourage more clusters, lower values have the opposite effect. Default is 1.0.'''
 )
 @click.option(
     '--grid-size',
     default=101,
     type=int,
-    help='''Grid size for discrete approximation. This will numerically marginalise the cancer cell fraction. Higher
-    values lead to more accurate approximations at the expense of run time.'''
+    help='''Grid size for discrete approximation. This will numerically marginalise the cancer cell fraction. Higher values lead to more accurate approximations at the expense of run time.'''
 )
 @click.option(
     '--precision',
     default=400,
     type=float,
-    help='''The (initial) precision parameter of the Beta-Binomial density. The higher the value the more similar the
-    Beta-Binomial is to a Binomial. Default is 400.'''
+    help='''The (initial) precision parameter of the Beta-Binomial density. The higher the value the more similar the Beta-Binomial is to a Binomial. Default is 400.'''
 )
 @click.option(
     '--seed',
