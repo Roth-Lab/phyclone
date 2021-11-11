@@ -3,7 +3,7 @@ import numpy as np
 import random
 import scipy.stats as stats
 
-from phyclone.data import DataPoint
+from phyclone.data.base import DataPoint
 from phyclone.tree import Tree
 
 
