@@ -49,10 +49,12 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
                 old_num_roots = len(self.parent_particle.tree.roots)
 
                 num_children = len(tree.get_children(node))
-
-                log_p = np.log((1 - self.outlier_proposal_prob) / 2) - \
-                    np.log(old_num_roots) - log_binomial_coefficient(old_num_roots, num_children)
-
+                
+                log_p = np.log((1 - self.outlier_proposal_prob) / 2)
+                
+                if old_num_roots > 0:
+                    log_p -= np.log(old_num_roots) + log_binomial_coefficient(old_num_roots, num_children)
+ 
         return log_p
 
     def sample(self):
@@ -100,7 +102,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         return tree
 
     def _init_dist(self):
-        if self.parent_particle is None:
+        if self.parent_particle is None or len(self.parent_particle.tree.nodes) == 0:
             return
 
         trees = self._propose_existing_node()
@@ -155,7 +157,8 @@ class SemiAdaptedKernel(Kernel):
     def get_proposal_distribution(self, data_point, parent_particle):
         return SemiAdaptedProposalDistribution(
             data_point,
-            self, parent_particle,
+            self,
+            parent_particle,
             outlier_proposal_prob=self.outlier_proposal_prob,
             propose_roots=self.propose_roots
         )
