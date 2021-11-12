@@ -28,10 +28,16 @@ import phyclone.run
     required=True,
     type=click.Path(resolve_path=True)
 )
-def consensus(data_file, trace_file, out_table_file, out_tree_file):
+@click.option(
+    '-c', '--cluster-file',
+    default=None,
+    type=click.Path(resolve_path=True),
+    help='''Path to file with pre-computed cluster assignments of mutations is located.'''
+)
+def consensus(**kwargs):
     """ Build consensus result.
     """
-    phyclone.run.post_process(data_file, trace_file, out_table_file, out_tree_file)
+    phyclone.run.post_process(**kwargs)
 
 
 #=========================================================================
@@ -58,6 +64,12 @@ def consensus(data_file, trace_file, out_table_file, out_tree_file):
     default=100,
     type=int,
     help='''Number of burnin iterations using unconditional SMC sampler.'''
+)
+@click.option(
+    '-c', '--cluster-file',
+    default=None,
+    type=click.Path(resolve_path=True),
+    help='''Path to file with pre-computed cluster assignments of mutations is located.'''
 )
 @click.option(
     '-d', '--density',

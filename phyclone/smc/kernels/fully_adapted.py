@@ -2,6 +2,7 @@ from __future__ import division
 
 import itertools
 import numpy as np
+import random
 
 from phyclone.math_utils import log_normalize, discrete_rvs
 from phyclone.smc.kernels.base import Kernel, ProposalDistribution
@@ -14,14 +15,16 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
     Considers all possible proposals and weight according to log probability.
     """
 
-    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0):
+    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0, propose_roots=True):
         self.data_point = data_point
 
         self.kernel = kernel
 
         self.parent_particle = parent_particle
 
-        self.use_outliers = (outlier_proposal_prob > 0)
+        self.outlier_proposal_prob = outlier_proposal_prob
+
+        self.propose_roots = propose_roots
 
         self._init_dist()
 
@@ -33,6 +36,29 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
     def sample(self):
         """ Sample a new tree from the proposal distribution.
         """
+        u = random.random()
+        
+        # First particle
+        if self.parent_particle is None:
+            tree = Tree(self.data_point.grid_size)
+
+            if u < (1 - self.outlier_proposal_prob):
+                node = tree.create_root_node([])
+
+                tree.add_data_point_to_node(self.data_point, node)
+
+            else:
+                tree.add_data_point_to_outliers(self.data_point)        
+        
+        # Particles t=2 ...
+        # Only outliers in tree
+        elif len(self.parent_particle.tree.nodes) == 0:
+            if u < (1 - self.outlier_proposal_prob):
+                tree = self._propose_new_node()
+
+            else:
+                tree = self._propose_outlier()
+        
         p = np.exp(np.array(list(self._log_p.values())))
 
         idx = discrete_rvs(p)
@@ -42,59 +68,59 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         return tree
 
     def _init_dist(self):
-        self.trees = []
+        if self.parent_particle is None or len(self.parent_particle.tree.nodes) == 0:
+            return
+        
+        trees = self._propose_existing_node() + self._propose_new_node()
+        
+        if self.outlier_proposal_prob > 0:
+            trees.extend(self._propose_outlier_node())
+        
+        log_q = np.array([x.log_p for x in trees])
 
-        if self.parent_particle is None:
-            tree = Tree(self.kernel.alpha, self.kernel.grid_size)
+        log_q = log_normalize(log_q)
 
-            node = tree.create_root_node([])
-
-            tree.add_data_point_to_node(self.data_point, node)
-
-            self.trees.append(tree)
-
-        else:
-            self._propose_new_node()
-
-            if self.use_outliers:
-                self._propose_outlier_node()
-
-            if self.parent_particle is not None:
-                self._propose_existing_node()
-
-        log_p = [t.log_p for t in self.trees]
-
-        log_p = log_normalize(np.array(log_p))
-
-        self._log_p = dict(zip(self.trees, log_p))
+        self._log_p = dict(zip(trees, log_q))
 
     def _propose_existing_node(self):
-        for node in self.parent_particle.tree.roots:
+        proposed_trees = []
+
+        if self.propose_roots:
+            nodes = self.parent_particle.tree.roots
+
+        else:
+            nodes = self.parent_particle.tree.nodes
+
+        for node in nodes:
             tree = self.parent_particle.tree.copy()
 
             tree.add_data_point_to_node(self.data_point, node)
 
-            self.trees.append(tree)
+            proposed_trees.append(tree)
+
+        return proposed_trees
 
     def _propose_new_node(self):
+        proposed_trees = []
+        
         num_roots = len(self.parent_particle.tree.roots)
 
         for r in range(0, num_roots + 1):
             for children in itertools.combinations(self.parent_particle.tree.roots, r):
                 tree = self.parent_particle.tree.copy()
-
-                node = tree.create_root_node(children)
-
-                tree.add_data_point_to_node(self.data_point, node)
-
-                self.trees.append(tree)
+                
+                tree.create_root_node(children=children, data=[self.data_point])
+                
+                proposed_trees.append(tree)
+        
+        return proposed_trees.append(tree)
 
     def _propose_outlier_node(self):
         tree = self.parent_particle.tree.copy()
 
         tree.add_data_point_to_outliers(self.data_point)
 
-        self.trees.append(tree)
+        return [tree]
 
 
 class FullyAdaptedKernel(Kernel):

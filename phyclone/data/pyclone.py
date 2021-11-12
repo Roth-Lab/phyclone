@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 import numba
 import numpy as np
@@ -8,20 +8,49 @@ import phyclone.data.base
 import phyclone.math_utils
 
 
-def load_data(file_name, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400):
+def load_data(file_name, density='beta-binomial', cluster_file=None, grid_size=101, outlier_prob=1e-4, precision=400):
     pyclone_data = load_pyclone_data(file_name)
 
-    data = []
+    if cluster_file is None:
+        data = []
 
-    for idx, (mut, val) in enumerate(pyclone_data.items()):
-        data_point = phyclone.data.base.DataPoint(
-            idx,
-            val.to_likelihood_grid(density, grid_size, precision=precision),
-            name=mut,
-            outlier_prob=outlier_prob
-        )
+        for idx, (mut, val) in enumerate(pyclone_data.items()):
+            data_point = phyclone.data.base.DataPoint(
+                idx,
+                val.to_likelihood_grid(density, grid_size, precision=precision),
+                name=mut,
+                outlier_prob=outlier_prob
+            )
 
-        data.append(data_point)
+            data.append(data_point)
+
+    else:
+        cluster_df = pd.read_csv(cluster_file, sep="\t")
+
+        cluster_df = cluster_df[["mutation_id", "cluster_id"]].drop_duplicates()
+
+        clusters = cluster_df.set_index("mutation_id")["cluster_id"].to_dict()
+
+        raw_data = defaultdict(list)
+
+        for mut, val in pyclone_data.items():
+            raw_data[clusters[mut]].append(val.to_likelihood_grid(density, grid_size, precision=precision))
+
+        data = []
+
+        for idx, cluster_id in enumerate(sorted(raw_data.keys())):
+            val = np.sum(np.array(raw_data[cluster_id]), axis=0)
+
+            print(val.shape)
+
+            data_point = phyclone.data.base.DataPoint(
+                idx,
+                val,
+                name="cluster_{}".format(cluster_id),
+                outlier_prob=outlier_prob
+            )
+
+            data.append(data_point)
 
     return data
 

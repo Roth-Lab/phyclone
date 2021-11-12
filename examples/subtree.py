@@ -21,8 +21,9 @@ from toy_data import load_test_data
 def main():
     subtree = True
     kernel_type = "semi-adapted"
+    propose_roots = False
     
-    data, true_tree = load_test_data(cluster_size=5, depth=int(1e2), outlier_size=1, single_sample=False)
+    data, true_tree = load_test_data(cluster_size=5, depth=int(5e1), outlier_size=1, single_sample=False)
 
     conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
 
@@ -43,6 +44,8 @@ def main():
         raise Exception("Unknown kernel type: {}".format(kernel_type))
 
     outlier_sampler = mh.OutlierSampler()
+    
+#     outlier_node_sampler = mh.OutlierNodeSampler()
 
     tree_prior_dist = FSCRPDistribution(1.0)
     
@@ -52,12 +55,12 @@ def main():
     
     if subtree:
         pg_sampler = ParticleGibbsTreeSampler(
-            kernel, num_particles=20, propose_roots=True, resample_threshold=0.5
+            kernel, num_particles=20, propose_roots=propose_roots, resample_threshold=0.5
         )
        
     else: 
         pg_sampler = ParticleGibbsSubtreeSampler(
-            kernel, num_particles=20, propose_roots=True, resample_threshold=0.5
+            kernel, num_particles=20, propose_roots=propose_roots, resample_threshold=0.5
         )
 
     print("Starting sampling")
@@ -76,6 +79,8 @@ def main():
 
         for _ in range(len(data)):
             tree = outlier_sampler.sample_tree(tree)
+         
+#         tree = outlier_node_sampler.sample_tree(tree)
 
         tree.relabel_nodes()
 

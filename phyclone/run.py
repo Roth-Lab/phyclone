@@ -20,8 +20,8 @@ import phyclone.math_utils
 import phyclone.trace
 
 
-def post_process(data_file, trace_file, out_table_file, out_tree_file):
-    data = phyclone.data.pyclone.load_data(data_file)
+def post_process(data_file, trace_file, out_table_file, out_tree_file, cluster_file=None):
+    data = phyclone.data.pyclone.load_data(data_file, cluster_file=cluster_file)
 
     trace = phyclone.trace.Trace(trace_file, mode='r')
 
@@ -88,6 +88,7 @@ def run(
         in_file,
         trace_file,
         burnin=100,
+        cluster_file=None,
         concentration_value=1.0,
         density='beta-binomial',
         grid_size=101,
@@ -101,7 +102,7 @@ def run(
         random.seed(seed)
 
     data = phyclone.data.pyclone.load_data(
-        in_file, density=density, grid_size=grid_size, outlier_prob=0, precision=precision
+        in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=0, precision=precision
     )
 
     tree_prior_dist = FSCRPDistribution(concentration_value)
