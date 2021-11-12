@@ -29,6 +29,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     def log_p(self, tree):
         """ Get the log probability of the tree.
         """
+        # First particle
         if self.parent_particle is None:
             if tree.labels[self.data_point.idx] == -1:
                 log_p = np.log(self.outlier_proposal_prob)
@@ -38,21 +39,23 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         else:
             node = tree.labels[self.data_point.idx]
-
+            # Outlier
             if node == -1:
                 log_p = np.log(self.outlier_proposal_prob)
-
+            
+            # Existing node
             elif node in self.parent_particle.tree.nodes:
                 log_p = np.log((1 - self.outlier_proposal_prob) / 2) + self._log_p[tree]
-
+            
+            # New node
             else:
                 old_num_roots = len(self.parent_particle.tree.roots)
-
-                num_children = len(tree.get_children(node))
                 
                 log_p = np.log((1 - self.outlier_proposal_prob) / 2)
                 
                 if old_num_roots > 0:
+                    num_children = len(tree.get_children(node))
+                
                     log_p -= np.log(old_num_roots) + log_binomial_coefficient(old_num_roots, num_children)
  
         return log_p
@@ -61,7 +64,8 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         """ Sample a new tree from the proposal distribution.
         """
         u = random.random()
-
+        
+        # First particle
         if self.parent_particle is None:
             tree = Tree(self.data_point.grid_size)
 
@@ -72,7 +76,8 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
             else:
                 tree.add_data_point_to_outliers(self.data_point)
-
+        
+        # Particles t=2 ...
         # Only outliers in tree
         elif len(self.parent_particle.tree.nodes) == 0:
             if u < (1 - self.outlier_proposal_prob):
@@ -80,7 +85,8 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
             else:
                 tree = self._propose_outlier()
-
+                
+        # Nodes in the tree
         else:
             if u < (1 - self.outlier_proposal_prob) / 2:
                 q = np.exp(list(self._log_p.values()))
