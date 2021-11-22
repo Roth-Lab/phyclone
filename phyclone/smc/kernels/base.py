@@ -23,29 +23,21 @@ class Kernel(object):
         """
         raise NotImplementedError
 
-    def __init__(self, tree_prior_dist, outlier_proposal_prob=0, perm_dist=None, propose_roots=True):
+    def __init__(self, tree_dist, perm_dist=None):
         """
         Parameters
         ----------
-        tree_prior_dist: FSCRPDistribution
-            Prior distribution on tree topology.
-
+        tree_dist: TreeJointDistribution
+            Joint distribution of tree
         outlier_proposal_prob: float
             Probability of proposing an outlier.
         perm_dist: PermutationDistribution
             The permutation distribution used in a particle Gibbs sampler to reorder data points. Set to None if single
             pass SMC is being performed.
-        propose_roots: bool
-            Determines whether to propose adding data points to existing nodes that are roots or alternatively adding to
-            any existing node.
         """
-        self.tree_prior_dist = tree_prior_dist
-
-        self.outlier_proposal_prob = outlier_proposal_prob
+        self.tree_dist = tree_dist
 
         self.perm_dist = perm_dist
-
-        self.propose_roots = propose_roots
 
     def create_particle(self, data_point, log_q, parent_particle, tree):
         """  Create a new particle from a parent particle.
@@ -82,15 +74,27 @@ class Kernel(object):
     def _get_log_p(self, tree):
         """ Compute joint distribution.
         """
-        return tree.log_p + self.tree_prior_dist.log_p(tree)
+        return self.tree_dist.log_p(tree)
 
 
 class ProposalDistribution(object):
     """ Abstract class for proposal distribution.
     """
 
+    def __init__(self, data_point, kernel, parent_particle):
+        self.data_point = data_point
+
+        self.kernel = kernel
+
+        self.parent_particle = parent_particle
+
+    def _empty_tree(self):
+        """ Tree has no nodes
+        """
+        return (self.parent_particle is None) or (len(self.parent_particle.tree.roots) == 0)
+
     def log_p(self, state):
-        """ Get the log probability of a tree.
+        """ Get the log probability of proposing a tree.
         """
         raise NotImplementedError
 

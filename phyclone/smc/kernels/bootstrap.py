@@ -1,5 +1,3 @@
-from __future__ import division
-
 import numpy as np
 import random
 
@@ -14,17 +12,11 @@ class BootstrapProposalDistribution(ProposalDistribution):
     A simple proposal from the prior distribution.
     """
 
-    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0, propose_roots=True):
-        self.data_point = data_point
-
-        self.kernel = kernel
-
-        self.parent_particle = parent_particle
+    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0):
+        super().__init__(data_point, kernel, parent_particle)
 
         self.outlier_proposal_prob = outlier_proposal_prob
         
-        self.propose_roots = propose_roots
-
     def log_p(self, tree):
         """ Get the log probability of the tree.
         """
@@ -45,12 +37,8 @@ class BootstrapProposalDistribution(ProposalDistribution):
             
             # Node in tree
             elif node in self.parent_particle.tree.nodes:
-                if self.propose_roots:
-                    num_nodes = len(self.parent_particle.tree.roots)
+                num_nodes = len(self.parent_particle.tree.roots)
                 
-                else:
-                    num_nodes = len(self.parent_particle.tree.nodes)
-    
                 log_p = np.log((1 - self.outlier_proposal_prob) / 2) - np.log(num_nodes)
             
             # New node
@@ -62,7 +50,7 @@ class BootstrapProposalDistribution(ProposalDistribution):
                 if old_num_roots > 0:
                     num_children = len(tree.get_children(node))
                 
-                    log_p -= np.log(old_num_roots) + log_binomial_coefficient(old_num_roots, num_children)
+                    log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
         
         return log_p
 
@@ -106,11 +94,7 @@ class BootstrapProposalDistribution(ProposalDistribution):
         return tree
 
     def _propose_existing_node(self):
-        if self.propose_roots:
-            nodes = self.parent_particle.tree.roots
-
-        else:
-            nodes = self.parent_particle.tree.nodes
+        nodes = self.parent_particle.tree.roots
    
         node = random.choice(list(nodes))
 
@@ -143,11 +127,15 @@ class BootstrapProposalDistribution(ProposalDistribution):
 
 class BootstrapKernel(Kernel):
 
+    def __init__(self, tree_prior_dist, outlier_proposal_prob=0, perm_dist=None): 
+        super().__init__(tree_prior_dist, perm_dist=perm_dist)
+
+        self.outlier_proposal_prob = outlier_proposal_prob
+
     def get_proposal_distribution(self, data_point, parent_particle):
         return BootstrapProposalDistribution(
             data_point,
             self,
             parent_particle,
-            outlier_proposal_prob=self.outlier_proposal_prob,
-            propose_roots=self.propose_roots
+            outlier_proposal_prob=self.outlier_proposal_prob
         )

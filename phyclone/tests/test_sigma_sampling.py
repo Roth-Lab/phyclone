@@ -5,9 +5,11 @@ Created on 17 Mar 2017
 '''
 import unittest
 
-import networkx as nx
+import numpy as np
 
-from phyclone.graph_utils import interleave_lists, sample_sigma
+from phyclone.data.base import DataPoint 
+from phyclone.smc.utils import interleave_lists, RootPermutationDistribution
+from phyclone.tree import Tree
 
 
 class Test(unittest.TestCase):
@@ -33,62 +35,85 @@ class Test(unittest.TestCase):
             prev_idx = z.index(y_i)
 
     def test_sample_sigma_tree(self):
-        graph = nx.DiGraph()
-
-        graph.add_node(0, data_points=range(10))
-
-        graph.add_node(1, data_points=range(10, 20))
-
-        graph.add_node(2, data_points=range(20, 30))
-
-        graph.add_edge(0, 1)
-
-        graph.add_edge(0, 2)
-
-        sigma = sample_sigma(graph)
-
-        self.assertGreater(min(sigma[:20]), 9)
-
+        grid_size = (1, 10)
+        
+        tree = Tree(grid_size)
+        
+        node_1 = tree.create_root_node(children=[], data=[])
+        
+        for i in range(10, 20):
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_1)
+   
+        node_2 = tree.create_root_node(children=[], data=[])
+        
+        for i in range(20, 30):
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_2)
+            
+        root = tree.create_root_node(children=[node_1, node_2], data=[])
+        
+        for i in range(10):
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), root)
+            
+        sigma = RootPermutationDistribution.sample(tree)
+ 
+        self.assertGreater(min([x.idx for x in sigma[:20]]), 9)
+ 
     def test_sample_sigma_chain(self):
-        graph = nx.DiGraph()
-
-        graph.add_node(0, data_points=range(10))
-
-        graph.add_node(1, data_points=range(10, 20))
-
-        graph.add_node(2, data_points=range(20, 30))
-
-        graph.add_edge(0, 1)
-
-        graph.add_edge(1, 2)
-
-        sigma = sample_sigma(graph)
-
-        self.assertGreater(min(sigma[:10]), 19)
-
-        self.assertGreater(min(sigma[:20]), 9)
-
+        grid_size = (1, 10)
+        
+        tree = Tree(grid_size)
+        
+        node_2 = tree.create_root_node(children=[], data=[])
+        
+        for i in range(20, 30):
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_2)
+        
+        node_1 = tree.create_root_node(children=[node_2], data=[])
+        
+        for i in range(10, 20):
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_1)
+            
+        root = tree.create_root_node(children=[node_1], data=[])
+        
+        for i in range(10):
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), root)
+            
+        sigma = RootPermutationDistribution.sample(tree)
+ 
+        self.assertGreater(min([x.idx for x in sigma[:10]]), 19)
+ 
+        self.assertGreater(min([x.idx for x in sigma[:20]]), 9)
+ 
     def test_sample_two_roots(self):
-        graph = nx.DiGraph()
+        grid_size = (1, 10)
+        
+        tree = Tree(grid_size)
 
-        graph.add_node(0, data_points=range(10))
+        node_2 = tree.create_root_node(children=[], data=[])
+        
+        for i in range(20, 30):
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_2)
+    
+        node_0 = tree.create_root_node(children=[node_2], data=[])
+        
+        for i in range(10):
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_0)        
 
-        graph.add_node(1, data_points=range(10, 20))
-
-        graph.add_node(2, data_points=range(20, 30))
-
-        graph.add_node(3, data_points=range(30, 40))
-
-        graph.add_edge(0, 2)
-
-        graph.add_edge(1, 3)
-
-        sigma = sample_sigma(graph)
-
-        print sigma
-
-        self.assertGreater(min(sigma[:20]), 19)
+        node_3 = tree.create_root_node(children=[], data=[])
+        
+        for i in range(30, 40):
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_3)
+        
+        node_1 = tree.create_root_node(children=[node_3], data=[])
+        
+        for i in range(10, 20):
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_1)
+            
+        sigma = RootPermutationDistribution.sample(tree)
+ 
+        self.assertGreater(min([x.idx for x in sigma[:20]]), 19)        
+ 
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.test_interleave']
+    # import sys;sys.argv = ['', 'Test.test_interleave']
     unittest.main()

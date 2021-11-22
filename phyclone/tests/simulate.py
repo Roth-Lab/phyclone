@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.stats as stats
 
-from phyclone.data import DataPoint
+from phyclone.data.base import DataPoint
 
 
 def simulate_binomial_data(idx, n, p, outlier_prob=0.0):

@@ -1,5 +1,3 @@
-from __future__ import division
-
 import numpy as np
 
 from phyclone.smc.samplers.base import AbstractSMCSampler
@@ -10,14 +8,6 @@ import phyclone.smc.swarm
 class SMCSampler(AbstractSMCSampler):
     """ Standard SMC sampler with adaptive resampling.
     """
-
-    def _get_log_w(self, particle):
-        if self.iteration < self.num_iterations - 1:
-            return particle.log_w
-
-        else:
-            # Enforce that the sum of the tree is one
-            return particle.log_w - particle.tree.log_p + particle.tree.log_p_one
 
     def _init_swarm(self):
         self.swarm = phyclone.smc.swarm.ParticleSwarm()

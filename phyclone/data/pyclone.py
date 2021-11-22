@@ -8,8 +8,8 @@ import phyclone.data.base
 import phyclone.math_utils
 
 
-def load_data(file_name, density='beta-binomial', cluster_file=None, grid_size=101, outlier_prob=1e-4, precision=400):
-    pyclone_data = load_pyclone_data(file_name)
+def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400):
+    pyclone_data, samples = load_pyclone_data(file_name)
 
     if cluster_file is None:
         data = []
@@ -28,8 +28,12 @@ def load_data(file_name, density='beta-binomial', cluster_file=None, grid_size=1
         cluster_df = pd.read_csv(cluster_file, sep="\t")
 
         cluster_df = cluster_df[["mutation_id", "cluster_id"]].drop_duplicates()
+        
+        cluster_sizes = cluster_df["cluster_id"].value_counts().to_dict()
 
         clusters = cluster_df.set_index("mutation_id")["cluster_id"].to_dict()
+        
+        print("Using input clustering with {} clusters".format(cluster_df["cluster_id"].nunique()))
 
         raw_data = defaultdict(list)
 
@@ -41,18 +45,16 @@ def load_data(file_name, density='beta-binomial', cluster_file=None, grid_size=1
         for idx, cluster_id in enumerate(sorted(raw_data.keys())):
             val = np.sum(np.array(raw_data[cluster_id]), axis=0)
 
-            print(val.shape)
-
             data_point = phyclone.data.base.DataPoint(
                 idx,
                 val,
-                name="cluster_{}".format(cluster_id),
-                outlier_prob=outlier_prob
+                name="{}".format(cluster_id),
+                outlier_prob=outlier_prob ** cluster_sizes[cluster_id]
             )
 
             data.append(data_point)
 
-    return data
+    return data, samples
 
 
 def load_pyclone_data(file_name):
@@ -108,7 +110,7 @@ def load_pyclone_data(file_name):
 
         data[name] = DataPoint(samples, sample_data_points)
 
-    return data
+    return data, samples
 
 
 def get_major_cn_prior(major_cn, minor_cn, normal_cn, error_rate=1e-3):
@@ -150,6 +152,7 @@ def get_major_cn_prior(major_cn, minor_cn, normal_cn, error_rate=1e-3):
 
 
 class DataPoint(object):
+
     def __init__(self, samples, sample_data_points):
         self.samples = samples
 
@@ -180,15 +183,16 @@ class DataPoint(object):
         return log_ll
 
 
-@numba.jitclass([
+@numba.experimental.jitclass([
     ('a', numba.int64),
     ('b', numba.int64),
-    ('cn', numba.int64[:, :]),
-    ('mu', numba.float64[:, :]),
+    ('cn', numba.int64[:,:]),
+    ('mu', numba.float64[:,:]),
     ('log_pi', numba.float64[:]),
     ('t', numba.float64)
 ])
 class SampleDataPoint(object):
+
     def __init__(self, a, b, cn, mu, log_pi, t):
         self.a = a
         self.b = b

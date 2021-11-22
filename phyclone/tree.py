@@ -9,7 +9,7 @@ from phyclone.math_utils import log_factorial, log_sum_exp
 
 
 class FSCRPDistribution(object):
-    """ FSCRP distribution on trees.
+    """ FSCRP prior distribution on trees.
     """
 
     def __init__(self, alpha):
@@ -17,15 +17,6 @@ class FSCRPDistribution(object):
 
     def log_p(self, tree):
         log_p = 0
-
-        # Outlier prior
-        for node, node_data in tree.node_data.items():
-            for data_point in node_data:
-                if node == -1:
-                    log_p += np.log(data_point.outlier_prob)
-
-                else:
-                    log_p += np.log(1 - data_point.outlier_prob)
 
         # CRP prior
         num_nodes = len(tree.nodes)
@@ -45,8 +36,63 @@ class FSCRPDistribution(object):
 
         return log_p
 
+    
+class TreeJointDistribution(object):
+
+    def __init__(self, prior):
+        self.prior = prior
+
+    def log_p(self, tree):
+        """ The log likelihood of the data marginalized over root node parameters.
+        """
+        log_p = self.prior.log_p(tree)
+
+        # Outlier prior
+        for node, node_data in tree.node_data.items():
+            for data_point in node_data:
+                if data_point.outlier_prob > 0:
+                    if node == -1:
+                        log_p += np.log(data_point.outlier_prob)
+    
+                    else:
+                        log_p += np.log1p(-data_point.outlier_prob)
+
+        if len(tree.roots) > 0:
+            for i in range(tree.grid_size[0]):
+                log_p += log_sum_exp(tree.data_log_likelihood[i,:])
+
+        for data_point in tree.outliers:
+            log_p += data_point.outlier_marginal_prob
+
+        return log_p
+    
+    def log_p_one(self, tree):
+        """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
+        """
+        log_p = self.prior.log_p(tree)
+
+        # Outlier prior
+        for node, node_data in tree.node_data.items():
+            for data_point in node_data:
+                if data_point.outlier_prob > 0:
+                    if node == -1:
+                        log_p += np.log(data_point.outlier_prob)
+    
+                    else:
+                        log_p += np.log1p(-data_point.outlier_prob)
+
+        if len(tree.roots) > 0:
+            for i in range(tree.grid_size[0]):
+                log_p += tree.data_log_likelihood[i, -1]
+
+        for data_point in tree.outliers:
+            log_p += data_point.outlier_marginal_prob
+
+        return log_p
+
 
 class Tree(object):
+
     def __init__(self, grid_size):
         self.grid_size = grid_size
 
@@ -56,7 +102,7 @@ class Tree(object):
 
         self._graph = nx.DiGraph()
 
-        self._add_node('root')
+        self._add_node("root")
 
     def __hash__(self):
         return hash((get_clades(self), frozenset(self.outliers)))
@@ -90,7 +136,7 @@ class Tree(object):
     def graph(self):
         result = self._graph.copy()
 
-        result.remove_node('root')
+        result.remove_node("root")
 
         return result
 
@@ -109,7 +155,7 @@ class Tree(object):
     def data_log_likelihood(self):
         """ The log likelihood grid of the data for all values of the root node.
         """
-        return self._graph.nodes['root']['log_R']
+        return self._graph.nodes["root"]["log_R"]
 
     @property
     def labels(self):
@@ -122,38 +168,10 @@ class Tree(object):
         return result
 
     @property
-    def log_p(self):
-        """ The log likelihood of the data marginalized over root node parameters.
-        """
-        log_p = 0
-
-        for i in range(self.grid_size[0]):
-            log_p += log_sum_exp(self.data_log_likelihood[i, :])
-
-        for data_point in self.outliers:
-            log_p += data_point.outlier_marginal_prob
-
-        return log_p
-
-    @property
-    def log_p_one(self):
-        """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
-        """
-        log_p = 0
-
-        for i in range(self.grid_size[0]):
-            log_p += self.data_log_likelihood[i, -1]
-
-        for data_point in self.outliers:
-            log_p += data_point.outlier_marginal_prob
-
-        return log_p
-
-    @property
     def nodes(self):
         result = list(self._graph.nodes())
 
-        result.remove('root')
+        result.remove("root")
 
         return result
 
@@ -161,8 +179,8 @@ class Tree(object):
     def node_data(self):
         result = self._data.copy()
 
-        if 'root' in result:
-            del result['root']
+        if "root" in result:
+            del result["root"]
 
         return result
 
@@ -172,26 +190,26 @@ class Tree(object):
 
     @property
     def roots(self):
-        return list(self._graph.successors('root'))
+        return list(self._graph.successors("root"))
 
     @staticmethod
     def from_dict(data, tree_dict):
         new = Tree(data[0].grid_size)
 
-        new._graph = nx.DiGraph(tree_dict['graph'])
+        new._graph = nx.DiGraph(tree_dict["graph"])
 
         data = dict(zip([x.idx for x in data], data))
 
         for node in new._graph.nodes:
             new._add_node(node)
 
-        for idx, node in tree_dict['labels'].items():
+        for idx, node in tree_dict["labels"].items():
             new._data[node].append(data[idx])
 
             if node != -1:
-                new._graph.nodes[node]['log_p'] += data[idx].value
+                new._graph.nodes[node]["log_p"] += data[idx].value
 
-                new._graph.nodes[node]['log_R'] += data[idx].value
+                new._graph.nodes[node]["log_R"] += data[idx].value
 
         new.update()
 
@@ -199,8 +217,8 @@ class Tree(object):
 
     def to_dict(self):
         return {
-            'graph': nx.to_dict_of_dicts(self._graph),
-            'labels': self.labels
+            "graph": nx.to_dict_of_dicts(self._graph),
+            "labels": self.labels
         }
 
     def add_data_point_to_node(self, data_point, node):
@@ -209,9 +227,9 @@ class Tree(object):
         self._data[node].append(data_point)
 
         if node != -1:
-            self._graph.nodes[node]['log_p'] += data_point.value
+            self._graph.nodes[node]["log_p"] += data_point.value
 
-            self._graph.nodes[node]['log_R'] += data_point.value
+            self._graph.nodes[node]["log_R"] += data_point.value
 
             self._update_path_to_root(self.get_parent(node))
 
@@ -236,7 +254,7 @@ class Tree(object):
 
         # Connect subtree
         if parent is None:
-            parent = 'root'
+            parent = "root"
 
         for node in subtree.roots:
             self._graph.add_edge(parent, node)
@@ -260,12 +278,12 @@ class Tree(object):
         for data_point in data:
             self._data[node].append(data_point)
 
-            self._graph.nodes[node]['log_p'] += data_point.value
+            self._graph.nodes[node]["log_p"] += data_point.value
 
-        self._graph.add_edge('root', node)
+        self._graph.add_edge("root", node)
 
         for child in children:
-            self._graph.remove_edge('root', child)
+            self._graph.remove_edge("root", child)
 
             self._graph.add_edge(node, child)
 
@@ -290,22 +308,22 @@ class Tree(object):
         new._graph = self._graph.copy()
 
         for node in new._graph:
-            new._graph.nodes[node]['log_p'] = self._graph.nodes[node]['log_p'].copy()
+            new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
 
-            new._graph.nodes[node]['log_S'] = self._graph.nodes[node]['log_S'].copy()
+            new._graph.nodes[node]["log_S"] = self._graph.nodes[node]["log_S"].copy()
 
-            new._graph.nodes[node]['log_R'] = self._graph.nodes[node]['log_R'].copy()
+            new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"].copy()
 
         return new
 
     def get_children(self, node):
         return list(self._graph.successors(node))
 
-    def get_descendants(self, source='root'):
+    def get_descendants(self, source="root"):
         return nx.descendants(self._graph, source=source)
 
     def get_parent(self, node):
-        if node == 'root':
+        if node == "root":
             return None
 
         else:
@@ -315,7 +333,7 @@ class Tree(object):
         return list(self._data[node])
 
     def get_subtree(self, subtree_root):
-        if subtree_root == 'root':
+        if subtree_root == "root":
             return self.copy()
 
         new = Tree(self.grid_size)
@@ -324,12 +342,12 @@ class Tree(object):
 
         new._graph = nx.compose(new._graph, subtree_graph)
 
-        new._graph.add_edge('root', subtree_root)
+        new._graph.add_edge("root", subtree_root)
 
         for node in new.nodes:
             new._data[node] = list(self._data[node])
 
-            new._graph.nodes[node]['log_p'] = self._graph.nodes[node]['log_p'].copy()
+            new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
 
         new.update()
 
@@ -349,11 +367,18 @@ class Tree(object):
         data = defaultdict(list)
 
         data[-1] = self._data[-1]
-
-        for new_node, old_node in enumerate(self.nodes):
+        
+        new_node = 0
+        
+        for old_node in nx.dfs_preorder_nodes(self._graph, source="root"):
+            if old_node == "root":
+                continue
+            
             node_map[old_node] = new_node
 
             data[new_node] = self._data[old_node]
+            
+            new_node += 1
 
         self._data = data
 
@@ -362,8 +387,8 @@ class Tree(object):
     def remove_data_point_from_node(self, data_point, node):
         self._data[node].remove(data_point)
 
-        if node != - 1:
-            self._graph.nodes[node]['log_p'] -= data_point.value
+        if node != -1:
+            self._graph.nodes[node]["log_p"] -= data_point.value
 
             self._update_path_to_root(node)
 
@@ -387,27 +412,27 @@ class Tree(object):
             self._update_path_to_root(parent)
 
     def update(self):
-        for node in nx.dfs_postorder_nodes(self._graph, 'root'):
+        for node in nx.dfs_postorder_nodes(self._graph, "root"):
             self._update_node(node)
 
     def _add_node(self, node):
         self._graph.add_node(node)
 
-        self._graph.nodes[node]['log_p'] = np.ones(self.grid_size) * self._log_prior
+        self._graph.nodes[node]["log_p"] = np.ones(self.grid_size) * self._log_prior
 
-        self._graph.nodes[node]['log_R'] = np.zeros(self.grid_size)
+        self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size)
 
-        self._graph.nodes[node]['log_S'] = np.zeros(self.grid_size)
+        self._graph.nodes[node]["log_S"] = np.zeros(self.grid_size)
 
     def _update_path_to_root(self, source):
         """ Update recursion values for all nodes on the path between the source node and root inclusive.
         """
-        paths = list(nx.all_simple_paths(self._graph, 'root', source))
+        paths = list(nx.all_simple_paths(self._graph, "root", source))
 
         if len(paths) == 0:
-            assert source == 'root'
+            assert source == "root"
 
-            paths = [['root']]
+            paths = [["root"]]
 
         assert len(paths) == 1
 
@@ -415,20 +440,20 @@ class Tree(object):
 
         assert path[-1] == source
 
-        assert path[0] == 'root'
+        assert path[0] == "root"
 
         for source in reversed(path):
             self._update_node(source)
 
     def _update_node(self, node):
-        child_log_R_values = [self._graph.nodes[child]['log_R'] for child in self._graph.successors(node)]
+        child_log_R_values = [self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)]
 
-        self._graph.nodes[node]['log_S'] = compute_log_S(child_log_R_values)
+        self._graph.nodes[node]["log_S"] = compute_log_S(child_log_R_values)
 
-        if isinstance(self._graph.nodes[node]['log_S'], float):
-            self._graph.nodes[node]['log_S'] = np.zeros(self.grid_size)
+        if isinstance(self._graph.nodes[node]["log_S"], float):
+            self._graph.nodes[node]["log_S"] = np.zeros(self.grid_size)
 
-        self._graph.nodes[node]['log_R'] = self._graph.nodes[node]['log_p'] + self._graph.nodes[node]['log_S']
+        self._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_p"] + self._graph.nodes[node]["log_S"]
 
 
 def compute_log_S(child_log_R_values):
@@ -449,7 +474,7 @@ def compute_log_S(child_log_R_values):
     num_dims = log_D.shape[0]
 
     for i in range(num_dims):
-        log_S[i, :] = np.logaddexp.accumulate(log_D[i, :])
+        log_S[i,:] = np.logaddexp.accumulate(log_D[i,:])
 
     return log_S
 
@@ -464,7 +489,7 @@ def compute_log_D(child_log_R_values):
 
     for child_log_R in child_log_R_values:
         for i in range(num_dims):
-            log_D[i, :] = _compute_log_D_n(child_log_R[i, :], log_D[i, :])
+            log_D[i,:] = _compute_log_D_n(child_log_R[i,:], log_D[i,:])
 
     return log_D
 

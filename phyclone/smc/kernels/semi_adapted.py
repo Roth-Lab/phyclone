@@ -13,32 +13,27 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     should provide a computational advantage over the fully adapted proposal.
     """
 
-    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0, propose_roots=True):
-        self.data_point = data_point
-
-        self.kernel = kernel
-
-        self.parent_particle = parent_particle
-
+    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0):
+        super().__init__(data_point, kernel, parent_particle)
+        
         self.outlier_proposal_prob = outlier_proposal_prob
-
-        self.propose_roots = propose_roots
-
+        
         self._init_dist()
 
     def log_p(self, tree):
-        """ Get the log probability of the tree.
+        """ Get the log probability of proposing the tree.
         """
-        # First particle
-        if self.parent_particle is None:
-            if tree.labels[self.data_point.idx] == -1:
+        node = tree.labels[self.data_point.idx]
+        
+        # First particle or all outliers
+        if self._empty_tree():
+            if node == -1:
                 log_p = np.log(self.outlier_proposal_prob)
 
             else:
                 log_p = np.log(1 - self.outlier_proposal_prob)
 
         else:
-            node = tree.labels[self.data_point.idx]
             # Outlier
             if node == -1:
                 log_p = np.log(self.outlier_proposal_prob)
@@ -53,11 +48,10 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
                 
                 log_p = np.log((1 - self.outlier_proposal_prob) / 2)
                 
-                if old_num_roots > 0:
-                    num_children = len(tree.get_children(node))
+                num_children = len(tree.get_children(node))
                 
-                    log_p -= np.log(old_num_roots) + log_binomial_coefficient(old_num_roots, num_children)
- 
+                log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
+
         return log_p
 
     def sample(self):
@@ -65,77 +59,69 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         """
         u = random.random()
         
-        # First particle
-        if self.parent_particle is None:
-            tree = Tree(self.data_point.grid_size)
+        if self._empty_tree():
+            # First particle
+            if self.parent_particle is None:
+                tree = Tree(self.data_point.grid_size)
+            
+            else:
+                tree = self.parent_particle.tree.copy()
 
-            if u < (1 - self.outlier_proposal_prob):
-                node = tree.create_root_node([])
-
-                tree.add_data_point_to_node(self.data_point, node)
+            if u < self.outlier_proposal_prob:
+                tree.add_data_point_to_outliers(self.data_point)
 
             else:
-                tree.add_data_point_to_outliers(self.data_point)
+                tree.create_root_node(children=[], data=[self.data_point])
         
         # Particles t=2 ...
-        # Only outliers in tree
-        elif len(self.parent_particle.tree.nodes) == 0:
-            if u < (1 - self.outlier_proposal_prob):
-                tree = self._propose_new_node()
-
-            else:
-                tree = self._propose_outlier()
-                
-        # Nodes in the tree
         else:
-            if u < (1 - self.outlier_proposal_prob) / 2:
-                q = np.exp(list(self._log_p.values()))
-
-                assert abs(1 - sum(q)) < 1e-6
-
-                q = q / sum(q)
-
-                idx = np.random.multinomial(1, q).argmax()
-
-                tree = list(self._log_p.keys())[idx]
-
-            elif u < (1 - self.outlier_proposal_prob):
-                tree = self._propose_new_node()
-
-            else:
+            # Outlier
+            if u < self.outlier_proposal_prob:
                 tree = self._propose_outlier()
+            
+            # Existing node
+            elif self.outlier_proposal_prob < u < (1 - self.outlier_proposal_prob) / 2:
+                tree = self._propose_existing_node()
+            
+            # New node
+            else:
+                tree = self._propose_new_node()
 
         return tree
 
     def _init_dist(self):
-        if self.parent_particle is None or len(self.parent_particle.tree.nodes) == 0:
-            return
+        self._log_p = {}
+        
+        if not self._empty_tree():
+            trees = []
+        
+            nodes = self.parent_particle.tree.roots
+        
+            for node in nodes:
+                tree = self.parent_particle.tree.copy()
+        
+                tree.add_data_point_to_node(self.data_point, node)
+        
+                trees.append(tree)
 
-        trees = self._propose_existing_node()
-
-        log_q = np.array([x.log_p for x in trees])
-
-        log_q = log_normalize(log_q)
-
-        self._log_p = dict(zip(trees, log_q))
+            log_q = np.array([self.kernel.tree_dist.log_p(x) for x in trees])
+    
+            log_q = log_normalize(log_q)
+    
+            self._log_p = dict(zip(trees, log_q))
 
     def _propose_existing_node(self):
-        proposed_trees = []
+        q = np.exp(list(self._log_p.values()))
 
-        if self.propose_roots:
-            nodes = self.parent_particle.tree.roots
+        assert abs(1 - sum(q)) < 1e-6
 
-        else:
-            nodes = self.parent_particle.tree.nodes
+        q = q / sum(q)
 
-        for node in nodes:
-            tree = self.parent_particle.tree.copy()
+        idx = np.random.multinomial(1, q).argmax()
 
-            tree.add_data_point_to_node(self.data_point, node)
-
-            proposed_trees.append(tree)
-
-        return proposed_trees
+        tree = list(self._log_p.keys())[idx]
+        
+        return tree
 
     def _propose_new_node(self):
         num_roots = len(self.parent_particle.tree.roots)
@@ -160,11 +146,15 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
 class SemiAdaptedKernel(Kernel):
 
+    def __init__(self, tree_prior_dist, outlier_proposal_prob=0.0, perm_dist=None):
+        super().__init__(tree_prior_dist, perm_dist=perm_dist)
+
+        self.outlier_proposal_prob = outlier_proposal_prob
+
     def get_proposal_distribution(self, data_point, parent_particle):
         return SemiAdaptedProposalDistribution(
             data_point,
             self,
             parent_particle,
-            outlier_proposal_prob=self.outlier_proposal_prob,
-            propose_roots=self.propose_roots
+            outlier_proposal_prob=self.outlier_proposal_prob
         )

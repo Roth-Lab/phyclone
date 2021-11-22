@@ -2,16 +2,19 @@ import unittest
 
 import numpy as np
 
-from phyclone.data import DataPoint
-from phyclone.tree import Tree
+from phyclone.data.base import DataPoint
+from phyclone.tree import FSCRPDistribution, Tree
 from phyclone.math_utils import log_factorial
 
 
 class Test(unittest.TestCase):
+
     def setUp(self):
         grid_size = (1, 10)
 
-        self.tree = Tree(1.0, grid_size)
+        self.tree = Tree(grid_size)
+        
+        self.tree_dist = FSCRPDistribution(1.0)
 
     def test_create_root_node(self):
         node = self.tree.create_root_node([])
@@ -23,16 +26,7 @@ class Test(unittest.TestCase):
         self.assertListEqual(self.tree.roots, [0])
 
     def test_simple_log_p(self):
-        self.assertEqual(self.tree.log_p, 0)
-
-    def test_one_data_point_log_p(self):
-        node = self.tree.create_root_node([])
-
-        self.tree.add_data_point_to_node(self._create_data_point(0), node)
-
-        np.testing.assert_equal(
-            self.tree.data_log_likelihood, self.tree.data_log_likelihood.max(axis=1)[:, np.newaxis]
-        )
+        self.assertEqual(self.tree.log_p_one, 0)
 
     def test_one_data_point_sigma(self):
         data_point = self._create_data_point(0)
@@ -41,33 +35,41 @@ class Test(unittest.TestCase):
 
         self.tree.add_data_point_to_node(data_point, node)
 
-        self.assertEqual(self.tree.log_p_sigma, 0)
+        self.assertEqual(self.tree_dist.log_p(self.tree), 0)
 
     def test_two_data_point_one_cluster_sigma(self):
-        data = self._create_data_points(2)
+        """ CRP term is $\alpha * log(x - 1) = 1.0 * log(2)! and tree term is (n+1)^(n-1) = 2^0
+        """
+        data = self._create_data_points(3)
 
         node = self.tree.create_root_node([])
 
         self.tree.add_data_point_to_node(data[0], node)
 
         self.tree.add_data_point_to_node(data[1], node)
+        
+        self.tree.add_data_point_to_node(data[2], node)
 
-        self.assertEqual(self.tree.log_p_sigma, -log_factorial(2))
+        self.assertEqual(self.tree_dist.log_p(self.tree), log_factorial(2))
 
     def test_two_data_point_chain_sigma(self):
+        """ CRP is 0 and tree term is (n+1)^(n-1) = 3^1
+        """
         data = self._create_data_points(2)
 
         node = self.tree.create_root_node([])
 
         self.tree.add_data_point_to_node(data[0], node)
 
-        node = self.tree.create_root_node([node, ])
+        node = self.tree.create_root_node([node])
 
         self.tree.add_data_point_to_node(data[1], node)
 
-        self.assertEqual(self.tree.log_p_sigma, 0)
+        self.assertEqual(self.tree_dist.log_p(self.tree), -np.log(3))
 
     def test_two_data_point_separate_sigma(self):
+        """ CRP is 0 and tree term is (n+1)^(n-1) = 3^1
+        """
         data = self._create_data_points(2)
 
         node = self.tree.create_root_node([])
@@ -78,7 +80,7 @@ class Test(unittest.TestCase):
 
         self.tree.add_data_point_to_node(data[1], node)
 
-        self.assertEqual(self.tree.log_p_sigma, -log_factorial(2))
+        self.assertEqual(self.tree_dist.log_p(self.tree), -np.log(3))
 
     def _create_data_point(self, idx):
         return DataPoint(idx, np.zeros(self.tree.grid_size))

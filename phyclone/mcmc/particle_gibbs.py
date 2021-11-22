@@ -1,5 +1,3 @@
-from __future__ import division
-
 import random
 
 import phyclone.math_utils
@@ -12,12 +10,10 @@ class ParticleGibbsTreeSampler(object):
     """ Particle Gibbs sampler targeting sampling a full tree.
     """
 
-    def __init__(self, kernel, num_particles=10, propose_roots=True, resample_threshold=0.5):
+    def __init__(self, kernel, num_particles=10, resample_threshold=0.5):
         self.kernel = kernel
 
         self.num_particles = num_particles
-
-        self.propose_roots = propose_roots
 
         self.resample_threshold = resample_threshold
 
@@ -31,11 +27,7 @@ class ParticleGibbsTreeSampler(object):
     def sample_swarm(self, tree):
         """ Sample a new SMC swarm
         """
-        if self.propose_roots:
-            perm_dist = phyclone.smc.utils.RootPermutationDistribution()
-
-        else:
-            perm_dist = phyclone.smc.utils.NodePermutationDistribution()
+        perm_dist = phyclone.smc.utils.RootPermutationDistribution()
 
         data_sigma = perm_dist.sample(tree)
 
@@ -101,7 +93,7 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
         for p, w in zip(swarm.particles, swarm.unnormalized_log_weights):
             subtree = p.tree
 
-            w -= subtree.log_p_one
+            w -= self.kernel.tree_dist.log_p_one(subtree)
 
             new_tree = tree.copy()
 
@@ -112,7 +104,7 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
 
             new_tree.update()
 
-            w += new_tree.log_p_one
+            w += self.kernel.tree_dist.log_p_one(new_tree)
 
             p.tree = new_tree
 

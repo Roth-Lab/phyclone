@@ -7,7 +7,7 @@ from phyclone.data.base import DataPoint
 from phyclone.tree import Tree
 
 
-def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, single_sample=False):
+def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, shuffle=True, single_sample=False):
     """ Simulate a toy Binomial data set.
 
     True tree: (4,(3,2(1,0)))
@@ -34,8 +34,12 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, si
     graph.add_edge(2, 1)
 
     cluster_params = [
-        [0.1, 0.2, 0.9, 0.05], [0.2, 0.1, 0.02, 0.9], [0.3, 0.3, 0.92, 0.95],
-        [0.69, 0.69, 0.07, 0.04], [0.99, 0.99, 0.99, 0.99], [0.01, 0.95, 0.95, 0.01]
+        [0.1, 0.2, 0.9, 0.05],
+        [0.2, 0.1, 0.02, 0.9],
+        [0.3, 0.3, 0.92, 0.95],
+        [0.69, 0.69, 0.07, 0.04],
+        [0.99, 0.99, 0.99, 0.99],
+        [0.01, 0.95, 0.95, 0.01]
     ]
 
     if single_sample:
@@ -45,8 +49,6 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, si
 #         cluster_params = [[x[0], x[1], x[2]] for x in cluster_params]
 
     data = []
-
-    labels = []
 
     idx = 0
 
@@ -87,8 +89,9 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, si
             else:
                 tree.add_data_point_to_node(data[-1], node)
 
-            labels.append(node)
-
             idx += 1
+    
+    if shuffle:
+        np.random.shuffle(data)
 
     return data, tree

@@ -1,2 +1,2 @@
-from .metropolis_hastings import DataPointSwapSampler, OutlierSampler, OutlierNodeSampler, ParentChildSwap, PruneRegraphSampler
+from phyclone.mcmc.gibbs_mh import DataPointSampler, PruneRegraphSampler
 from .particle_gibbs import ParticleGibbsTreeSampler, ParticleGibbsSubtreeSampler

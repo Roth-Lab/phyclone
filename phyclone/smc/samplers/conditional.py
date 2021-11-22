@@ -62,14 +62,6 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
         return constrained_path
 
-    def _get_log_w(self, particle):
-        if self.iteration < self.num_iterations - 1:
-            return particle.log_w
-
-        else:
-            # Enforce that the sum of the tree is one and add auxillary term for permutation
-            return particle.log_w - particle.tree.log_p + particle.tree.log_p_one
-
     def _init_swarm(self):
         self.swarm = phyclone.smc.swarm.ParticleSwarm()
 
