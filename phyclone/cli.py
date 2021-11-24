@@ -113,8 +113,8 @@ def map(**kwargs):
     default="fully-adapted",
     type=click.Choice(["bootstrap", "fully-adapted", "semi-adapted"]),
     help="""
-    Proposal distribution to use for PG sampling. 
-    Fully adapted is the most computationally expensive but also likely to lead to the best performance per iteration. 
+    Proposal distribution to use for PG sampling.
+    Fully adapted is the most computationally expensive but also likely to lead to the best performance per iteration.
     For large datasets it may be necessary to use one of the other proposals.
     Default is fully-adapted.
     """
@@ -122,9 +122,9 @@ def map(**kwargs):
 @click.option(
     "-s",
     "--subtree-update-prob",
-    default=0.5,
+    default=0.0,
     type=float,
-    help="""Probability of updating a subtree (instead of whole tree) using PG sampler. Default is 0.5"""
+    help="""Probability of updating a subtree (instead of whole tree) using PG sampler. Default is 0.0"""
 )
 @click.option(
     "--concentration-value",
@@ -140,9 +140,9 @@ def map(**kwargs):
 )
 @click.option(
     "--num-particles",
-    default=20,
+    default=10,
     type=int,
-    help="""Number of particles to use during PG sampling. Default is 20."""
+    help="""Number of particles to use during PG sampling. Default is 10."""
 )
 @click.option(
     "--print-freq",
