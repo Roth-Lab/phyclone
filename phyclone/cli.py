@@ -70,7 +70,7 @@ def map(**kwargs):
     "-o", "--out-file",
     required=True,
     type=click.Path(resolve_path=True),
-    help="""Path to where trace file will be written in HDF5 format."""
+    help="""Path to where trace file will be written in gzip compressed pickle format."""
 )
 @click.option(
     "-b", "--burnin",
