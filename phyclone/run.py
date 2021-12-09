@@ -329,7 +329,7 @@ def run(
 
     i = 0
 
-    while (i < num_iters) and (timer.elapsed < max_time):
+    while True:
         with timer:
             if i % print_freq == 0:
                 print_stats(i, tree, tree_dist)
@@ -369,6 +369,9 @@ def run(
                     "log_p": tree_dist.log_p_one(tree),
                     "tree": tree.to_dict()
                 })
+
+            if (i >= num_iters) or (timer.elapsed >= max_time):
+                break
 
     results = {"data": data, "samples": samples, "trace": trace}
 
