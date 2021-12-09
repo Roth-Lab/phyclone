@@ -53,9 +53,9 @@ def map(**kwargs):
     phyclone.run.write_map_results(**kwargs)
 
 
-#=========================================================================
+# =========================================================================
 # Analysis
-#=========================================================================
+# =========================================================================
 @click.command(
     context_settings={"max_content_width": 120},
     name="run"
@@ -127,6 +127,18 @@ def map(**kwargs):
     help="""Probability of updating a subtree (instead of whole tree) using PG sampler. Default is 0.0"""
 )
 @click.option(
+    "-t",
+    "--max-time",
+    default=float("inf"),
+    type=float,
+    help="""Maximum running time in seconds."""
+)
+@click.option(
+    "--concentration-update/--no-concentration-update",
+    default=True,
+    help="Whether the concentration parameter should be updated during sampling."
+)
+@click.option(
     "--concentration-value",
     default=1.0,
     type=float,
@@ -145,16 +157,28 @@ def map(**kwargs):
     help="""Number of particles to use during PG sampling. Default is 10."""
 )
 @click.option(
-    "--print-freq",
-    default=10,
+    "--num-samples-data-point",
+    default=1,
     type=int,
-    help="""How frequently to print information about fitting. Default every 10 iterations."""
+    help="""Number of Gibbs updates to reassign data points per SMC iteration. Default is 1."""
+)
+@click.option(
+    "--num-samples-prune-regraph",
+    default=1,
+    type=int,
+    help="""Number of prune-regraph updates per SMC iteration. Default is 1."""
 )
 @click.option(
     "--precision",
     default=400,
     type=float,
     help="""The (initial) precision parameter of the Beta-Binomial density. The higher the value the more similar the Beta-Binomial is to a Binomial. Default is 400."""
+)
+@click.option(
+    "--print-freq",
+    default=10,
+    type=int,
+    help="""How frequently to print information about fitting. Default every 10 iterations."""
 )
 @click.option(
     "--resample-threshold",
@@ -174,9 +198,9 @@ def run(**kwargs):
     phyclone.run.run(**kwargs)
 
 
-#=========================================================================
+# =========================================================================
 # Setup main interface
-#=========================================================================
+# =========================================================================
 @click.group(name="phyclone")
 def main():
     pass

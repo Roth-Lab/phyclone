@@ -18,6 +18,7 @@ from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdapte
 from phyclone.smc.samplers import SMCSampler
 from phyclone.smc.utils import RootPermutationDistribution
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
+from phyclone.utils import Timer
 
 import phyclone.data.pyclone
 import phyclone.math_utils
@@ -213,10 +214,14 @@ def run(
         burnin=100,
         cluster_file=None,
         concentration_value=1.0,
+        concentration_update=True,
         density="beta-binomial",
         grid_size=101,
+        max_time=float("inf"),
         num_iters=1000,
         num_particles=20,
+        num_samples_data_point=1,
+        num_samples_prune_regraph=1,
         outlier_prob=0,
         precision=1.0,
         print_freq=100,
@@ -260,34 +265,10 @@ def run(
 
     conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
 
-    # =========================================================================
-    # Burnin
-    # =========================================================================
-    smc_sampler = UnconditionalSMCSampler(
+    burnin_sampler = UnconditionalSMCSampler(
         kernel, num_particles=num_particles, resample_threshold=resample_threshold
     )
 
-    tree = Tree.get_single_node_tree(data)
-
-    print("#" * 100)
-    print("Burnin")
-    print("#" * 100)
-
-    for i in range(-burnin, 0):
-        if (burnin + i) % print_freq == 0:
-            print_stats(i, tree, tree_dist)
-
-        tree = smc_sampler.sample_tree(tree)
-
-        tree = dp_sampler.sample_tree(tree)
-
-        tree = prg_sampler.sample_tree(tree)
-
-        tree.relabel_nodes()
-
-    # =========================================================================
-    # Main sampler
-    # =========================================================================
     tree_sampler = ParticleGibbsTreeSampler(
         kernel, num_particles=20, resample_threshold=0.5
     )
@@ -296,6 +277,40 @@ def run(
         kernel, num_particles=20, resample_threshold=0.5
     )
 
+    tree = Tree.get_single_node_tree(data)
+
+    timer = Timer()
+
+    # =========================================================================
+    # Burnin
+    # =========================================================================
+    if burnin > 0:
+        print("#" * 100)
+        print("Burnin")
+        print("#" * 100)
+
+        i = 0
+
+        while (i < burnin) and (timer.elapsed < max_time):
+            with timer:
+                if i % print_freq == 0:
+                    print_stats(i, tree, tree_dist)
+
+                tree = burnin_sampler.sample_tree(tree)
+
+                for _ in range(num_samples_data_point):
+                    tree = dp_sampler.sample_tree(tree)
+
+                for _ in range(num_samples_prune_regraph):
+                    tree = prg_sampler.sample_tree(tree)
+
+                tree.relabel_nodes()
+
+                i += 1
+
+    # =========================================================================
+    # Main sampler
+    # =========================================================================
     print()
     print("#" * 100)
     print("Post-burnin")
@@ -304,40 +319,56 @@ def run(
 
     trace = []
 
-    for i in range(num_iters):
-        if i % print_freq == 0:
-            print_stats(i, tree, tree_dist)
+    trace.append({
+        "iter": 0,
+        "time": timer.elapsed,
+        "alpha": tree_dist.prior.alpha,
+        "log_p": tree_dist.log_p_one(tree),
+        "tree": tree.to_dict()
+    })
 
-        if random.random() < subtree_update_prob:
-            tree = subtree_sampler.sample_tree(tree)
+    i = 0
 
-        else:
-            tree = tree_sampler.sample_tree(tree)
+    while (i < num_iters) and (timer.elapsed < max_time):
+        with timer:
+            if i % print_freq == 0:
+                print_stats(i, tree, tree_dist)
 
-        for _ in range(5):
-            tree = prg_sampler.sample_tree(tree)
+            if random.random() < subtree_update_prob:
+                tree = subtree_sampler.sample_tree(tree)
 
-            tree = dp_sampler.sample_tree(tree)
+            else:
+                tree = tree_sampler.sample_tree(tree)
 
-        tree.relabel_nodes()
+            for _ in range(num_samples_data_point):
+                tree = dp_sampler.sample_tree(tree)
 
-        node_sizes = []
+            for _ in range(num_samples_prune_regraph):
+                tree = prg_sampler.sample_tree(tree)
 
-        for node, node_data in tree.node_data.items():
-            if node == -1:
-                continue
+            tree.relabel_nodes()
 
-            node_sizes.append(len(node_data))
+            if concentration_update:
+                node_sizes = []
 
-        tree_dist.prior.alpha = conc_sampler.sample(tree_dist.prior.alpha, len(tree.nodes), sum(node_sizes))
+                for node, node_data in tree.node_data.items():
+                    if node == -1:
+                        continue
 
-        if i % thin == 0:
-            trace.append({
-                "iter": i,
-                "alpha": tree_dist.prior.alpha,
-                "log_p": tree_dist.log_p_one(tree),
-                "tree": tree.to_dict()
-            })
+                    node_sizes.append(len(node_data))
+
+                tree_dist.prior.alpha = conc_sampler.sample(tree_dist.prior.alpha, len(tree.nodes), sum(node_sizes))
+
+            i += 1
+
+            if i % thin == 0:
+                trace.append({
+                    "iter": i,
+                    "time": timer.elapsed,
+                    "alpha": tree_dist.prior.alpha,
+                    "log_p": tree_dist.log_p_one(tree),
+                    "tree": tree.to_dict()
+                })
 
     results = {"data": data, "samples": samples, "trace": trace}
 
