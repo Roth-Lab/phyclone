@@ -10,7 +10,7 @@ def set_seed(seed):
         set_numba_seed(seed)
 
 
-@numba.jit
+@numba.jit(nopython=True)
 def set_numba_seed(seed):
     np.random.seed(seed)
 
