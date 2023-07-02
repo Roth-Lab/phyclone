@@ -23,14 +23,6 @@ class FSCRPDistribution(object):
 
         log_p += num_nodes * np.log(self.alpha)
 
-        # for node, node_data in tree.node_data.items():
-        #     if node == -1:
-        #         continue
-        #
-        #     num_data_points = len(node_data)
-        #
-        #     log_p += log_factorial(num_data_points - 1)
-
         log_factorial_sum = tree.log_factorial_sum
 
         log_p += log_factorial_sum
@@ -40,29 +32,29 @@ class FSCRPDistribution(object):
 
         return log_p
 
-    def _log_p(self, tree):
-        log_p = 0
-
-        # CRP prior
-        num_nodes = len(tree.nodes)
-
-        log_p += num_nodes * np.log(self.alpha)
-
-        for node, node_data in tree.node_data.items():
-            if node == -1:
-                continue
-
-            num_data_points = len(node_data)
-
-            log_p += log_factorial(num_data_points - 1)
-
-        # Uniform prior on toplogies
-        log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
-
-        # tmp_log_p = self._log_p(tree)
-        # assert np.allclose(tmp_log_p, log_p)
-
-        return log_p
+    # def _log_p(self, tree):
+    #     log_p = 0
+    #
+    #     # CRP prior
+    #     num_nodes = len(tree.nodes)
+    #
+    #     log_p += num_nodes * np.log(self.alpha)
+    #
+    #     for node, node_data in tree.node_data.items():
+    #         if node == -1:
+    #             continue
+    #
+    #         num_data_points = len(node_data)
+    #
+    #         log_p += log_factorial(num_data_points - 1)
+    #
+    #     # Uniform prior on toplogies
+    #     log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
+    #
+    #     # tmp_log_p = self._log_p(tree)
+    #     # assert np.allclose(tmp_log_p, log_p)
+    #
+    #     return log_p
 
 
 class TreeJointDistribution(object):
@@ -310,11 +302,12 @@ class Tree(object):
     def add_data_point_to_node(self, data_point, node):
         assert data_point.idx not in self.labels.keys()
 
-        self._update_log_factorial_single_adjustment('add', node)
+        self._add_datapoint_to_log_factorial_trackers(node, len(self._data[node]))
 
         self._data[node].append(data_point)
 
-        self._update_log_val_trackers_single_adjustment('add', data_point, node)
+        if data_point.outlier_prob > 0:
+            self._add_datapoint_to_log_val_trackers(data_point, node)
 
         if node != -1:
             self._graph.nodes[node]["log_p"] += data_point.value
@@ -323,90 +316,208 @@ class Tree(object):
 
             self._update_path_to_root(self.get_parent(node))
 
-    def _update_log_factorial_single_adjustment(self, adjustment, node):
+    # TODO: refactor and split these into separate add/remove fnxs
+    # def _update_log_val_trackers_single_adjustment(self, adjustment, data_point, node):
+    #     if data_point.outlier_prob > 0:
+    #         if node == -1:
+    #             log_p_val_adjust = np.log(data_point.outlier_prob)
+    #             dict_idx = 'data_points_on_outlier_node'
+    #         else:
+    #             log_p_val_adjust = np.log1p(-data_point.outlier_prob)
+    #             dict_idx = 'data_points_on_included_nodes'
+    #
+    #         if adjustment == 'add':
+    #             self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] += log_p_val_adjust
+    #             self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] += log_p_val_adjust
+    #         elif adjustment == 'remove':
+    #             self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] -= log_p_val_adjust
+    #             self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] -= log_p_val_adjust
+    #
+    #     if node == -1:
+    #         if adjustment == 'add':
+    #             self.sum_of_outlier_data_points_marginal_prob += data_point.outlier_marginal_prob
+    #         elif adjustment == 'remove':
+    #             self.sum_of_outlier_data_points_marginal_prob -= data_point.outlier_marginal_prob
+
+    def _add_datapoint_to_log_val_trackers(self, data_point, node):
+        # if data_point.outlier_prob > 0:
+        log_p_val_adjust = np.log1p(-data_point.outlier_prob)
+
+        self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_included_nodes'] += log_p_val_adjust
+        self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] += log_p_val_adjust
+
+    def _add_datapoint_to_outlier_log_val_trackers(self, data_point, node):
+        if data_point.outlier_prob > 0:
+            log_p_val_adjust = np.log(data_point.outlier_prob)
+
+            self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_outlier_node'] += log_p_val_adjust
+            self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] += log_p_val_adjust
+
+        self.sum_of_outlier_data_points_marginal_prob += data_point.outlier_marginal_prob
+
+    def _remove_datapoint_from_log_val_trackers(self, data_point, node):
+        # if data_point.outlier_prob > 0:
+        log_p_val_adjust = np.log1p(-data_point.outlier_prob)
+
+        self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_included_nodes'] -= log_p_val_adjust
+        self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] -= log_p_val_adjust
+
+    def _remove_datapoint_from_outlier_log_val_trackers(self, data_point, node):
+        if data_point.outlier_prob > 0:
+            log_p_val_adjust = np.log(data_point.outlier_prob)
+
+            self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_outlier_node'] -= log_p_val_adjust
+            self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] -= log_p_val_adjust
+
+        self.sum_of_outlier_data_points_marginal_prob -= data_point.outlier_marginal_prob
+
+    # def _update_log_val_trackers_node_level_adjustment(self, adjustment,
+    #                                                    outlier_prob_gt_zero_node_val,
+    #                                                    outlier_data_points_marginal_prob_node_val,
+    #                                                    node):
+    #     if node == -1:
+    #         dict_idx = 'data_points_on_outlier_node'
+    #     else:
+    #         dict_idx = 'data_points_on_included_nodes'
+    #
+    #     if adjustment == 'add':
+    #         self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] += outlier_prob_gt_zero_node_val
+    #         self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] = outlier_prob_gt_zero_node_val
+    #     elif adjustment == 'remove':
+    #         self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] -= outlier_prob_gt_zero_node_val
+    #         self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise.pop(node, None)
+    #
+    #     if node == -1:
+    #         if adjustment == 'add':
+    #             self.sum_of_outlier_data_points_marginal_prob = outlier_data_points_marginal_prob_node_val
+    #         elif adjustment == 'remove':
+    #             self.sum_of_outlier_data_points_marginal_prob = 0
+
+    def _add_node_to_log_val_trackers(self,
+                                      outlier_prob_gt_zero_node_val,
+                                      node):
+
+        self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_included_nodes'] \
+            += outlier_prob_gt_zero_node_val
+        self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] = outlier_prob_gt_zero_node_val
+
+    def _add_node_to_outlier_log_val_trackers(self,
+                                              outlier_prob_gt_zero_node_val,
+                                              outlier_data_points_marginal_prob_node_val,
+                                              node):
+
+        self.sum_of_outlier_data_points_marginal_prob = outlier_data_points_marginal_prob_node_val
+
+        self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_outlier_node'] += outlier_prob_gt_zero_node_val
+        self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] = outlier_prob_gt_zero_node_val
+
+    def _remove_node_from_log_val_trackers(self,
+                                           outlier_prob_gt_zero_node_val,
+                                           node):
+
+        self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_included_nodes'] \
+            -= outlier_prob_gt_zero_node_val
+        # self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise.pop(node, None)
+        self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] = 0
+
+    def _remove_node_from_outlier_log_val_trackers(self,
+                                                   outlier_prob_gt_zero_node_val,
+                                                   node):
+
+        self.sum_of_outlier_data_points_marginal_prob = 0
+
+        self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_outlier_node'] -= outlier_prob_gt_zero_node_val
+        # self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise.pop(node, None)
+        self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] = 0
+
+    # def _update_log_factorial_single_adjustment(self, adjustment, node):
+    #     if node == -1:
+    #         return
+    #
+    #     old_node_log_factorial_val = self.log_factorials_nodewise[node]
+    #     old_node_data_length = len(self._data[node])
+    #
+    #     if adjustment == 'add':
+    #         new_node_data_length = old_node_data_length + 1
+    #     elif adjustment == 'remove':
+    #         new_node_data_length = old_node_data_length - 1
+    #     else:
+    #         new_node_data_length = old_node_data_length
+    #
+    #     if new_node_data_length == 0:
+    #         new_node_log_factorial_val = 0
+    #     else:
+    #         new_node_log_factorial_val = self.factorial_arr[new_node_data_length - 1]
+    #
+    #     self.log_factorial_sum -= old_node_log_factorial_val
+    #     self.log_factorial_sum += new_node_log_factorial_val
+    #     self.log_factorials_nodewise[node] = new_node_log_factorial_val
+
+    def _add_datapoint_to_log_factorial_trackers(self, node, old_node_data_length):
         if node == -1:
             return
 
         old_node_log_factorial_val = self.log_factorials_nodewise[node]
-        old_node_data_length = len(self._data[node])
+        # old_node_data_length = len(self._data[node])
 
-        if adjustment == 'add':
-            new_node_data_length = old_node_data_length + 1
-        elif adjustment == 'remove':
-            new_node_data_length = old_node_data_length - 1
-        else:
-            new_node_data_length = old_node_data_length
+        new_node_data_length = old_node_data_length + 1
 
-        if new_node_data_length == 0:
-            new_node_log_factorial_val = 0
-        else:
-            new_node_log_factorial_val = self.factorial_arr[new_node_data_length - 1]
+        new_node_log_factorial_val = self.factorial_arr[new_node_data_length - 1]
 
         self.log_factorial_sum -= old_node_log_factorial_val
         self.log_factorial_sum += new_node_log_factorial_val
         self.log_factorials_nodewise[node] = new_node_log_factorial_val
 
-    # TODO: refactor and split these into separate add/remove fnxs
-    def _update_log_val_trackers_single_adjustment(self, adjustment, data_point, node):
-        if data_point.outlier_prob > 0:
-            if node == -1:
-                log_p_val_adjust = np.log(data_point.outlier_prob)
-                dict_idx = 'data_points_on_outlier_node'
-            else:
-                log_p_val_adjust = np.log1p(-data_point.outlier_prob)
-                dict_idx = 'data_points_on_included_nodes'
-
-            if adjustment == 'add':
-                self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] += log_p_val_adjust
-                self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] += log_p_val_adjust
-            elif adjustment == 'remove':
-                self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] -= log_p_val_adjust
-                self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] -= log_p_val_adjust
-
+    def _remove_datapoint_from_log_factorial_trackers(self, node, old_node_data_length):
         if node == -1:
-            if adjustment == 'add':
-                self.sum_of_outlier_data_points_marginal_prob += data_point.outlier_marginal_prob
-            elif adjustment == 'remove':
-                self.sum_of_outlier_data_points_marginal_prob -= data_point.outlier_marginal_prob
+            return
 
-    def _update_log_val_trackers_node_level_adjustment(self, adjustment,
-                                                       outlier_prob_gt_zero_node_val,
-                                                       outlier_data_points_marginal_prob_node_val,
-                                                       node):
-        if node == -1:
-            dict_idx = 'data_points_on_outlier_node'
-        else:
-            dict_idx = 'data_points_on_included_nodes'
+        old_node_log_factorial_val = self.log_factorials_nodewise[node]
+        # old_node_data_length = len(self._data[node])
 
-        if adjustment == 'add':
-            self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] += outlier_prob_gt_zero_node_val
-            self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] = outlier_prob_gt_zero_node_val
-        elif adjustment == 'remove':
-            self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] -= outlier_prob_gt_zero_node_val
-            self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise.pop(node, None)
+        new_node_data_length = old_node_data_length - 1
 
-        if node == -1:
-            if adjustment == 'add':
-                self.sum_of_outlier_data_points_marginal_prob = outlier_data_points_marginal_prob_node_val
-            elif adjustment == 'remove':
-                self.sum_of_outlier_data_points_marginal_prob = 0
+        new_node_log_factorial_val = self.factorial_arr[new_node_data_length - 1]
 
-    def _update_log_factorial_node_level_adjustment(self, adjustment, node, node_data_length):
+        self.log_factorial_sum -= old_node_log_factorial_val
+        self.log_factorial_sum += new_node_log_factorial_val
+        self.log_factorials_nodewise[node] = new_node_log_factorial_val
+
+    # def _update_log_factorial_node_level_adjustment(self, adjustment, node, node_data_length):
+    #     if node == -1:
+    #         return
+    #
+    #     node_log_factorial_val = self.factorial_arr[node_data_length - 1]
+    #
+    #     if adjustment == 'add':
+    #         self.log_factorial_sum += node_log_factorial_val
+    #         self.log_factorials_nodewise[node] = node_log_factorial_val
+    #     elif adjustment == 'remove':
+    #         self.log_factorial_sum -= node_log_factorial_val
+    #         self.log_factorials_nodewise.pop(node, None)
+
+    def _add_node_to_log_factorial_trackers(self, node, node_data_length):
         if node == -1:
             return
 
         node_log_factorial_val = self.factorial_arr[node_data_length - 1]
 
-        if adjustment == 'add':
-            self.log_factorial_sum += node_log_factorial_val
-            self.log_factorials_nodewise[node] = node_log_factorial_val
-        elif adjustment == 'remove':
-            self.log_factorial_sum -= node_log_factorial_val
-            self.log_factorials_nodewise.pop(node, None)
+        self.log_factorial_sum += node_log_factorial_val
+        self.log_factorials_nodewise[node] = node_log_factorial_val
+
+    def _remove_node_from_log_factorial_trackers(self, node, node_data_length):
+        if node == -1:
+            return
+
+        node_log_factorial_val = self.factorial_arr[node_data_length - 1]
+
+        self.log_factorial_sum -= node_log_factorial_val
+        # self.log_factorials_nodewise.pop(node, None)
+        self.log_factorials_nodewise[node] = 0
 
     def add_data_point_to_outliers(self, data_point):
         self._data[-1].append(data_point)
-        self._update_log_val_trackers_single_adjustment('add', data_point, -1)
+        self._add_datapoint_to_outlier_log_val_trackers(data_point, -1)
 
     def add_subtree(self, subtree, parent=None):
         first_label = max(self.nodes + subtree.nodes + [-1, ]) + 1
@@ -423,14 +534,16 @@ class Tree(object):
             self._data[new_node] = node_data
 
             outlier_prob_gt_zero_node_val = subtree.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[old_node]
-            outlier_data_points_marginal_prob_node_val = 0
-            # if old_node == -1:
-            #     outlier_data_points_marginal_prob_node_val = subtree.sum_of_outlier_data_points_marginal_prob
-            self._update_log_val_trackers_node_level_adjustment('add',
-                                                                outlier_prob_gt_zero_node_val,
-                                                                outlier_data_points_marginal_prob_node_val,
-                                                                new_node)
-            self._update_log_factorial_node_level_adjustment('add', new_node, len(node_data))
+
+            self._add_node_to_log_val_trackers(outlier_prob_gt_zero_node_val, new_node)
+
+            self._add_node_to_log_factorial_trackers(new_node, len(node_data))
+
+            # self._update_log_val_trackers_node_level_adjustment('add',
+            #                                                     outlier_prob_gt_zero_node_val,
+            #                                                     outlier_data_points_marginal_prob_node_val,
+            #                                                     new_node)
+            # self._update_log_factorial_node_level_adjustment('add', new_node, len(node_data))
 
         nx.relabel_nodes(subtree._graph, node_map, copy=False)
 
@@ -460,13 +573,16 @@ class Tree(object):
         self._add_node(node)
 
         for data_point in data:
-            self._update_log_factorial_single_adjustment('add', node)
+            # self._update_log_factorial_single_adjustment('add', node)
 
             self._data[node].append(data_point)
 
-            self._update_log_val_trackers_single_adjustment('add', data_point, node)
+            if data_point.outlier_prob > 0:
+                self._add_datapoint_to_log_val_trackers(data_point, node)
 
             self._graph.nodes[node]["log_p"] += data_point.value
+
+        self._add_node_to_log_factorial_trackers(node, len(data))
 
         self._graph.add_edge("root", node)
 
@@ -504,15 +620,22 @@ class Tree(object):
         for node in self._data:
             node_data = list(self._data[node])
             new._data[node] = node_data
+
             outlier_prob_gt_zero_node_val = self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node]
-            outlier_data_points_marginal_prob_node_val = 0
+
             if node == -1:
                 outlier_data_points_marginal_prob_node_val = self.sum_of_outlier_data_points_marginal_prob
-            new._update_log_val_trackers_node_level_adjustment('add',
-                                                               outlier_prob_gt_zero_node_val,
-                                                               outlier_data_points_marginal_prob_node_val,
-                                                               node)
-            new._update_log_factorial_node_level_adjustment('add', node, len(node_data))
+                new._add_node_to_outlier_log_val_trackers(outlier_prob_gt_zero_node_val,
+                                                          outlier_data_points_marginal_prob_node_val,
+                                                          node)
+            else:
+                new._add_node_to_log_val_trackers(outlier_prob_gt_zero_node_val, node)
+                new._add_node_to_log_factorial_trackers(node, len(node_data))
+            # new._update_log_val_trackers_node_level_adjustment('add',
+            #                                                    outlier_prob_gt_zero_node_val,
+            #                                                    outlier_data_points_marginal_prob_node_val,
+            #                                                    node)
+            # new._update_log_factorial_node_level_adjustment('add', node, len(node_data))
 
         new._log_prior = self._log_prior
 
@@ -563,14 +686,25 @@ class Tree(object):
             new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
 
             outlier_prob_gt_zero_node_val = self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node]
-            outlier_data_points_marginal_prob_node_val = 0
+
             if node == -1:
                 outlier_data_points_marginal_prob_node_val = self.sum_of_outlier_data_points_marginal_prob
-            new._update_log_val_trackers_node_level_adjustment('add',
-                                                               outlier_prob_gt_zero_node_val,
-                                                               outlier_data_points_marginal_prob_node_val,
-                                                               node)
-            new._update_log_factorial_node_level_adjustment('add', node, len(node_data))
+                new._add_node_to_outlier_log_val_trackers(outlier_prob_gt_zero_node_val,
+                                                          outlier_data_points_marginal_prob_node_val,
+                                                          node)
+            else:
+                new._add_node_to_log_val_trackers(outlier_prob_gt_zero_node_val, node)
+                new._add_node_to_log_factorial_trackers(node, len(node_data))
+
+            # outlier_prob_gt_zero_node_val = self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node]
+            # outlier_data_points_marginal_prob_node_val = 0
+            # if node == -1:
+            #     outlier_data_points_marginal_prob_node_val = self.sum_of_outlier_data_points_marginal_prob
+            # new._update_log_val_trackers_node_level_adjustment('add',
+            #                                                    outlier_prob_gt_zero_node_val,
+            #                                                    outlier_data_points_marginal_prob_node_val,
+            #                                                    node)
+            # new._update_log_factorial_node_level_adjustment('add', node, len(node_data))
 
         new.update()
 
@@ -608,11 +742,13 @@ class Tree(object):
         self._graph = nx.relabel_nodes(self._graph, node_map)
 
     def remove_data_point_from_node(self, data_point, node):
-        self._update_log_factorial_single_adjustment('remove', node)
+        # self._update_log_factorial_single_adjustment('remove', node)
+        self._remove_datapoint_from_log_factorial_trackers(node, len(self._data[node]))
 
         self._data[node].remove(data_point)
 
-        self._update_log_val_trackers_single_adjustment('remove', data_point, node)
+        if data_point.outlier_prob > 0:
+            self._remove_datapoint_from_log_val_trackers(data_point, node)
 
         if node != -1:
             self._graph.nodes[node]["log_p"] -= data_point.value
@@ -621,7 +757,7 @@ class Tree(object):
 
     def remove_data_point_from_outliers(self, data_point):
         self._data[-1].remove(data_point)
-        self._update_log_val_trackers_single_adjustment('remove', data_point, -1)
+        self._remove_datapoint_from_outlier_log_val_trackers(data_point, -1)
 
     def remove_subtree(self, subtree):
         if subtree == self:
@@ -636,14 +772,17 @@ class Tree(object):
 
             for node in subtree.nodes:
                 outlier_prob_gt_zero_node_val = self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node]
-                outlier_data_points_marginal_prob_node_val = 0
                 if node == -1:
-                    outlier_data_points_marginal_prob_node_val = self.sum_of_outlier_data_points_marginal_prob
-                self._update_log_val_trackers_node_level_adjustment('remove',
-                                                                    outlier_prob_gt_zero_node_val,
-                                                                    outlier_data_points_marginal_prob_node_val,
-                                                                    node)
-                self._update_log_factorial_node_level_adjustment('remove', node, len(self._data[node]))
+                    # outlier_data_points_marginal_prob_node_val = self.sum_of_outlier_data_points_marginal_prob
+                    self._remove_node_from_outlier_log_val_trackers(outlier_prob_gt_zero_node_val, node)
+                else:
+                    self._remove_node_from_log_val_trackers(outlier_prob_gt_zero_node_val, node)
+                    self._remove_node_from_log_factorial_trackers(node, len(self._data[node]))
+                # self._update_log_val_trackers_node_level_adjustment('remove',
+                #                                                     outlier_prob_gt_zero_node_val,
+                #                                                     outlier_data_points_marginal_prob_node_val,
+                #                                                     node)
+                # self._update_log_factorial_node_level_adjustment('remove', node, len(self._data[node]))
 
                 del self._data[node]
 
