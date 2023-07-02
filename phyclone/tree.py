@@ -36,13 +36,13 @@ class FSCRPDistribution(object):
 
         return log_p
 
-    
+
 class TreeJointDistribution(object):
 
     def __init__(self, prior):
         self.prior = prior
 
-    def log_p(self, tree):
+    def _log_p(self, tree):
         """ The log likelihood of the data marginalized over root node parameters.
         """
         log_p = self.prior.log_p(tree)
@@ -53,20 +53,46 @@ class TreeJointDistribution(object):
                 if data_point.outlier_prob > 0:
                     if node == -1:
                         log_p += np.log(data_point.outlier_prob)
-    
+
                     else:
                         log_p += np.log1p(-data_point.outlier_prob)
 
         if len(tree.roots) > 0:
             for i in range(tree.grid_size[0]):
-                log_p += log_sum_exp(tree.data_log_likelihood[i,:])
+                log_p += log_sum_exp(tree.data_log_likelihood[i, :])
 
         for data_point in tree.outliers:
             log_p += data_point.outlier_marginal_prob
 
+        # tmp_log_p = self._log_p(tree)
+        #
+        # assert np.allclose(tmp_log_p, log_p)
+
         return log_p
-    
-    def log_p_one(self, tree):
+
+    def log_p(self, tree):
+        """ The log likelihood of the data marginalized over root node parameters.
+        """
+        log_p = self.prior.log_p(tree)
+
+        log_p_res = self._get_log_p_precomputed_vals_from_tree(tree)
+
+        if len(tree.roots) > 0:
+            for i in range(tree.grid_size[0]):
+                log_p += log_sum_exp(tree.data_log_likelihood[i, :])
+
+        log_p += log_p_res
+
+        return log_p
+
+    def _get_log_p_precomputed_vals_from_tree(self, tree):
+        log_p_outlier_probs_out_node = tree.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_outlier_node']
+        log_p_outlier_probs_in_nodes = tree.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_included_nodes']
+        log_p_outlier_marginal_probs = tree.sum_of_outlier_data_points_marginal_prob
+        log_p_res = log_p_outlier_probs_out_node + log_p_outlier_probs_in_nodes + log_p_outlier_marginal_probs
+        return log_p_res
+
+    def _log_p_one(self, tree):
         """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
         """
         log_p = self.prior.log_p(tree)
@@ -77,7 +103,7 @@ class TreeJointDistribution(object):
                 if data_point.outlier_prob > 0:
                     if node == -1:
                         log_p += np.log(data_point.outlier_prob)
-    
+
                     else:
                         log_p += np.log1p(-data_point.outlier_prob)
 
@@ -87,6 +113,25 @@ class TreeJointDistribution(object):
 
         for data_point in tree.outliers:
             log_p += data_point.outlier_marginal_prob
+
+        # tmp_log_p = self._log_p_one(tree)
+        #
+        # assert np.allclose(tmp_log_p, log_p)
+
+        return log_p
+
+    def log_p_one(self, tree):
+        """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
+        """
+        log_p = self.prior.log_p(tree)
+
+        log_p_res = self._get_log_p_precomputed_vals_from_tree(tree)
+
+        if len(tree.roots) > 0:
+            for i in range(tree.grid_size[0]):
+                log_p += tree.data_log_likelihood[i, -1]
+
+        log_p += log_p_res
 
         return log_p
 
@@ -103,6 +148,15 @@ class Tree(object):
         self._graph = nx.DiGraph()
 
         self._add_node("root")
+
+        self.sum_of_log_data_points_outlier_prob_gt_zero = {'data_points_on_outlier_node': 0,
+                                                            'data_points_on_included_nodes': 0}
+
+        self.sum_of_outlier_data_points_marginal_prob = 0
+
+        self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise = defaultdict(int)
+
+        # self.sum_of_outlier_data_points_marginal_prob_nodewise = dict()
 
     def __hash__(self):
         return hash((get_clades(self), frozenset(self.outliers)))
@@ -226,6 +280,8 @@ class Tree(object):
 
         self._data[node].append(data_point)
 
+        self._update_log_val_trackers_single_adjustment('add', data_point, node)
+
         if node != -1:
             self._graph.nodes[node]["log_p"] += data_point.value
 
@@ -233,8 +289,53 @@ class Tree(object):
 
             self._update_path_to_root(self.get_parent(node))
 
+    def _update_log_val_trackers_single_adjustment(self, adjustment, data_point, node):
+        if data_point.outlier_prob > 0:
+            if node == -1:
+                log_p_val_adjust = np.log(data_point.outlier_prob)
+                dict_idx = 'data_points_on_outlier_node'
+            else:
+                log_p_val_adjust = np.log1p(-data_point.outlier_prob)
+                dict_idx = 'data_points_on_included_nodes'
+
+            if adjustment == 'add':
+                self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] += log_p_val_adjust
+                self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] += log_p_val_adjust
+            elif adjustment == 'remove':
+                self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] -= log_p_val_adjust
+                self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] -= log_p_val_adjust
+
+        if node == -1:
+            if adjustment == 'add':
+                self.sum_of_outlier_data_points_marginal_prob += data_point.outlier_marginal_prob
+            elif adjustment == 'remove':
+                self.sum_of_outlier_data_points_marginal_prob -= data_point.outlier_marginal_prob
+
+    def _update_log_val_trackers_node_level_adjustment(self, adjustment,
+                                                       outlier_prob_gt_zero_node_val,
+                                                       outlier_data_points_marginal_prob_node_val,
+                                                       node):
+        if node == -1:
+            dict_idx = 'data_points_on_outlier_node'
+        else:
+            dict_idx = 'data_points_on_included_nodes'
+
+        if adjustment == 'add':
+            self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] += outlier_prob_gt_zero_node_val
+            self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] = outlier_prob_gt_zero_node_val
+        elif adjustment == 'remove':
+            self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] -= outlier_prob_gt_zero_node_val
+            self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise.pop(node, None)
+
+        if node == -1:
+            if adjustment == 'add':
+                self.sum_of_outlier_data_points_marginal_prob = outlier_data_points_marginal_prob_node_val
+            elif adjustment == 'remove':
+                self.sum_of_outlier_data_points_marginal_prob = 0
+
     def add_data_point_to_outliers(self, data_point):
         self._data[-1].append(data_point)
+        self._update_log_val_trackers_single_adjustment('add', data_point, -1)
 
     def add_subtree(self, subtree, parent=None):
         first_label = max(self.nodes + subtree.nodes + [-1, ]) + 1
@@ -247,6 +348,15 @@ class Tree(object):
             node_map[old_node] = new_node
 
             self._data[new_node] = subtree._data[old_node]
+
+            outlier_prob_gt_zero_node_val = subtree.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[old_node]
+            outlier_data_points_marginal_prob_node_val = 0
+            # if old_node == -1:
+            #     outlier_data_points_marginal_prob_node_val = subtree.sum_of_outlier_data_points_marginal_prob
+            self._update_log_val_trackers_node_level_adjustment('add',
+                                                                outlier_prob_gt_zero_node_val,
+                                                                outlier_data_points_marginal_prob_node_val,
+                                                                new_node)
 
         nx.relabel_nodes(subtree._graph, node_map, copy=False)
 
@@ -278,6 +388,8 @@ class Tree(object):
         for data_point in data:
             self._data[node].append(data_point)
 
+            self._update_log_val_trackers_single_adjustment('add', data_point, node)
+
             self._graph.nodes[node]["log_p"] += data_point.value
 
         self._graph.add_edge("root", node)
@@ -300,8 +412,23 @@ class Tree(object):
 
         new._data = defaultdict(list)
 
+        new.sum_of_log_data_points_outlier_prob_gt_zero = {'data_points_on_outlier_node': 0,
+                                                           'data_points_on_included_nodes': 0}
+
+        new.sum_of_outlier_data_points_marginal_prob = 0
+
+        new.sum_of_log_data_points_outlier_prob_gt_zero_nodewise = defaultdict(int)
+
         for node in self._data:
             new._data[node] = list(self._data[node])
+            outlier_prob_gt_zero_node_val = self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node]
+            outlier_data_points_marginal_prob_node_val = 0
+            if node == -1:
+                outlier_data_points_marginal_prob_node_val = self.sum_of_outlier_data_points_marginal_prob
+            new._update_log_val_trackers_node_level_adjustment('add',
+                                                               outlier_prob_gt_zero_node_val,
+                                                               outlier_data_points_marginal_prob_node_val,
+                                                               node)
 
         new._log_prior = self._log_prior
 
@@ -349,6 +476,15 @@ class Tree(object):
 
             new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
 
+            outlier_prob_gt_zero_node_val = self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node]
+            outlier_data_points_marginal_prob_node_val = 0
+            if node == -1:
+                outlier_data_points_marginal_prob_node_val = self.sum_of_outlier_data_points_marginal_prob
+            new._update_log_val_trackers_node_level_adjustment('add',
+                                                               outlier_prob_gt_zero_node_val,
+                                                               outlier_data_points_marginal_prob_node_val,
+                                                               node)
+
         new.update()
 
         return new
@@ -367,17 +503,17 @@ class Tree(object):
         data = defaultdict(list)
 
         data[-1] = self._data[-1]
-        
+
         new_node = 0
-        
+
         for old_node in nx.dfs_preorder_nodes(self._graph, source="root"):
             if old_node == "root":
                 continue
-            
+
             node_map[old_node] = new_node
 
             data[new_node] = self._data[old_node]
-            
+
             new_node += 1
 
         self._data = data
@@ -387,6 +523,8 @@ class Tree(object):
     def remove_data_point_from_node(self, data_point, node):
         self._data[node].remove(data_point)
 
+        self._update_log_val_trackers_single_adjustment('remove', data_point, node)
+
         if node != -1:
             self._graph.nodes[node]["log_p"] -= data_point.value
 
@@ -394,6 +532,7 @@ class Tree(object):
 
     def remove_data_point_from_outliers(self, data_point):
         self._data[-1].remove(data_point)
+        self._update_log_val_trackers_single_adjustment('remove', data_point, -1)
 
     def remove_subtree(self, subtree):
         if subtree == self:
@@ -407,6 +546,14 @@ class Tree(object):
             self._graph.remove_nodes_from(subtree.nodes)
 
             for node in subtree.nodes:
+                outlier_prob_gt_zero_node_val = self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node]
+                outlier_data_points_marginal_prob_node_val = 0
+                if node == -1:
+                    outlier_data_points_marginal_prob_node_val = self.sum_of_outlier_data_points_marginal_prob
+                self._update_log_val_trackers_node_level_adjustment('remove',
+                                                                    outlier_prob_gt_zero_node_val,
+                                                                    outlier_data_points_marginal_prob_node_val,
+                                                                    node)
                 del self._data[node]
 
             self._update_path_to_root(parent)
@@ -474,7 +621,7 @@ def compute_log_S(child_log_R_values):
     num_dims = log_D.shape[0]
 
     for i in range(num_dims):
-        log_S[i,:] = np.logaddexp.accumulate(log_D[i,:])
+        log_S[i, :] = np.logaddexp.accumulate(log_D[i, :])
 
     return log_S
 
@@ -489,7 +636,7 @@ def compute_log_D(child_log_R_values):
 
     for child_log_R in child_log_R_values:
         for i in range(num_dims):
-            log_D[i,:] = _compute_log_D_n(child_log_R[i,:], log_D[i,:])
+            log_D[i, :] = _compute_log_D_n(child_log_R[i, :], log_D[i, :])
 
     return log_D
 
