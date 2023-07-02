@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import random
+from math import inf
 
 from phyclone.concentration import GammaPriorConcentrationSampler
 from phyclone.map import get_map_node_ccfs
@@ -22,6 +23,7 @@ from phyclone.utils import Timer
 
 import phyclone.data.pyclone
 import phyclone.math_utils
+from phyclone.math_utils import simple_log_factorial
 
 
 def write_map_results(in_file, out_table_file, out_tree_file):
@@ -257,7 +259,10 @@ def run(
     elif proposal == "semi-adapted":
         kernel_cls = SemiAdaptedKernel
 
-    kernel = kernel_cls(tree_dist, outlier_proposal_prob=outlier_proposal_prob)
+    factorial_arr = np.full(len(data)+1, -inf)
+    simple_log_factorial(len(data), factorial_arr)  # TODO: any point to having this pre-computed?
+
+    kernel = kernel_cls(tree_dist, factorial_arr, outlier_proposal_prob=outlier_proposal_prob)
 
     dp_sampler = DataPointSampler(tree_dist, outliers=(outlier_prob > 0))
 
@@ -277,7 +282,7 @@ def run(
         kernel, num_particles=20, resample_threshold=0.5
     )
 
-    tree = Tree.get_single_node_tree(data)
+    tree = Tree.get_single_node_tree(data, factorial_arr)
 
     timer = Timer()
 

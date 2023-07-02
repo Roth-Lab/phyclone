@@ -15,6 +15,8 @@ from phyclone.smc.samplers import SMCSampler
 from phyclone.tree import FSCRPDistribution, TreeJointDistribution
 
 from toy_data import load_test_data
+from phyclone.math_utils import simple_log_factorial
+from math import inf
 
 
 def main():
@@ -36,7 +38,10 @@ def main():
 def sample(data_points):
     tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
 
-    kernel = FullyAdaptedKernel(tree_dist, outlier_proposal_prob=0.1)
+    factorial_arr = np.full(len(data_points) + 1, -inf)
+    simple_log_factorial(len(data_points), factorial_arr)
+
+    kernel = FullyAdaptedKernel(tree_dist, factorial_arr, outlier_proposal_prob=0.1)
     
     smc_sampler = SMCSampler(
         data_points,

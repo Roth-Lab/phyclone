@@ -23,7 +23,7 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
         node_map = {}
 
-        new_tree = Tree(tree.grid_size)
+        new_tree = Tree(tree.grid_size, tree.factorial_arr)
 
         for data_point in self.data_points:
             new_tree = new_tree.copy()

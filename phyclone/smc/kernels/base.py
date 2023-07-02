@@ -23,19 +23,21 @@ class Kernel(object):
         """
         raise NotImplementedError
 
-    def __init__(self, tree_dist, perm_dist=None):
+    def __init__(self, tree_dist, factorial_arr, perm_dist=None):
         """
         Parameters
         ----------
         tree_dist: TreeJointDistribution
             Joint distribution of tree
-        outlier_proposal_prob: float
-            Probability of proposing an outlier.
+        # outlier_proposal_prob: float
+        #     Probability of proposing an outlier.
         perm_dist: PermutationDistribution
             The permutation distribution used in a particle Gibbs sampler to reorder data points. Set to None if single
             pass SMC is being performed.
         """
         self.tree_dist = tree_dist
+
+        self.factorial_arr = factorial_arr
 
         self.perm_dist = perm_dist
 
@@ -81,12 +83,14 @@ class ProposalDistribution(object):
     """ Abstract class for proposal distribution.
     """
 
-    def __init__(self, data_point, kernel, parent_particle):
+    def __init__(self, data_point, kernel, parent_particle, factorial_arr):
         self.data_point = data_point
 
         self.kernel = kernel
 
         self.parent_particle = parent_particle
+
+        self.factorial_arr = factorial_arr
 
     def _empty_tree(self):
         """ Tree has no nodes

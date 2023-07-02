@@ -12,8 +12,8 @@ class BootstrapProposalDistribution(ProposalDistribution):
     A simple proposal from the prior distribution.
     """
 
-    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0):
-        super().__init__(data_point, kernel, parent_particle)
+    def __init__(self, data_point, kernel, parent_particle, factorial_arr, outlier_proposal_prob=0.0):
+        super().__init__(data_point, kernel, parent_particle, factorial_arr)
 
         self.outlier_proposal_prob = outlier_proposal_prob
         
@@ -61,7 +61,7 @@ class BootstrapProposalDistribution(ProposalDistribution):
         
         # First particle
         if self.parent_particle is None:
-            tree = Tree(self.data_point.grid_size)
+            tree = Tree(self.data_point.grid_size, self.factorial_arr)
 
             if u < (1 - self.outlier_proposal_prob):
                 node = tree.create_root_node([])
@@ -127,8 +127,8 @@ class BootstrapProposalDistribution(ProposalDistribution):
 
 class BootstrapKernel(Kernel):
 
-    def __init__(self, tree_prior_dist, outlier_proposal_prob=0, perm_dist=None): 
-        super().__init__(tree_prior_dist, perm_dist=perm_dist)
+    def __init__(self, tree_prior_dist, factorial_arr, outlier_proposal_prob=0, perm_dist=None):
+        super().__init__(tree_prior_dist, factorial_arr, perm_dist=perm_dist)
 
         self.outlier_proposal_prob = outlier_proposal_prob
 
@@ -137,5 +137,6 @@ class BootstrapKernel(Kernel):
             data_point,
             self,
             parent_particle,
+            self.factorial_arr,
             outlier_proposal_prob=self.outlier_proposal_prob
         )

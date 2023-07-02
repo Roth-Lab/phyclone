@@ -23,6 +23,31 @@ class FSCRPDistribution(object):
 
         log_p += num_nodes * np.log(self.alpha)
 
+        # for node, node_data in tree.node_data.items():
+        #     if node == -1:
+        #         continue
+        #
+        #     num_data_points = len(node_data)
+        #
+        #     log_p += log_factorial(num_data_points - 1)
+
+        log_factorial_sum = tree.log_factorial_sum
+
+        log_p += log_factorial_sum
+
+        # Uniform prior on toplogies
+        log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
+
+        return log_p
+
+    def _log_p(self, tree):
+        log_p = 0
+
+        # CRP prior
+        num_nodes = len(tree.nodes)
+
+        log_p += num_nodes * np.log(self.alpha)
+
         for node, node_data in tree.node_data.items():
             if node == -1:
                 continue
@@ -34,6 +59,9 @@ class FSCRPDistribution(object):
         # Uniform prior on toplogies
         log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
 
+        # tmp_log_p = self._log_p(tree)
+        # assert np.allclose(tmp_log_p, log_p)
+
         return log_p
 
 
@@ -42,33 +70,33 @@ class TreeJointDistribution(object):
     def __init__(self, prior):
         self.prior = prior
 
-    def _log_p(self, tree):
-        """ The log likelihood of the data marginalized over root node parameters.
-        """
-        log_p = self.prior.log_p(tree)
-
-        # Outlier prior
-        for node, node_data in tree.node_data.items():
-            for data_point in node_data:
-                if data_point.outlier_prob > 0:
-                    if node == -1:
-                        log_p += np.log(data_point.outlier_prob)
-
-                    else:
-                        log_p += np.log1p(-data_point.outlier_prob)
-
-        if len(tree.roots) > 0:
-            for i in range(tree.grid_size[0]):
-                log_p += log_sum_exp(tree.data_log_likelihood[i, :])
-
-        for data_point in tree.outliers:
-            log_p += data_point.outlier_marginal_prob
-
-        # tmp_log_p = self._log_p(tree)
-        #
-        # assert np.allclose(tmp_log_p, log_p)
-
-        return log_p
+    # def _log_p(self, tree):
+    #     """ The log likelihood of the data marginalized over root node parameters.
+    #     """
+    #     log_p = self.prior.log_p(tree)
+    #
+    #     # Outlier prior
+    #     for node, node_data in tree.node_data.items():
+    #         for data_point in node_data:
+    #             if data_point.outlier_prob > 0:
+    #                 if node == -1:
+    #                     log_p += np.log(data_point.outlier_prob)
+    #
+    #                 else:
+    #                     log_p += np.log1p(-data_point.outlier_prob)
+    #
+    #     if len(tree.roots) > 0:
+    #         for i in range(tree.grid_size[0]):
+    #             log_p += log_sum_exp(tree.data_log_likelihood[i, :])
+    #
+    #     for data_point in tree.outliers:
+    #         log_p += data_point.outlier_marginal_prob
+    #
+    #     # tmp_log_p = self._log_p(tree)
+    #     #
+    #     # assert np.allclose(tmp_log_p, log_p)
+    #
+    #     return log_p
 
     def log_p(self, tree):
         """ The log likelihood of the data marginalized over root node parameters.
@@ -92,33 +120,33 @@ class TreeJointDistribution(object):
         log_p_res = log_p_outlier_probs_out_node + log_p_outlier_probs_in_nodes + log_p_outlier_marginal_probs
         return log_p_res
 
-    def _log_p_one(self, tree):
-        """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
-        """
-        log_p = self.prior.log_p(tree)
-
-        # Outlier prior
-        for node, node_data in tree.node_data.items():
-            for data_point in node_data:
-                if data_point.outlier_prob > 0:
-                    if node == -1:
-                        log_p += np.log(data_point.outlier_prob)
-
-                    else:
-                        log_p += np.log1p(-data_point.outlier_prob)
-
-        if len(tree.roots) > 0:
-            for i in range(tree.grid_size[0]):
-                log_p += tree.data_log_likelihood[i, -1]
-
-        for data_point in tree.outliers:
-            log_p += data_point.outlier_marginal_prob
-
-        # tmp_log_p = self._log_p_one(tree)
-        #
-        # assert np.allclose(tmp_log_p, log_p)
-
-        return log_p
+    # def _log_p_one(self, tree):
+    #     """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
+    #     """
+    #     log_p = self.prior.log_p(tree)
+    #
+    #     # Outlier prior
+    #     for node, node_data in tree.node_data.items():
+    #         for data_point in node_data:
+    #             if data_point.outlier_prob > 0:
+    #                 if node == -1:
+    #                     log_p += np.log(data_point.outlier_prob)
+    #
+    #                 else:
+    #                     log_p += np.log1p(-data_point.outlier_prob)
+    #
+    #     if len(tree.roots) > 0:
+    #         for i in range(tree.grid_size[0]):
+    #             log_p += tree.data_log_likelihood[i, -1]
+    #
+    #     for data_point in tree.outliers:
+    #         log_p += data_point.outlier_marginal_prob
+    #
+    #     # tmp_log_p = self._log_p_one(tree)
+    #     #
+    #     # assert np.allclose(tmp_log_p, log_p)
+    #
+    #     return log_p
 
     def log_p_one(self, tree):
         """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
@@ -138,7 +166,7 @@ class TreeJointDistribution(object):
 
 class Tree(object):
 
-    def __init__(self, grid_size):
+    def __init__(self, grid_size, factorial_arr):
         self.grid_size = grid_size
 
         self._data = defaultdict(list)
@@ -156,7 +184,11 @@ class Tree(object):
 
         self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise = defaultdict(int)
 
-        # self.sum_of_outlier_data_points_marginal_prob_nodewise = dict()
+        self.factorial_arr = factorial_arr
+
+        self.log_factorial_sum = 0
+
+        self.log_factorials_nodewise = defaultdict(int)
 
     def __hash__(self):
         return hash((get_clades(self), frozenset(self.outliers)))
@@ -169,7 +201,7 @@ class Tree(object):
         return self_key == other_key
 
     @staticmethod
-    def get_single_node_tree(data):
+    def get_single_node_tree(data, factorial_arr):
         """ Load a tree with all data points assigned single node.
 
         Parameters
@@ -177,7 +209,7 @@ class Tree(object):
         data: list
             Data points.
         """
-        tree = Tree(data[0].grid_size)
+        tree = Tree(data[0].grid_size, factorial_arr)  # TODO: set factorial sum val here?
 
         node = tree.create_root_node([])
 
@@ -248,7 +280,7 @@ class Tree(object):
 
     @staticmethod
     def from_dict(data, tree_dict):
-        new = Tree(data[0].grid_size)
+        new = Tree(data[0].grid_size, None)  # TODO: check with Andy if this needs to be able to compute stuff
 
         new._graph = nx.DiGraph(tree_dict["graph"])
 
@@ -278,6 +310,8 @@ class Tree(object):
     def add_data_point_to_node(self, data_point, node):
         assert data_point.idx not in self.labels.keys()
 
+        self._update_log_factorial_single_adjustment('add', node)
+
         self._data[node].append(data_point)
 
         self._update_log_val_trackers_single_adjustment('add', data_point, node)
@@ -289,6 +323,30 @@ class Tree(object):
 
             self._update_path_to_root(self.get_parent(node))
 
+    def _update_log_factorial_single_adjustment(self, adjustment, node):
+        if node == -1:
+            return
+
+        old_node_log_factorial_val = self.log_factorials_nodewise[node]
+        old_node_data_length = len(self._data[node])
+
+        if adjustment == 'add':
+            new_node_data_length = old_node_data_length + 1
+        elif adjustment == 'remove':
+            new_node_data_length = old_node_data_length - 1
+        else:
+            new_node_data_length = old_node_data_length
+
+        if new_node_data_length == 0:
+            new_node_log_factorial_val = 0
+        else:
+            new_node_log_factorial_val = self.factorial_arr[new_node_data_length - 1]
+
+        self.log_factorial_sum -= old_node_log_factorial_val
+        self.log_factorial_sum += new_node_log_factorial_val
+        self.log_factorials_nodewise[node] = new_node_log_factorial_val
+
+    # TODO: refactor and split these into separate add/remove fnxs
     def _update_log_val_trackers_single_adjustment(self, adjustment, data_point, node):
         if data_point.outlier_prob > 0:
             if node == -1:
@@ -333,6 +391,19 @@ class Tree(object):
             elif adjustment == 'remove':
                 self.sum_of_outlier_data_points_marginal_prob = 0
 
+    def _update_log_factorial_node_level_adjustment(self, adjustment, node, node_data_length):
+        if node == -1:
+            return
+
+        node_log_factorial_val = self.factorial_arr[node_data_length - 1]
+
+        if adjustment == 'add':
+            self.log_factorial_sum += node_log_factorial_val
+            self.log_factorials_nodewise[node] = node_log_factorial_val
+        elif adjustment == 'remove':
+            self.log_factorial_sum -= node_log_factorial_val
+            self.log_factorials_nodewise.pop(node, None)
+
     def add_data_point_to_outliers(self, data_point):
         self._data[-1].append(data_point)
         self._update_log_val_trackers_single_adjustment('add', data_point, -1)
@@ -347,7 +418,9 @@ class Tree(object):
         for new_node, old_node in enumerate(subtree.nodes, first_label):
             node_map[old_node] = new_node
 
-            self._data[new_node] = subtree._data[old_node]
+            node_data = subtree._data[old_node]
+
+            self._data[new_node] = node_data
 
             outlier_prob_gt_zero_node_val = subtree.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[old_node]
             outlier_data_points_marginal_prob_node_val = 0
@@ -357,6 +430,7 @@ class Tree(object):
                                                                 outlier_prob_gt_zero_node_val,
                                                                 outlier_data_points_marginal_prob_node_val,
                                                                 new_node)
+            self._update_log_factorial_node_level_adjustment('add', new_node, len(node_data))
 
         nx.relabel_nodes(subtree._graph, node_map, copy=False)
 
@@ -386,6 +460,8 @@ class Tree(object):
         self._add_node(node)
 
         for data_point in data:
+            self._update_log_factorial_single_adjustment('add', node)
+
             self._data[node].append(data_point)
 
             self._update_log_val_trackers_single_adjustment('add', data_point, node)
@@ -419,8 +495,15 @@ class Tree(object):
 
         new.sum_of_log_data_points_outlier_prob_gt_zero_nodewise = defaultdict(int)
 
+        new.factorial_arr = self.factorial_arr
+
+        new.log_factorial_sum = 0
+
+        new.log_factorials_nodewise = defaultdict(int)
+
         for node in self._data:
-            new._data[node] = list(self._data[node])
+            node_data = list(self._data[node])
+            new._data[node] = node_data
             outlier_prob_gt_zero_node_val = self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node]
             outlier_data_points_marginal_prob_node_val = 0
             if node == -1:
@@ -429,6 +512,7 @@ class Tree(object):
                                                                outlier_prob_gt_zero_node_val,
                                                                outlier_data_points_marginal_prob_node_val,
                                                                node)
+            new._update_log_factorial_node_level_adjustment('add', node, len(node_data))
 
         new._log_prior = self._log_prior
 
@@ -463,7 +547,7 @@ class Tree(object):
         if subtree_root == "root":
             return self.copy()
 
-        new = Tree(self.grid_size)
+        new = Tree(self.grid_size, self.factorial_arr)
 
         subtree_graph = nx.dfs_tree(self._graph, subtree_root)
 
@@ -472,7 +556,9 @@ class Tree(object):
         new._graph.add_edge("root", subtree_root)
 
         for node in new.nodes:
-            new._data[node] = list(self._data[node])
+            node_data = list(self._data[node])
+            # new._data[node] = list(self._data[node])
+            new._data[node] = node_data
 
             new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
 
@@ -484,6 +570,7 @@ class Tree(object):
                                                                outlier_prob_gt_zero_node_val,
                                                                outlier_data_points_marginal_prob_node_val,
                                                                node)
+            new._update_log_factorial_node_level_adjustment('add', node, len(node_data))
 
         new.update()
 
@@ -521,6 +608,8 @@ class Tree(object):
         self._graph = nx.relabel_nodes(self._graph, node_map)
 
     def remove_data_point_from_node(self, data_point, node):
+        self._update_log_factorial_single_adjustment('remove', node)
+
         self._data[node].remove(data_point)
 
         self._update_log_val_trackers_single_adjustment('remove', data_point, node)
@@ -536,7 +625,7 @@ class Tree(object):
 
     def remove_subtree(self, subtree):
         if subtree == self:
-            self.__init__(self.grid_size)
+            self.__init__(self.grid_size, self.factorial_arr)
 
         else:
             assert len(subtree.roots) == 1
@@ -554,6 +643,8 @@ class Tree(object):
                                                                     outlier_prob_gt_zero_node_val,
                                                                     outlier_data_points_marginal_prob_node_val,
                                                                     node)
+                self._update_log_factorial_node_level_adjustment('remove', node, len(self._data[node]))
+
                 del self._data[node]
 
             self._update_path_to_root(parent)
