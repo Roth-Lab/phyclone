@@ -188,7 +188,7 @@ class DataPoint(object):
         return log_ll
 
 
-@numba.jit(nopython=True)
+@numba.jit(cache=True, nopython=True)
 def _compute_liklihood_grid(ccf_grid, density, log_ll, precision, sample_data_points):
     for s_idx, data_point in enumerate(sample_data_points):
         for i, ccf in enumerate(ccf_grid):

@@ -31,6 +31,7 @@ def simple_factorial(n, arr):
     return arr[n]
 
 
+@numba.jit(cache=True, nopython=True)
 def simple_log_factorial(n, arr):
     if n <= 1:
         if arr[1] == -math.inf:
