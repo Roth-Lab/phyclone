@@ -1,11 +1,13 @@
 from collections import defaultdict
-from scipy.signal import fftconvolve
+from scipy.signal import fftconvolve, convolve
 
 import networkx as nx
 import numpy as np
 
 from phyclone.consensus import get_clades
 from phyclone.math_utils import log_factorial, log_sum_exp
+import numba
+from copy import deepcopy
 
 
 class FSCRPDistribution(object):
@@ -15,6 +17,7 @@ class FSCRPDistribution(object):
     def __init__(self, alpha):
         self.alpha = alpha
 
+    # @profile
     def log_p(self, tree):
         log_p = 0
 
@@ -31,8 +34,8 @@ class FSCRPDistribution(object):
         log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
 
         return log_p
-
-    # def _log_p(self, tree):
+    # @profile
+    # def log_p(self, tree):
     #     log_p = 0
     #
     #     # CRP prior
@@ -62,7 +65,8 @@ class TreeJointDistribution(object):
     def __init__(self, prior):
         self.prior = prior
 
-    # def _log_p(self, tree):
+    # @profile
+    # def log_p(self, tree):
     #     """ The log likelihood of the data marginalized over root node parameters.
     #     """
     #     log_p = self.prior.log_p(tree)
@@ -90,6 +94,7 @@ class TreeJointDistribution(object):
     #
     #     return log_p
 
+    # @profile
     def log_p(self, tree):
         """ The log likelihood of the data marginalized over root node parameters.
         """
@@ -139,7 +144,7 @@ class TreeJointDistribution(object):
     #     # assert np.allclose(tmp_log_p, log_p)
     #
     #     return log_p
-
+    # @profile
     def log_p_one(self, tree):
         """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
         """
@@ -201,7 +206,7 @@ class Tree(object):
         data: list
             Data points.
         """
-        tree = Tree(data[0].grid_size, factorial_arr)  # TODO: set factorial sum val here?
+        tree = Tree(data[0].grid_size, factorial_arr)
 
         node = tree.create_root_node([])
 
@@ -316,29 +321,6 @@ class Tree(object):
 
             self._update_path_to_root(self.get_parent(node))
 
-    # TODO: refactor and split these into separate add/remove fnxs
-    # def _update_log_val_trackers_single_adjustment(self, adjustment, data_point, node):
-    #     if data_point.outlier_prob > 0:
-    #         if node == -1:
-    #             log_p_val_adjust = np.log(data_point.outlier_prob)
-    #             dict_idx = 'data_points_on_outlier_node'
-    #         else:
-    #             log_p_val_adjust = np.log1p(-data_point.outlier_prob)
-    #             dict_idx = 'data_points_on_included_nodes'
-    #
-    #         if adjustment == 'add':
-    #             self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] += log_p_val_adjust
-    #             self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] += log_p_val_adjust
-    #         elif adjustment == 'remove':
-    #             self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] -= log_p_val_adjust
-    #             self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] -= log_p_val_adjust
-    #
-    #     if node == -1:
-    #         if adjustment == 'add':
-    #             self.sum_of_outlier_data_points_marginal_prob += data_point.outlier_marginal_prob
-    #         elif adjustment == 'remove':
-    #             self.sum_of_outlier_data_points_marginal_prob -= data_point.outlier_marginal_prob
-
     def _add_datapoint_to_log_val_trackers(self, data_point, node):
         # if data_point.outlier_prob > 0:
         log_p_val_adjust = np.log1p(-data_point.outlier_prob)
@@ -370,28 +352,6 @@ class Tree(object):
             self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] -= log_p_val_adjust
 
         self.sum_of_outlier_data_points_marginal_prob -= data_point.outlier_marginal_prob
-
-    # def _update_log_val_trackers_node_level_adjustment(self, adjustment,
-    #                                                    outlier_prob_gt_zero_node_val,
-    #                                                    outlier_data_points_marginal_prob_node_val,
-    #                                                    node):
-    #     if node == -1:
-    #         dict_idx = 'data_points_on_outlier_node'
-    #     else:
-    #         dict_idx = 'data_points_on_included_nodes'
-    #
-    #     if adjustment == 'add':
-    #         self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] += outlier_prob_gt_zero_node_val
-    #         self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] = outlier_prob_gt_zero_node_val
-    #     elif adjustment == 'remove':
-    #         self.sum_of_log_data_points_outlier_prob_gt_zero[dict_idx] -= outlier_prob_gt_zero_node_val
-    #         self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise.pop(node, None)
-    #
-    #     if node == -1:
-    #         if adjustment == 'add':
-    #             self.sum_of_outlier_data_points_marginal_prob = outlier_data_points_marginal_prob_node_val
-    #         elif adjustment == 'remove':
-    #             self.sum_of_outlier_data_points_marginal_prob = 0
 
     def _add_node_to_log_val_trackers(self,
                                       outlier_prob_gt_zero_node_val,
@@ -427,38 +387,13 @@ class Tree(object):
         self.sum_of_outlier_data_points_marginal_prob = 0
 
         self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_outlier_node'] -= outlier_prob_gt_zero_node_val
-        # self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise.pop(node, None)
         self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] = 0
-
-    # def _update_log_factorial_single_adjustment(self, adjustment, node):
-    #     if node == -1:
-    #         return
-    #
-    #     old_node_log_factorial_val = self.log_factorials_nodewise[node]
-    #     old_node_data_length = len(self._data[node])
-    #
-    #     if adjustment == 'add':
-    #         new_node_data_length = old_node_data_length + 1
-    #     elif adjustment == 'remove':
-    #         new_node_data_length = old_node_data_length - 1
-    #     else:
-    #         new_node_data_length = old_node_data_length
-    #
-    #     if new_node_data_length == 0:
-    #         new_node_log_factorial_val = 0
-    #     else:
-    #         new_node_log_factorial_val = self.factorial_arr[new_node_data_length - 1]
-    #
-    #     self.log_factorial_sum -= old_node_log_factorial_val
-    #     self.log_factorial_sum += new_node_log_factorial_val
-    #     self.log_factorials_nodewise[node] = new_node_log_factorial_val
 
     def _add_datapoint_to_log_factorial_trackers(self, node, old_node_data_length):
         if node == -1:
             return
 
         old_node_log_factorial_val = self.log_factorials_nodewise[node]
-        # old_node_data_length = len(self._data[node])
 
         new_node_data_length = old_node_data_length + 1
 
@@ -473,7 +408,6 @@ class Tree(object):
             return
 
         old_node_log_factorial_val = self.log_factorials_nodewise[node]
-        # old_node_data_length = len(self._data[node])
 
         new_node_data_length = old_node_data_length - 1
 
@@ -483,18 +417,6 @@ class Tree(object):
         self.log_factorial_sum += new_node_log_factorial_val
         self.log_factorials_nodewise[node] = new_node_log_factorial_val
 
-    # def _update_log_factorial_node_level_adjustment(self, adjustment, node, node_data_length):
-    #     if node == -1:
-    #         return
-    #
-    #     node_log_factorial_val = self.factorial_arr[node_data_length - 1]
-    #
-    #     if adjustment == 'add':
-    #         self.log_factorial_sum += node_log_factorial_val
-    #         self.log_factorials_nodewise[node] = node_log_factorial_val
-    #     elif adjustment == 'remove':
-    #         self.log_factorial_sum -= node_log_factorial_val
-    #         self.log_factorials_nodewise.pop(node, None)
 
     def _add_node_to_log_factorial_trackers(self, node, node_data_length):
         if node == -1:
@@ -512,7 +434,6 @@ class Tree(object):
         node_log_factorial_val = self.factorial_arr[node_data_length - 1]
 
         self.log_factorial_sum -= node_log_factorial_val
-        # self.log_factorials_nodewise.pop(node, None)
         self.log_factorials_nodewise[node] = 0
 
     def add_data_point_to_outliers(self, data_point):
@@ -538,12 +459,6 @@ class Tree(object):
             self._add_node_to_log_val_trackers(outlier_prob_gt_zero_node_val, new_node)
 
             self._add_node_to_log_factorial_trackers(new_node, len(node_data))
-
-            # self._update_log_val_trackers_node_level_adjustment('add',
-            #                                                     outlier_prob_gt_zero_node_val,
-            #                                                     outlier_data_points_marginal_prob_node_val,
-            #                                                     new_node)
-            # self._update_log_factorial_node_level_adjustment('add', new_node, len(node_data))
 
         nx.relabel_nodes(subtree._graph, node_map, copy=False)
 
@@ -573,7 +488,6 @@ class Tree(object):
         self._add_node(node)
 
         for data_point in data:
-            # self._update_log_factorial_single_adjustment('add', node)
 
             self._data[node].append(data_point)
 
@@ -595,6 +509,7 @@ class Tree(object):
 
         return node
 
+    # @profile
     def copy(self):
         cls = self.__class__
 
@@ -631,11 +546,6 @@ class Tree(object):
             else:
                 new._add_node_to_log_val_trackers(outlier_prob_gt_zero_node_val, node)
                 new._add_node_to_log_factorial_trackers(node, len(node_data))
-            # new._update_log_val_trackers_node_level_adjustment('add',
-            #                                                    outlier_prob_gt_zero_node_val,
-            #                                                    outlier_data_points_marginal_prob_node_val,
-            #                                                    node)
-            # new._update_log_factorial_node_level_adjustment('add', node, len(node_data))
 
         new._log_prior = self._log_prior
 
@@ -680,7 +590,6 @@ class Tree(object):
 
         for node in new.nodes:
             node_data = list(self._data[node])
-            # new._data[node] = list(self._data[node])
             new._data[node] = node_data
 
             new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
@@ -695,16 +604,6 @@ class Tree(object):
             else:
                 new._add_node_to_log_val_trackers(outlier_prob_gt_zero_node_val, node)
                 new._add_node_to_log_factorial_trackers(node, len(node_data))
-
-            # outlier_prob_gt_zero_node_val = self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node]
-            # outlier_data_points_marginal_prob_node_val = 0
-            # if node == -1:
-            #     outlier_data_points_marginal_prob_node_val = self.sum_of_outlier_data_points_marginal_prob
-            # new._update_log_val_trackers_node_level_adjustment('add',
-            #                                                    outlier_prob_gt_zero_node_val,
-            #                                                    outlier_data_points_marginal_prob_node_val,
-            #                                                    node)
-            # new._update_log_factorial_node_level_adjustment('add', node, len(node_data))
 
         new.update()
 
@@ -742,7 +641,6 @@ class Tree(object):
         self._graph = nx.relabel_nodes(self._graph, node_map)
 
     def remove_data_point_from_node(self, data_point, node):
-        # self._update_log_factorial_single_adjustment('remove', node)
         self._remove_datapoint_from_log_factorial_trackers(node, len(self._data[node]))
 
         self._data[node].remove(data_point)
@@ -773,16 +671,11 @@ class Tree(object):
             for node in subtree.nodes:
                 outlier_prob_gt_zero_node_val = self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node]
                 if node == -1:
-                    # outlier_data_points_marginal_prob_node_val = self.sum_of_outlier_data_points_marginal_prob
                     self._remove_node_from_outlier_log_val_trackers(outlier_prob_gt_zero_node_val, node)
                 else:
                     self._remove_node_from_log_val_trackers(outlier_prob_gt_zero_node_val, node)
                     self._remove_node_from_log_factorial_trackers(node, len(self._data[node]))
-                # self._update_log_val_trackers_node_level_adjustment('remove',
-                #                                                     outlier_prob_gt_zero_node_val,
-                #                                                     outlier_data_points_marginal_prob_node_val,
-                #                                                     node)
-                # self._update_log_factorial_node_level_adjustment('remove', node, len(self._data[node]))
+
 
                 del self._data[node]
 
@@ -823,7 +716,7 @@ class Tree(object):
             self._update_node(source)
 
     def _update_node(self, node):
-        child_log_R_values = [self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)]
+        child_log_R_values = np.array([self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)])
 
         self._graph.nodes[node]["log_S"] = compute_log_S(child_log_R_values)
 
@@ -832,13 +725,12 @@ class Tree(object):
 
         self._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_p"] + self._graph.nodes[node]["log_S"]
 
-
 def compute_log_S(child_log_R_values):
     """ Compute log(S) recursion.
 
     Parameters
     ----------
-    child_log_R_values: list
+    child_log_R_values: ndarray
         log_R values from child nodes.
     """
     if len(child_log_R_values) == 0:
@@ -860,17 +752,160 @@ def compute_log_D(child_log_R_values):
     if len(child_log_R_values) == 0:
         return 0
 
-    log_D = child_log_R_values.pop(0).copy()
+    if child_log_R_values[0].size >= 500 or child_log_R_values.size >= 1000:
 
-    num_dims = log_D.shape[0]
+        log_D = _comp_log_d_all_at_once(child_log_R_values)
 
-    for child_log_R in child_log_R_values:
-        for i in range(num_dims):
-            log_D[i, :] = _compute_log_D_n(child_log_R[i, :], log_D[i, :])
+        # if for_check.shape[0] <= 2:
+        #     log_D = _comp_log_d_all_at_once(for_check)
+        # else:
+        #     log_D = _comp_log_d_all_at_once_no_loop(for_check)
+
+    else:
+         log_D = _comp_log_d_split(child_log_R_values)
+
 
     return log_D
 
 
+# def _comp_log_d_split(child_log_R_values):
+#     log_D = child_log_R_values.pop(0).copy()
+#     num_dims = log_D.shape[0]
+#     for child_log_R in child_log_R_values:
+#         for i in range(num_dims):
+#             log_D[i, :] = _compute_log_D_n(child_log_R[i, :], log_D[i, :])
+#     return log_D
+
+def _comp_log_d_split(child_log_R_values):
+    num_children = len(child_log_R_values)
+    if num_children == 1:
+        return child_log_R_values[0].copy()
+
+    log_D = child_log_R_values[0]
+    num_dims = log_D.shape[0]
+    num_children = child_log_R_values.shape[0]
+
+    # for child_log_R in child_log_R_values:
+    for j in range(1, num_children):
+        child_log_R = child_log_R_values[j]
+        for i in range(num_dims):
+            log_D[i, :] = _compute_log_D_n(child_log_R[i, :], log_D[i, :])
+    return log_D
+
+
+# @numba.jit(cache=True, nopython=True, parallel=True)
+# def _comp_log_d_split_NUMBA(child_log_R_values):
+#     log_D = child_log_R_values.pop(0).copy()
+#     num_dims = log_D.shape[0]
+#     for child_log_R in child_log_R_values:
+#         for i in range(num_dims):
+#             log_D[i, :] = _compute_log_D_n_NUMBA(child_log_R[i, :], log_D[i, :])
+#     return log_D
+
+
+def _comp_log_d_all_at_once(child_log_R_values):
+    num_children = len(child_log_R_values)
+
+    if num_children == 1:
+        return child_log_R_values[0].copy()
+
+    maxes = np.max(child_log_R_values, axis=2, keepdims=True)
+    child_log_R_values_norm = np.exp(child_log_R_values - maxes)
+
+    log_D = child_log_R_values_norm[0]
+
+    for i in range(1, num_children):
+        child_log_R = child_log_R_values_norm[i]
+        log_D = fftconvolve(child_log_R, log_D, axes=1)
+        log_D = log_D[:, :child_log_R.shape[1]]
+
+    maxes_collapsed = np.add.reduce(maxes)
+    log_D[log_D <= 0] = 1e-25
+    log_D = np.log(log_D) + maxes_collapsed
+
+    return log_D
+
+
+def _comp_log_d_all_at_once_no_loop(child_log_R_values):
+    num_children = len(child_log_R_values)
+
+    if num_children == 1:
+        return child_log_R_values[0]
+
+    maxes = np.max(child_log_R_values, axis=2, keepdims=True)
+    child_log_R_values_norm = np.exp(child_log_R_values - maxes)
+
+    child_log_R_values_shifted = np.roll(child_log_R_values_norm, 1, axis=0)
+
+    log_D = fftconvolve(child_log_R_values_shifted, child_log_R_values_norm, axes=2)
+    log_D = log_D[0, :child_log_R_values.shape[1], :child_log_R_values.shape[2]]
+
+    maxes_collapsed = np.add.reduce(maxes)
+    log_D[log_D <= 0] = 1e-25
+    log_D = np.log(log_D) + maxes_collapsed
+
+    return log_D
+
+
+# def _arr_check_convolve(R_norm, D_norm, length):
+#     result = np.convolve(R_norm, D_norm)
+#     result = result[:length]
+#     return result
+#
+#
+# def _arr_norm_check_builder(child_log_R_values):
+#     check_arr = np.matrix.copy(child_log_R_values)
+#     res_arr = np.empty_like(check_arr)
+#
+#     log_D = check_arr[0]
+#     num_dims = log_D.shape[0]
+#     num_children = check_arr.shape[0]
+#     for i in range(num_children - 1):
+#         for j in range(num_dims):
+#             child_log_r = check_arr[i + 1][j]
+#             prev_log_d = check_arr[i][j]
+#             res_arr[i + 1][j], res_arr[i][j] = _arr_norm_check_sub_builder(child_log_r, prev_log_d)
+#
+#     return res_arr
+#
+#
+# def _arr_norm_check_sub_builder(child_log_R, prev_log_D_n):
+#     log_R_max = child_log_R.max()
+#
+#     log_D_max = prev_log_D_n.max()
+#
+#     R_norm = np.exp(child_log_R - log_R_max)
+#
+#     D_norm = np.exp(prev_log_D_n - log_D_max)
+#
+#     return R_norm, D_norm
+
+
+# def _compute_log_D_n(child_log_R, prev_log_D_n):
+#     """ Compute the recursion over D using the FFT.
+#     """
+#     log_R_max = child_log_R.max()
+#
+#     log_D_max = prev_log_D_n.max()
+#
+#     R_norm = np.exp(child_log_R - log_R_max)
+#
+#     D_norm = np.exp(prev_log_D_n - log_D_max)
+#
+#     if len(child_log_R) < 1000:
+#         result = np.convolve(R_norm, D_norm)
+#
+#     else:
+#         result = fftconvolve(R_norm, D_norm)
+#
+#     result = result[:len(child_log_R)]
+#
+#     result[result <= 0] = 1e-100
+#
+#     return np.log(result) + log_D_max + log_R_max
+
+
+# @profile
 def _compute_log_D_n(child_log_R, prev_log_D_n):
     """ Compute the recursion over D using the FFT.
     """
@@ -882,14 +917,38 @@ def _compute_log_D_n(child_log_R, prev_log_D_n):
 
     D_norm = np.exp(prev_log_D_n - log_D_max)
 
-    if len(child_log_R) < 1000:
-        result = np.convolve(R_norm, D_norm)
+    # if len(child_log_R) < 1000:
+    #     result = np.convolve(R_norm, D_norm)
+    #
+    # else:
+    #     result = fftconvolve(R_norm, D_norm)
 
-    else:
-        result = fftconvolve(R_norm, D_norm)
+    result = np.convolve(R_norm, D_norm)
 
     result = result[:len(child_log_R)]
 
     result[result <= 0] = 1e-100
 
     return np.log(result) + log_D_max + log_R_max
+
+
+# @numba.jit(cache=True, nopython=True)
+# def _compute_log_D_n_NUMBA(child_log_R, prev_log_D_n):
+#     """ Compute the recursion over D using the FFT.
+#     """
+#     log_R_max = child_log_R.max()
+#
+#     log_D_max = prev_log_D_n.max()
+#
+#     R_norm = np.exp(child_log_R - log_R_max)
+#
+#     D_norm = np.exp(prev_log_D_n - log_D_max)
+#
+#     result = np.convolve(R_norm, D_norm)
+#
+#     result = result[:len(child_log_R)]
+#
+#     result[result <= 0] = 1e-100
+#
+#     return np.log(result) + log_D_max + log_R_max
+

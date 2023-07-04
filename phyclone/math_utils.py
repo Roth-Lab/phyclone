@@ -31,7 +31,6 @@ def simple_factorial(n, arr):
     return arr[n]
 
 
-@numba.jit(cache=True, nopython=True)
 def simple_log_factorial(n, arr):
     if n <= 1:
         if arr[1] == -math.inf:
@@ -44,6 +43,18 @@ def simple_log_factorial(n, arr):
 
     arr[n] = np.log(n) + simple_log_factorial(n - 1, arr)
     return arr[n]
+
+# @numba.jit(cache=True, nopython=True)
+# def simple_log_factorial_looped(n, arr):
+#     idxs = np.nonzero(arr == -math.inf)[0]
+#
+#     for i in idxs:
+#         if i > n:
+#             break
+#         if i == 0:
+#             arr[i] = np.log(1)
+#         else:
+#             arr[i] = np.log(i) + arr[i - 1]
 
 
 @numba.jit(cache=True, nopython=True)

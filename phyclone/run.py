@@ -239,7 +239,8 @@ def run(
         random.seed(seed)
 
     data, samples = phyclone.data.pyclone.load_data(
-        in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob, precision=precision
+        in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
+        precision=precision
     )
 
     tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
@@ -259,7 +260,7 @@ def run(
     elif proposal == "semi-adapted":
         kernel_cls = SemiAdaptedKernel
 
-    factorial_arr = np.full(len(data)+1, -inf)
+    factorial_arr = np.full(len(data) + 1, -inf)
     simple_log_factorial(len(data), factorial_arr)  # TODO: any point to having this pre-computed?
 
     kernel = kernel_cls(tree_dist, factorial_arr, outlier_proposal_prob=outlier_proposal_prob)
