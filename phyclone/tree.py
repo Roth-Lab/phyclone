@@ -1,13 +1,12 @@
 from collections import defaultdict
-from scipy.signal import fftconvolve, convolve
+from scipy.signal import fftconvolve
 
 import networkx as nx
 import numpy as np
 
 from phyclone.consensus import get_clades
 from phyclone.math_utils import log_factorial, log_sum_exp
-import numba
-from copy import deepcopy
+import itertools
 
 
 class FSCRPDistribution(object):
@@ -225,12 +224,14 @@ class Tree(object):
 
     @property
     def data(self):
-        result = []
 
-        for node in self._data:
-            result.extend(self._data[node])
+        # result = []
+        # for node in self._data:
+        #     result.extend(self._data[node])
+        #
+        # result = sorted(result, key=lambda x: x.idx)
 
-        result = sorted(result, key=lambda x: x.idx)
+        result = sorted(itertools.chain.from_iterable(self._data.values()), key=lambda x: x.idx)
 
         return result
 
@@ -242,11 +243,13 @@ class Tree(object):
 
     @property
     def labels(self):
-        result = {}
+        # result = {}
+        #
+        # for node, node_data in self.node_data.items():
+        #     for data_point in node_data:
+        #         result[data_point.idx] = node
 
-        for node, node_data in self.node_data.items():
-            for data_point in node_data:
-                result[data_point.idx] = node
+        result = {dp.idx: k for k, l in self.node_data.items() for dp in l}
 
         return result
 
@@ -416,7 +419,6 @@ class Tree(object):
         self.log_factorial_sum -= old_node_log_factorial_val
         self.log_factorial_sum += new_node_log_factorial_val
         self.log_factorials_nodewise[node] = new_node_log_factorial_val
-
 
     def _add_node_to_log_factorial_trackers(self, node, node_data_length):
         if node == -1:
@@ -676,7 +678,6 @@ class Tree(object):
                     self._remove_node_from_log_val_trackers(outlier_prob_gt_zero_node_val, node)
                     self._remove_node_from_log_factorial_trackers(node, len(self._data[node]))
 
-
                 del self._data[node]
 
             self._update_path_to_root(parent)
@@ -725,6 +726,7 @@ class Tree(object):
 
         self._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_p"] + self._graph.nodes[node]["log_S"]
 
+
 def compute_log_S(child_log_R_values):
     """ Compute log(S) recursion.
 
@@ -762,8 +764,7 @@ def compute_log_D(child_log_R_values):
         #     log_D = _comp_log_d_all_at_once_no_loop(for_check)
 
     else:
-         log_D = _comp_log_d_split(child_log_R_values)
-
+        log_D = _comp_log_d_split(child_log_R_values)
 
     return log_D
 
@@ -781,7 +782,7 @@ def _comp_log_d_split(child_log_R_values):
     if num_children == 1:
         return child_log_R_values[0].copy()
 
-    log_D = child_log_R_values[0]
+    log_D = child_log_R_values[0].copy()
     num_dims = log_D.shape[0]
     num_children = child_log_R_values.shape[0]
 
@@ -812,7 +813,7 @@ def _comp_log_d_all_at_once(child_log_R_values):
     maxes = np.max(child_log_R_values, axis=2, keepdims=True)
     child_log_R_values_norm = np.exp(child_log_R_values - maxes)
 
-    log_D = child_log_R_values_norm[0]
+    log_D = child_log_R_values_norm[0].copy()
 
     for i in range(1, num_children):
         child_log_R = child_log_R_values_norm[i]
@@ -931,7 +932,6 @@ def _compute_log_D_n(child_log_R, prev_log_D_n):
 
     return np.log(result) + log_D_max + log_R_max
 
-
 # @numba.jit(cache=True, nopython=True)
 # def _compute_log_D_n_NUMBA(child_log_R, prev_log_D_n):
 #     """ Compute the recursion over D using the FFT.
@@ -951,4 +951,3 @@ def _compute_log_D_n(child_log_R, prev_log_D_n):
 #     result[result <= 0] = 1e-100
 #
 #     return np.log(result) + log_D_max + log_R_max
-
