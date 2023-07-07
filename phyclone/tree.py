@@ -1,5 +1,6 @@
 from collections import defaultdict
 from scipy.signal import fftconvolve
+from scipy import fft
 
 import networkx as nx
 import numpy as np
@@ -16,7 +17,6 @@ class FSCRPDistribution(object):
     def __init__(self, alpha):
         self.alpha = alpha
 
-    # @profile
     def log_p(self, tree):
         log_p = 0
 
@@ -33,30 +33,6 @@ class FSCRPDistribution(object):
         log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
 
         return log_p
-    # @profile
-    # def log_p(self, tree):
-    #     log_p = 0
-    #
-    #     # CRP prior
-    #     num_nodes = len(tree.nodes)
-    #
-    #     log_p += num_nodes * np.log(self.alpha)
-    #
-    #     for node, node_data in tree.node_data.items():
-    #         if node == -1:
-    #             continue
-    #
-    #         num_data_points = len(node_data)
-    #
-    #         log_p += log_factorial(num_data_points - 1)
-    #
-    #     # Uniform prior on toplogies
-    #     log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
-    #
-    #     # tmp_log_p = self._log_p(tree)
-    #     # assert np.allclose(tmp_log_p, log_p)
-    #
-    #     return log_p
 
 
 class TreeJointDistribution(object):
@@ -64,36 +40,6 @@ class TreeJointDistribution(object):
     def __init__(self, prior):
         self.prior = prior
 
-    # @profile
-    # def log_p(self, tree):
-    #     """ The log likelihood of the data marginalized over root node parameters.
-    #     """
-    #     log_p = self.prior.log_p(tree)
-    #
-    #     # Outlier prior
-    #     for node, node_data in tree.node_data.items():
-    #         for data_point in node_data:
-    #             if data_point.outlier_prob > 0:
-    #                 if node == -1:
-    #                     log_p += np.log(data_point.outlier_prob)
-    #
-    #                 else:
-    #                     log_p += np.log1p(-data_point.outlier_prob)
-    #
-    #     if len(tree.roots) > 0:
-    #         for i in range(tree.grid_size[0]):
-    #             log_p += log_sum_exp(tree.data_log_likelihood[i, :])
-    #
-    #     for data_point in tree.outliers:
-    #         log_p += data_point.outlier_marginal_prob
-    #
-    #     # tmp_log_p = self._log_p(tree)
-    #     #
-    #     # assert np.allclose(tmp_log_p, log_p)
-    #
-    #     return log_p
-
-    # @profile
     def log_p(self, tree):
         """ The log likelihood of the data marginalized over root node parameters.
         """
@@ -116,34 +62,6 @@ class TreeJointDistribution(object):
         log_p_res = log_p_outlier_probs_out_node + log_p_outlier_probs_in_nodes + log_p_outlier_marginal_probs
         return log_p_res
 
-    # def _log_p_one(self, tree):
-    #     """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
-    #     """
-    #     log_p = self.prior.log_p(tree)
-    #
-    #     # Outlier prior
-    #     for node, node_data in tree.node_data.items():
-    #         for data_point in node_data:
-    #             if data_point.outlier_prob > 0:
-    #                 if node == -1:
-    #                     log_p += np.log(data_point.outlier_prob)
-    #
-    #                 else:
-    #                     log_p += np.log1p(-data_point.outlier_prob)
-    #
-    #     if len(tree.roots) > 0:
-    #         for i in range(tree.grid_size[0]):
-    #             log_p += tree.data_log_likelihood[i, -1]
-    #
-    #     for data_point in tree.outliers:
-    #         log_p += data_point.outlier_marginal_prob
-    #
-    #     # tmp_log_p = self._log_p_one(tree)
-    #     #
-    #     # assert np.allclose(tmp_log_p, log_p)
-    #
-    #     return log_p
-    # @profile
     def log_p_one(self, tree):
         """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
         """
@@ -325,11 +243,11 @@ class Tree(object):
             self._update_path_to_root(self.get_parent(node))
 
     def _add_datapoint_to_log_val_trackers(self, data_point, node):
-        # if data_point.outlier_prob > 0:
-        log_p_val_adjust = np.log1p(-data_point.outlier_prob)
+        if data_point.outlier_prob > 0:
+            log_p_val_adjust = np.log1p(-data_point.outlier_prob)
 
-        self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_included_nodes'] += log_p_val_adjust
-        self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] += log_p_val_adjust
+            self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_included_nodes'] += log_p_val_adjust
+            self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] += log_p_val_adjust
 
     def _add_datapoint_to_outlier_log_val_trackers(self, data_point, node):
         if data_point.outlier_prob > 0:
@@ -341,11 +259,11 @@ class Tree(object):
         self.sum_of_outlier_data_points_marginal_prob += data_point.outlier_marginal_prob
 
     def _remove_datapoint_from_log_val_trackers(self, data_point, node):
-        # if data_point.outlier_prob > 0:
-        log_p_val_adjust = np.log1p(-data_point.outlier_prob)
+        if data_point.outlier_prob > 0:
+            log_p_val_adjust = np.log1p(-data_point.outlier_prob)
 
-        self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_included_nodes'] -= log_p_val_adjust
-        self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] -= log_p_val_adjust
+            self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_included_nodes'] -= log_p_val_adjust
+            self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] -= log_p_val_adjust
 
     def _remove_datapoint_from_outlier_log_val_trackers(self, data_point, node):
         if data_point.outlier_prob > 0:
@@ -511,7 +429,6 @@ class Tree(object):
 
         return node
 
-    # @profile
     def copy(self):
         cls = self.__class__
 
@@ -754,28 +671,27 @@ def compute_log_D(child_log_R_values):
     if len(child_log_R_values) == 0:
         return 0
 
-    if child_log_R_values[0].size >= 500 or child_log_R_values.size >= 1000:
+    # num_children = len(child_log_R_values)
 
-        log_D = _comp_log_d_all_at_once(child_log_R_values)
+    # direct_log_d = _comp_log_d_split(child_log_R_values)
+    #
+    # scipy_fft = _comp_log_d_split_scipy_fft(child_log_R_values)
+    #
+    # log_D = _comp_log_d_all_at_once_plain_fft(child_log_R_values)
 
-        # if for_check.shape[0] <= 2:
-        #     log_D = _comp_log_d_all_at_once(for_check)
-        # else:
-        #     log_D = _comp_log_d_all_at_once_no_loop(for_check)
+    # if child_log_R_values[0].size >= 500 or child_log_R_values.size >= 1000:
+    #
+    #     log_D = _comp_log_d_all_at_once_plain_fft(child_log_R_values)
+    #
+    # else:
+    #     log_D = _comp_log_d_split(child_log_R_values)
 
-    else:
-        log_D = _comp_log_d_split(child_log_R_values)
+    # log_D = _comp_log_d_split(child_log_R_values)
+
+    log_D = _comp_log_d_all_at_once_plain_fft(child_log_R_values)
 
     return log_D
 
-
-# def _comp_log_d_split(child_log_R_values):
-#     log_D = child_log_R_values.pop(0).copy()
-#     num_dims = log_D.shape[0]
-#     for child_log_R in child_log_R_values:
-#         for i in range(num_dims):
-#             log_D[i, :] = _compute_log_D_n(child_log_R[i, :], log_D[i, :])
-#     return log_D
 
 def _comp_log_d_split(child_log_R_values):
     num_children = len(child_log_R_values)
@@ -786,7 +702,6 @@ def _comp_log_d_split(child_log_R_values):
     num_dims = log_D.shape[0]
     num_children = child_log_R_values.shape[0]
 
-    # for child_log_R in child_log_R_values:
     for j in range(1, num_children):
         child_log_R = child_log_R_values[j]
         for i in range(num_dims):
@@ -794,119 +709,73 @@ def _comp_log_d_split(child_log_R_values):
     return log_D
 
 
-# @numba.jit(cache=True, nopython=True, parallel=True)
-# def _comp_log_d_split_NUMBA(child_log_R_values):
-#     log_D = child_log_R_values.pop(0).copy()
-#     num_dims = log_D.shape[0]
-#     for child_log_R in child_log_R_values:
-#         for i in range(num_dims):
-#             log_D[i, :] = _compute_log_D_n_NUMBA(child_log_R[i, :], log_D[i, :])
-#     return log_D
+def _comp_log_d_split_scipy_fft(child_log_R_values):
+    num_children = len(child_log_R_values)
+    if num_children == 1:
+        return child_log_R_values[0].copy()
+
+    log_D = child_log_R_values[0].copy()
+    num_dims = log_D.shape[0]
+    num_children = child_log_R_values.shape[0]
+
+    for j in range(1, num_children):
+        child_log_R = child_log_R_values[j]
+        for i in range(num_dims):
+            log_D[i, :] = _compute_log_D_n_scipy_fft(child_log_R[i, :], log_D[i, :])
+
+    return log_D
 
 
-def _comp_log_d_all_at_once(child_log_R_values):
+def _comp_log_d_all_at_once_plain_fft(child_log_R_values):
     num_children = len(child_log_R_values)
 
     if num_children == 1:
         return child_log_R_values[0].copy()
 
-    maxes = np.max(child_log_R_values, axis=2, keepdims=True)
+    maxes = np.max(child_log_R_values, axis=-1, keepdims=True)
     child_log_R_values_norm = np.exp(child_log_R_values - maxes)
 
-    log_D = child_log_R_values_norm[0].copy()
+    outlen = child_log_R_values.shape[-1] + child_log_R_values.shape[-1] - 1
 
-    for i in range(1, num_children):
-        child_log_R = child_log_R_values_norm[i]
-        log_D = fftconvolve(child_log_R, log_D, axes=1)
-        log_D = log_D[:, :child_log_R.shape[1]]
+    pad_to = fft.next_fast_len(outlen, real=True)
 
+    fwd = fft.rfft(child_log_R_values_norm, n=pad_to, axis=-1, norm='forward')
+
+    c_fft = np.prod(fwd, axis=0)
+
+    log_D = fft.irfft(c_fft, n=pad_to, axis=-1, norm='forward')
+
+    log_D = log_D[..., :child_log_R_values.shape[-1]]
+
+    log_D[log_D <= 0] = 1e-100
     maxes_collapsed = np.add.reduce(maxes)
-    log_D[log_D <= 0] = 1e-25
     log_D = np.log(log_D) + maxes_collapsed
 
     return log_D
 
 
-def _comp_log_d_all_at_once_no_loop(child_log_R_values):
-    num_children = len(child_log_R_values)
+def _compute_log_D_n_scipy_fft(child_log_R, prev_log_D_n):
+    """ Compute the recursion over D using the FFT.
+    """
+    log_R_max = child_log_R.max()
 
-    if num_children == 1:
-        return child_log_R_values[0]
+    log_D_max = prev_log_D_n.max()
 
-    maxes = np.max(child_log_R_values, axis=2, keepdims=True)
-    child_log_R_values_norm = np.exp(child_log_R_values - maxes)
+    R_norm = np.exp(child_log_R - log_R_max)
 
-    child_log_R_values_shifted = np.roll(child_log_R_values_norm, 1, axis=0)
+    D_norm = np.exp(prev_log_D_n - log_D_max)
 
-    log_D = fftconvolve(child_log_R_values_shifted, child_log_R_values_norm, axes=2)
-    log_D = log_D[0, :child_log_R_values.shape[1], :child_log_R_values.shape[2]]
+    result_raw = fftconvolve(R_norm, D_norm)
 
-    maxes_collapsed = np.add.reduce(maxes)
-    log_D[log_D <= 0] = 1e-25
-    log_D = np.log(log_D) + maxes_collapsed
+    result = result_raw[:len(child_log_R)]
 
-    return log_D
+    result[result <= 0] = 1e-100
 
+    result = np.log(result) + log_D_max + log_R_max
 
-# def _arr_check_convolve(R_norm, D_norm, length):
-#     result = np.convolve(R_norm, D_norm)
-#     result = result[:length]
-#     return result
-#
-#
-# def _arr_norm_check_builder(child_log_R_values):
-#     check_arr = np.matrix.copy(child_log_R_values)
-#     res_arr = np.empty_like(check_arr)
-#
-#     log_D = check_arr[0]
-#     num_dims = log_D.shape[0]
-#     num_children = check_arr.shape[0]
-#     for i in range(num_children - 1):
-#         for j in range(num_dims):
-#             child_log_r = check_arr[i + 1][j]
-#             prev_log_d = check_arr[i][j]
-#             res_arr[i + 1][j], res_arr[i][j] = _arr_norm_check_sub_builder(child_log_r, prev_log_d)
-#
-#     return res_arr
-#
-#
-# def _arr_norm_check_sub_builder(child_log_R, prev_log_D_n):
-#     log_R_max = child_log_R.max()
-#
-#     log_D_max = prev_log_D_n.max()
-#
-#     R_norm = np.exp(child_log_R - log_R_max)
-#
-#     D_norm = np.exp(prev_log_D_n - log_D_max)
-#
-#     return R_norm, D_norm
+    return result.copy()
 
 
-# def _compute_log_D_n(child_log_R, prev_log_D_n):
-#     """ Compute the recursion over D using the FFT.
-#     """
-#     log_R_max = child_log_R.max()
-#
-#     log_D_max = prev_log_D_n.max()
-#
-#     R_norm = np.exp(child_log_R - log_R_max)
-#
-#     D_norm = np.exp(prev_log_D_n - log_D_max)
-#
-#     if len(child_log_R) < 1000:
-#         result = np.convolve(R_norm, D_norm)
-#
-#     else:
-#         result = fftconvolve(R_norm, D_norm)
-#
-#     result = result[:len(child_log_R)]
-#
-#     result[result <= 0] = 1e-100
-#
-#     return np.log(result) + log_D_max + log_R_max
-
-
-# @profile
 def _compute_log_D_n(child_log_R, prev_log_D_n):
     """ Compute the recursion over D using the FFT.
     """
@@ -918,12 +787,6 @@ def _compute_log_D_n(child_log_R, prev_log_D_n):
 
     D_norm = np.exp(prev_log_D_n - log_D_max)
 
-    # if len(child_log_R) < 1000:
-    #     result = np.convolve(R_norm, D_norm)
-    #
-    # else:
-    #     result = fftconvolve(R_norm, D_norm)
-
     result = np.convolve(R_norm, D_norm)
 
     result = result[:len(child_log_R)]
@@ -931,23 +794,3 @@ def _compute_log_D_n(child_log_R, prev_log_D_n):
     result[result <= 0] = 1e-100
 
     return np.log(result) + log_D_max + log_R_max
-
-# @numba.jit(cache=True, nopython=True)
-# def _compute_log_D_n_NUMBA(child_log_R, prev_log_D_n):
-#     """ Compute the recursion over D using the FFT.
-#     """
-#     log_R_max = child_log_R.max()
-#
-#     log_D_max = prev_log_D_n.max()
-#
-#     R_norm = np.exp(child_log_R - log_R_max)
-#
-#     D_norm = np.exp(prev_log_D_n - log_D_max)
-#
-#     result = np.convolve(R_norm, D_norm)
-#
-#     result = result[:len(child_log_R)]
-#
-#     result[result <= 0] = 1e-100
-#
-#     return np.log(result) + log_D_max + log_R_max
