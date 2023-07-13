@@ -11,8 +11,16 @@ from phyclone.data.base import DataPoint
 from phyclone.smc.utils import interleave_lists, RootPermutationDistribution
 from phyclone.tree import Tree
 
+from math import inf
+from phyclone.math_utils import simple_log_factorial
+from numpy import full
+
 
 class Test(unittest.TestCase):
+
+    def __init__(self, methodName: str = ...):
+        super().__init__(methodName)
+        self.factorial_arr = None
 
     def test_interleave(self):
         x = range(10)
@@ -36,8 +44,10 @@ class Test(unittest.TestCase):
 
     def test_sample_sigma_tree(self):
         grid_size = (1, 10)
+
+        fact_arr = self.get_factorial_arr()
         
-        tree = Tree(grid_size)
+        tree = Tree(grid_size, fact_arr)
         
         node_1 = tree.create_root_node(children=[], data=[])
         
@@ -60,8 +70,10 @@ class Test(unittest.TestCase):
  
     def test_sample_sigma_chain(self):
         grid_size = (1, 10)
+
+        fact_arr = self.get_factorial_arr()
         
-        tree = Tree(grid_size)
+        tree = Tree(grid_size, fact_arr)
         
         node_2 = tree.create_root_node(children=[], data=[])
         
@@ -86,8 +98,10 @@ class Test(unittest.TestCase):
  
     def test_sample_two_roots(self):
         grid_size = (1, 10)
-        
-        tree = Tree(grid_size)
+
+        fact_arr = self.get_factorial_arr()
+
+        tree = Tree(grid_size, fact_arr)
 
         node_2 = tree.create_root_node(children=[], data=[])
         
@@ -111,7 +125,15 @@ class Test(unittest.TestCase):
             
         sigma = RootPermutationDistribution.sample(tree)
  
-        self.assertGreater(min([x.idx for x in sigma[:20]]), 19)        
+        self.assertGreater(min([x.idx for x in sigma[:20]]), 19)
+
+    def get_factorial_arr(self):
+        if self.factorial_arr:
+            return self.factorial_arr
+        factorial_arr = full(51, -inf)
+        simple_log_factorial(50, factorial_arr)
+        self.factorial_arr = factorial_arr
+        return self.factorial_arr
  
 
 if __name__ == "__main__":

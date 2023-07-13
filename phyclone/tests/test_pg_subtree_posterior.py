@@ -11,6 +11,9 @@ from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.tests.exact_posterior import get_exact_posterior
 
 import phyclone.tests.simulate as simulate
+from math import inf
+from phyclone.math_utils import simple_log_factorial
+from numpy import full
 
 
 class BaseTest(object):
@@ -57,15 +60,19 @@ class BaseTest(object):
             perm_dist = RootPermutationDistribution()
             
             self.tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
+
+            factorial_arr = full(6, -inf)
+            simple_log_factorial(5, factorial_arr)
+            self.factorial_arr = factorial_arr
             
-            kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=0, perm_dist=perm_dist)
+            kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=0, perm_dist=perm_dist, factorial_arr=factorial_arr)
             
             return ParticleGibbsSubtreeSampler(kernel)
     
         def _run_exact_posterior_test(self, data, burnin=100, num_iters=1000):
             pred_probs = self._run_sampler(data, burnin=int(self.run_scale * burnin), num_iters=int(self.run_scale * num_iters))
     
-            true_probs = get_exact_posterior(data, self.tree_dist)
+            true_probs = get_exact_posterior(data, self.tree_dist, factorial_arr=self.factorial_arr)
     
             self._test_posterior(pred_probs, true_probs)
     
@@ -73,7 +80,7 @@ class BaseTest(object):
     
             test_counts = Counter()
     
-            tree = Tree.get_single_node_tree(data)
+            tree = Tree.get_single_node_tree(data, self.factorial_arr)
     
             for i in range(-burnin, num_iters):
                 if i % 10 == 0:
