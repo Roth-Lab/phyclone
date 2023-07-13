@@ -667,28 +667,22 @@ def compute_log_S(child_log_R_values):
     return log_S
 
 
+# @np.errstate(under='warn', invalid='warn')
 def compute_log_D(child_log_R_values):
     if len(child_log_R_values) == 0:
         return 0
 
-    # num_children = len(child_log_R_values)
+    ############
+    # log_D_orig = _comp_log_d_split(child_log_R_values)
 
-    # direct_log_d = _comp_log_d_split(child_log_R_values)
-    #
     # scipy_fft = _comp_log_d_split_scipy_fft(child_log_R_values)
-    #
-    # log_D = _comp_log_d_all_at_once_plain_fft(child_log_R_values)
 
-    # if child_log_R_values[0].size >= 500 or child_log_R_values.size >= 1000:
-    #
-    #     log_D = _comp_log_d_all_at_once_plain_fft(child_log_R_values)
-    #
-    # else:
-    #     log_D = _comp_log_d_split(child_log_R_values)
+    fft_log_D = _comp_log_d_all_at_once_plain_fft(child_log_R_values)
 
-    # log_D = _comp_log_d_split(child_log_R_values)
+    ##############
 
-    log_D = _comp_log_d_all_at_once_plain_fft(child_log_R_values)
+    # log_D = log_D_orig
+    log_D = fft_log_D
 
     return log_D
 
@@ -733,23 +727,53 @@ def _comp_log_d_all_at_once_plain_fft(child_log_R_values):
         return child_log_R_values[0].copy()
 
     maxes = np.max(child_log_R_values, axis=-1, keepdims=True)
-    child_log_R_values_norm = np.exp(child_log_R_values - maxes)
+    child_log_R_values_norm = np.expm1(child_log_R_values - maxes)
 
-    outlen = child_log_R_values.shape[-1] + child_log_R_values.shape[-1] - 1
+    relevant_axis_length = child_log_R_values.shape[-1]
+
+    outlen = relevant_axis_length + relevant_axis_length - 1
 
     pad_to = fft.next_fast_len(outlen, real=True)
 
-    fwd = fft.rfft(child_log_R_values_norm, n=pad_to, axis=-1, norm='forward')
+    fwd = fft.rfft(child_log_R_values_norm, n=pad_to, axis=-1)
 
-    c_fft = np.prod(fwd, axis=0)
+    # c_fft = np.prod(fwd, axis=0)
 
-    log_D = fft.irfft(c_fft, n=pad_to, axis=-1, norm='forward')
+    # c_fft = fwd * fwd
 
-    log_D = log_D[..., :child_log_R_values.shape[-1]]
+    if num_children == 2:
+        c_fft = np.prod(fwd, axis=0)
+    else:
+        c_fft = fwd * fwd
 
-    log_D[log_D <= 0] = 1e-100
-    maxes_collapsed = np.add.reduce(maxes)
-    log_D = np.log(log_D) + maxes_collapsed
+    log_D = fft.irfft(c_fft, n=pad_to, axis=-1)
+
+    log_D = log_D[..., :relevant_axis_length]
+
+    if num_children == 2:
+        maxes_collapsed = np.add.reduce(maxes)
+        log_D = np.log1p(log_D) + maxes_collapsed
+    else:
+        log_D = np.log1p(log_D) + maxes
+        log_D = np.add.reduce(log_D)
+
+    return log_D
+
+
+def _comp_log_d_all_at_once_no_loop_no_roll(child_log_R_values):
+    num_children = len(child_log_R_values)
+
+    if num_children == 1:
+        return child_log_R_values[0].copy()
+
+    maxes = np.max(child_log_R_values, axis=-1, keepdims=True)
+    child_log_R_values_norm = np.expm1(child_log_R_values - maxes)
+
+    log_D = fftconvolve(child_log_R_values_norm, child_log_R_values_norm, axes=[-1])
+    log_D = log_D[:, :, :child_log_R_values.shape[-1]]
+
+    log_D = np.log1p(log_D) + maxes
+    log_D = np.add.reduce(log_D)
 
     return log_D
 
@@ -761,19 +785,19 @@ def _compute_log_D_n_scipy_fft(child_log_R, prev_log_D_n):
 
     log_D_max = prev_log_D_n.max()
 
-    R_norm = np.exp(child_log_R - log_R_max)
+    R_norm = np.expm1(child_log_R - log_R_max)
 
-    D_norm = np.exp(prev_log_D_n - log_D_max)
+    D_norm = np.expm1(prev_log_D_n - log_D_max)
 
     result_raw = fftconvolve(R_norm, D_norm)
 
     result = result_raw[:len(child_log_R)]
 
-    result[result <= 0] = 1e-100
+    # result[result <= 0] = 1e-100
 
-    result = np.log(result) + log_D_max + log_R_max
+    result = np.log1p(result) + log_D_max + log_R_max
 
-    return result.copy()
+    return result
 
 
 def _compute_log_D_n(child_log_R, prev_log_D_n):
@@ -783,14 +807,14 @@ def _compute_log_D_n(child_log_R, prev_log_D_n):
 
     log_D_max = prev_log_D_n.max()
 
-    R_norm = np.exp(child_log_R - log_R_max)
+    R_norm = np.expm1(child_log_R - log_R_max)
 
-    D_norm = np.exp(prev_log_D_n - log_D_max)
+    D_norm = np.expm1(prev_log_D_n - log_D_max)
 
     result = np.convolve(R_norm, D_norm)
 
     result = result[:len(child_log_R)]
 
-    result[result <= 0] = 1e-100
+    # result[result <= 0] = 1e-100
 
-    return np.log(result) + log_D_max + log_R_max
+    return np.log1p(result) + log_D_max + log_R_max
