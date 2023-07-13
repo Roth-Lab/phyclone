@@ -6,6 +6,7 @@ import pandas as pd
 
 import phyclone.data.base
 import phyclone.math_utils
+from phyclone.exceptions import MajorCopyNumberError
 
 
 def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400):
@@ -121,6 +122,9 @@ def get_major_cn_prior(major_cn, minor_cn, normal_cn, error_rate=1e-3):
     mu = []
 
     log_pi = []
+
+    if major_cn < minor_cn:
+        raise MajorCopyNumberError(major_cn, minor_cn)
 
     # Consider all possible mutational genotypes consistent with mutation before CN change
     for x in range(1, major_cn + 1):
