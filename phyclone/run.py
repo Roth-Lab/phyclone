@@ -263,7 +263,9 @@ def run(
     factorial_arr = np.full(len(data) + 1, -inf)
     simple_log_factorial(len(data), factorial_arr)  # TODO: any point to having this pre-computed?
 
-    kernel = kernel_cls(tree_dist, factorial_arr, outlier_proposal_prob=outlier_proposal_prob)
+    memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
+
+    kernel = kernel_cls(tree_dist, factorial_arr, memo_logs, outlier_proposal_prob=outlier_proposal_prob)
 
     dp_sampler = DataPointSampler(tree_dist, outliers=(outlier_prob > 0))
 
@@ -283,7 +285,7 @@ def run(
         kernel, num_particles=20, resample_threshold=0.5
     )
 
-    tree = Tree.get_single_node_tree(data, factorial_arr)
+    tree = Tree.get_single_node_tree(data, factorial_arr, memo_logs)
 
     timer = Timer()
 

@@ -21,6 +21,7 @@ class Test(unittest.TestCase):
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
         self.factorial_arr = None
+        self.memo_logs = None
 
     def test_interleave(self):
         x = range(10)
@@ -47,7 +48,7 @@ class Test(unittest.TestCase):
 
         fact_arr = self.get_factorial_arr()
         
-        tree = Tree(grid_size, fact_arr)
+        tree = Tree(grid_size, fact_arr, self.get_memo_logs())
         
         node_1 = tree.create_root_node(children=[], data=[])
         
@@ -73,7 +74,7 @@ class Test(unittest.TestCase):
 
         fact_arr = self.get_factorial_arr()
         
-        tree = Tree(grid_size, fact_arr)
+        tree = Tree(grid_size, fact_arr, self.get_memo_logs())
         
         node_2 = tree.create_root_node(children=[], data=[])
         
@@ -101,7 +102,7 @@ class Test(unittest.TestCase):
 
         fact_arr = self.get_factorial_arr()
 
-        tree = Tree(grid_size, fact_arr)
+        tree = Tree(grid_size, fact_arr, self.get_memo_logs())
 
         node_2 = tree.create_root_node(children=[], data=[])
         
@@ -134,6 +135,11 @@ class Test(unittest.TestCase):
         simple_log_factorial(50, factorial_arr)
         self.factorial_arr = factorial_arr
         return self.factorial_arr
+
+    def get_memo_logs(self):
+        self.memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
+        return self.memo_logs
+
  
 
 if __name__ == "__main__":

@@ -23,7 +23,9 @@ class Test(unittest.TestCase):
         simple_log_factorial(5, factorial_arr)
         # self.factorial_arr = factorial_arr
 
-        tree = Tree(grid_shape, factorial_arr)
+        memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
+
+        tree = Tree(grid_shape, factorial_arr, memo_logs)
 
         data = [
             DataPoint(0, np.zeros(grid_shape)),

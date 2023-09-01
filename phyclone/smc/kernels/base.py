@@ -23,7 +23,7 @@ class Kernel(object):
         """
         raise NotImplementedError
 
-    def __init__(self, tree_dist, factorial_arr, perm_dist=None):
+    def __init__(self, tree_dist, factorial_arr, memo_logs, perm_dist=None):
         """
         Parameters
         ----------
@@ -40,6 +40,8 @@ class Kernel(object):
         self.factorial_arr = factorial_arr
 
         self.perm_dist = perm_dist
+
+        self.memo_logs = memo_logs
 
     def create_particle(self, data_point, log_q, parent_particle, tree):
         """  Create a new particle from a parent particle.
@@ -91,6 +93,8 @@ class ProposalDistribution(object):
         self.parent_particle = parent_particle
 
         self.factorial_arr = factorial_arr
+
+        self.memo_logs = kernel.memo_logs
 
     def _empty_tree(self):
         """ Tree has no nodes

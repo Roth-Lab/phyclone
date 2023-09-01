@@ -19,7 +19,9 @@ class Test(unittest.TestCase):
         factorial_arr = full(8, -inf)
         simple_log_factorial(7, factorial_arr)
 
-        self.tree = Tree(grid_size, factorial_arr)
+        memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
+
+        self.tree = Tree(grid_size, factorial_arr, memo_logs)
         
         self.tree_dist = FSCRPDistribution(1.0)
 

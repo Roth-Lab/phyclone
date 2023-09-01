@@ -63,16 +63,23 @@ class BaseTest(object):
 
             factorial_arr = full(6, -inf)
             simple_log_factorial(5, factorial_arr)
+
+            memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
+
             self.factorial_arr = factorial_arr
+
+            self.memo_logs = memo_logs
             
-            kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=0, perm_dist=perm_dist, factorial_arr=factorial_arr)
+            kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=0, perm_dist=perm_dist,
+                                factorial_arr=factorial_arr, memo_logs=memo_logs)
             
             return ParticleGibbsSubtreeSampler(kernel)
     
         def _run_exact_posterior_test(self, data, burnin=100, num_iters=1000):
             pred_probs = self._run_sampler(data, burnin=int(self.run_scale * burnin), num_iters=int(self.run_scale * num_iters))
     
-            true_probs = get_exact_posterior(data, self.tree_dist, factorial_arr=self.factorial_arr)
+            true_probs = get_exact_posterior(data, self.tree_dist, factorial_arr=self.factorial_arr,
+                                             memo_logs=self.memo_logs)
     
             self._test_posterior(pred_probs, true_probs)
     
@@ -80,7 +87,7 @@ class BaseTest(object):
     
             test_counts = Counter()
     
-            tree = Tree.get_single_node_tree(data, self.factorial_arr)
+            tree = Tree.get_single_node_tree(data, self.factorial_arr, self.memo_logs)
     
             for i in range(-burnin, num_iters):
                 if i % 10 == 0:
