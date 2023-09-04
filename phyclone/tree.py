@@ -1,19 +1,13 @@
 from collections import defaultdict
-from scipy.signal import fftconvolve
 from scipy import fft
 
 import networkx as nx
 import numpy as np
 
 from phyclone.consensus import get_clades
-from phyclone.math_utils import log_factorial, log_sum_exp
+from phyclone.math_utils import log_sum_exp
 import itertools
 from phyclone.utils import list_of_np_cache
-
-
-# global_data_point_sums = {}
-# global_log_S_computed = {}
-# global_log_R_computed = {}
 
 
 class FSCRPDistribution(object):
@@ -111,17 +105,7 @@ class Tree(object):
 
         self.factorial_arr = factorial_arr
 
-        # self.log_p_comp_memo = memo_logs.log_p
-        #
-        # self.log_r_comp_memo = memo_logs.log_r
-        #
-        # self.log_s_comp_memp = memo_logs.log_s
-
         self.log_p_comp_memo = memo_logs["log_p"]
-
-        self.log_r_comp_memo = memo_logs["log_r"]
-
-        self.log_s_comp_memo = memo_logs["log_s"]
 
         self.memo_logs = memo_logs
 
@@ -135,7 +119,7 @@ class Tree(object):
             self.log_p_comp_memo[tmp_hash] = np.ones(self.grid_size) * self._log_prior
         if tmp_hash_2 not in self.log_p_comp_memo:
             self.log_p_comp_memo[tmp_hash_2] = np.zeros(self.grid_size)
-            self.log_r_comp_memo[tmp_hash_2] = self.log_p_comp_memo[tmp_hash_2]
+            # self.log_r_comp_memo[tmp_hash_2] = self.log_p_comp_memo[tmp_hash_2]
 
     def __hash__(self):
         return hash((get_clades(self), frozenset(self.outliers)))
@@ -176,12 +160,6 @@ class Tree(object):
     @property
     def data(self):
 
-        # result = []
-        # for node in self._data:
-        #     result.extend(self._data[node])
-        #
-        # result = sorted(result, key=lambda x: x.idx)
-
         result = sorted(itertools.chain.from_iterable(self._data.values()), key=lambda x: x.idx)
 
         return result
@@ -195,11 +173,6 @@ class Tree(object):
 
     @property
     def labels(self):
-        # result = {}
-        #
-        # for node, node_data in self.node_data.items():
-        #     for data_point in node_data:
-        #         result[data_point.idx] = node
 
         result = {dp.idx: k for k, l in self.node_data.items() for dp in l}
 
@@ -268,16 +241,6 @@ class Tree(object):
             self.log_p_comp_memo[set_hash] = base_val + data_point.value
         return set_hash
 
-    # def add_item_to_log_R_update_global(self, data_point, old_hash):
-    #     # old_set_hash = get_set_hash(edit_set)
-    #     # edit_set.add(data_point.name)
-    #     edit_set = {old_hash, data_point.name}
-    #     set_hash = get_set_hash(edit_set)
-    #     # if set_hash not in self.log_r_comp_memo:
-    #     #     base_val = self.log_r_comp_memo[old_hash]
-    #     #     self.log_r_comp_memo[set_hash] = base_val + data_point.value
-    #     return set_hash
-
     def add_data_point_to_node(self, data_point, node):
         assert data_point.idx not in self.labels.keys()
 
@@ -289,21 +252,8 @@ class Tree(object):
             self._add_datapoint_to_log_val_trackers(data_point, node)
 
         if node != -1:
-            # self._graph.nodes[node]["log_p"] += data_point.value
-            #
             self._graph.nodes[node]["log_R"] += data_point.value
-
-            # self._graph.nodes[node]["datapoints_log_R"].add(data_point.name)
-
             _ = self.add_item_to_dp_set_update_global(data_point, self._graph.nodes[node]["datapoints_log_p"])
-            # set_hash_r = add_item_to_dp_set_update_global(data_point, self._graph.nodes[node]["datapoints_log_R"])
-            # set_hash_r = self.add_item_to_log_R_update_global(data_point, self._graph.nodes[node]["datapoints_log_R"])
-            # self._graph.nodes[node]["datapoints_log_R"] = set_hash_r
-
-            # check_val = self.log_p_comp_memo[set_hash]
-            # expected = self._graph.nodes[node]["log_p"]
-            #
-            # assert np.allclose(check_val, expected)
 
             self._update_path_to_root(self.get_parent(node))
 
@@ -479,8 +429,6 @@ class Tree(object):
             if data_point.outlier_prob > 0:
                 self._add_datapoint_to_log_val_trackers(data_point, node)
 
-            # self._graph.nodes[node]["log_p"] += data_point.value
-
             self.add_item_to_dp_set_update_global(data_point, self._graph.nodes[node]["datapoints_log_p"])
 
         self._add_node_to_log_factorial_trackers(node, len(data))
@@ -520,10 +468,6 @@ class Tree(object):
 
         new.log_p_comp_memo = memo_logs["log_p"]
 
-        new.log_r_comp_memo = memo_logs["log_r"]
-
-        new.log_s_comp_memo = memo_logs["log_s"]
-
         new.log_factorial_sum = 0
 
         new.log_factorials_nodewise = defaultdict(int)
@@ -548,14 +492,9 @@ class Tree(object):
         new._graph = self._graph.copy()
 
         for node in new._graph:
-            # new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
-            #
-            # new._graph.nodes[node]["log_S"] = self._graph.nodes[node]["log_S"].copy()
-            #
-            new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"].copy()
 
+            new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"].copy()
             new._graph.nodes[node]["datapoints_log_p"] = self._graph.nodes[node]["datapoints_log_p"].copy()
-            # new._graph.nodes[node]["datapoints_log_R"] = self._graph.nodes[node]["datapoints_log_R"]
 
         return new
 
@@ -591,11 +530,7 @@ class Tree(object):
             node_data = list(self._data[node])
             new._data[node] = node_data
 
-            # new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
             new._graph.nodes[node]["datapoints_log_p"] = self._graph.nodes[node]["datapoints_log_p"].copy()
-            # new._graph.nodes[node]["datapoints_log_R"] = self._graph.nodes[node]["datapoints_log_R"].copy()
-            # new._graph.nodes[node]["datapoints_log_R"] = {"zeros"}
-            # new._graph.nodes[node]["datapoints_log_R"] = 0
 
             outlier_prob_gt_zero_node_val = self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node]
 
@@ -652,7 +587,6 @@ class Tree(object):
             self._remove_datapoint_from_log_val_trackers(data_point, node)
 
         if node != -1:
-            # self._graph.nodes[node]["log_p"] -= data_point.value
             self._graph.nodes[node]["datapoints_log_p"].remove(data_point.name)
 
             self._update_path_to_root(node)
@@ -690,16 +624,8 @@ class Tree(object):
 
     def _add_node(self, node):
         self._graph.add_node(node)
-
-        # self._graph.nodes[node]["log_p"] = np.ones(self.grid_size) * self._log_prior
-        #
         self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size)
-        #
-        # self._graph.nodes[node]["log_S"] = np.zeros(self.grid_size)
-
         self._graph.nodes[node]["datapoints_log_p"] = {"log_p"}
-        # self._graph.nodes[node]["datapoints_log_R"] = {"zeros"}
-        # self._graph.nodes[node]["datapoints_log_R"] = get_set_hash({"zeros"})
 
     def _update_path_to_root(self, source):
         """ Update recursion values for all nodes on the path between the source node and root inclusive.
@@ -723,53 +649,8 @@ class Tree(object):
             self._update_node(source)
 
     def _update_node(self, node):
-        # child_log_R_values_set = {self._graph.nodes[child]["datapoints_log_R"]
-        #                           for child in self._graph.successors(node)}
-        # # child_log_R_values_check = [self._graph.nodes[child]["datapoints_log_R"]
-        # #                           for child in self._graph.successors(node)]
-        # log_S_set_hash = get_set_hash(child_log_R_values_set)
-        #
-        # if log_S_set_hash not in self.log_s_comp_memo:
-        #     # child_log_R_values_stored = np.array([self.log_r_comp_memo[child_hash] for child_hash in child_log_R_values_set])
-        #     child_log_R_values_stored = np.array(
-        #         [self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)])
-        #     if child_log_R_values_stored.size == 0:
-        #         # actual = np.zeros(self.grid_size)
-        #         actual = self.log_p_comp_memo[get_set_hash({"zeros"})]
-        #     else:
-        #         actual = compute_log_S(child_log_R_values_stored)
-        #     if isinstance(actual, float):
-        #         # actual = np.zeros(self.grid_size)
-        #         actual = self.log_p_comp_memo[get_set_hash({"zeros"})]
-        #     self.log_s_comp_memo[log_S_set_hash] = actual
 
-        # child_log_R_values = np.array([self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)])
-        #
-        # self._graph.nodes[node]["log_S"] = compute_log_S(child_log_R_values)
-        #
-        # if isinstance(self._graph.nodes[node]["log_S"], float):
-        #     self._graph.nodes[node]["log_S"] = np.zeros(self.grid_size)
-        #
-        # assert np.allclose(self._graph.nodes[node]["log_S"], self.log_s_comp_memo[log_S_set_hash])
-
-        # self._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_p"] + self._graph.nodes[node]["log_S"]
-
-        # log_p_set_hash = get_set_hash(self._graph.nodes[node]["datapoints_log_p"])
-        # self_log_R_set_hash = get_set_hash({log_p_set_hash, log_S_set_hash})
-
-        # if self_log_R_set_hash not in self.log_r_comp_memo:
-        #     self_log_R = self.log_p_comp_memo[log_p_set_hash] + self.log_s_comp_memo[log_S_set_hash]
-        #     self.log_r_comp_memo[self_log_R_set_hash] = self_log_R
-
-        # child_log_R_values = np.array([self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)])
         child_log_R_values = [self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)]
-
-        # child_log_R_values = {self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)}
-
-        # child_log_R_values = np.fromiter((self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)),
-        #                                  dtype=float)
-
-        # child_log_R_values = [self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)]
 
         log_s = compute_log_S(child_log_R_values)
 
@@ -780,18 +661,8 @@ class Tree(object):
 
         self._graph.nodes[node]["log_R"] = np.add(self.log_p_comp_memo[log_p_set_hash], log_s, order='C')
 
-        # self._graph.nodes[node]["log_R"] = self.log_p_comp_memo[log_p_set_hash] + log_s
 
-        # self._graph.nodes[node]["datapoints_log_R"] = self_log_R_set_hash
-
-        # self._graph.nodes[node]["log_R"] = self.log_p_comp_memo[log_p_set_hash] + self.log_s_comp_memo[log_S_set_hash]
-        #
-        # self._graph.nodes[node]["datapoints_log_R"] = self_log_R_set_hash
-
-        # assert np.allclose(self._graph.nodes[node]["log_R"], self.log_r_comp_memo[self_log_R_set_hash])
-
-
-@list_of_np_cache(maxsize=512)
+@list_of_np_cache(maxsize=1024)
 def compute_log_S(child_log_R_values):
     """ Compute log(S) recursion.
 
@@ -815,22 +686,13 @@ def compute_log_S(child_log_R_values):
     return log_S
 
 
-# @np.errstate(under='warn', invalid='warn')
 def compute_log_D(child_log_R_values):
     if len(child_log_R_values) == 0:
         return 0
 
-    ############
-    # log_D_orig = _comp_log_d_split(child_log_R_values)
+    fft_log_d = _comp_log_d_fft(child_log_R_values)
 
-    # scipy_fft = _comp_log_d_split_scipy_fft(child_log_R_values)
-
-    fft_log_D = _comp_log_d_all_at_once_plain_fft(child_log_R_values)
-
-    ##############
-
-    # log_D = log_D_orig
-    log_D = fft_log_D
+    log_D = fft_log_d
 
     return log_D
 
@@ -851,24 +713,7 @@ def _comp_log_d_split(child_log_R_values):
     return log_D
 
 
-def _comp_log_d_split_scipy_fft(child_log_R_values):
-    num_children = len(child_log_R_values)
-    if num_children == 1:
-        return child_log_R_values[0].copy()
-
-    log_D = child_log_R_values[0].copy()
-    num_dims = log_D.shape[0]
-    num_children = child_log_R_values.shape[0]
-
-    for j in range(1, num_children):
-        child_log_R = child_log_R_values[j]
-        for i in range(num_dims):
-            log_D[i, :] = _compute_log_D_n_scipy_fft(child_log_R[i, :], log_D[i, :])
-
-    return log_D
-
-
-def _comp_log_d_all_at_once_plain_fft(child_log_R_values):
+def _comp_log_d_fft(child_log_R_values):
     num_children = len(child_log_R_values)
 
     if num_children == 1:
@@ -885,14 +730,7 @@ def _comp_log_d_all_at_once_plain_fft(child_log_R_values):
 
     fwd = fft.rfft(child_log_R_values_norm, n=pad_to, axis=-1)
 
-    # c_fft = np.prod(fwd, axis=0)
-
     c_fft = fwd * fwd
-
-    # if num_children == 2:
-    #     c_fft = np.prod(fwd, axis=0)
-    # else:
-    #     c_fft = fwd * fwd
 
     log_D = fft.irfft(c_fft, n=pad_to, axis=-1)
 
@@ -901,58 +739,11 @@ def _comp_log_d_all_at_once_plain_fft(child_log_R_values):
     log_D = np.log1p(log_D) + maxes
     log_D = np.add.reduce(log_D)
 
-    # if num_children == 2:
-    #     maxes_collapsed = np.add.reduce(maxes)
-    #     log_D = np.log1p(log_D) + maxes_collapsed
-    # else:
-    #     log_D = np.log1p(log_D) + maxes
-    #     log_D = np.add.reduce(log_D)
-
     return log_D
-
-
-def _comp_log_d_all_at_once_no_loop_no_roll(child_log_R_values):
-    num_children = len(child_log_R_values)
-
-    if num_children == 1:
-        return child_log_R_values[0].copy()
-
-    maxes = np.max(child_log_R_values, axis=-1, keepdims=True)
-    child_log_R_values_norm = np.expm1(child_log_R_values - maxes)
-
-    log_D = fftconvolve(child_log_R_values_norm, child_log_R_values_norm, axes=[-1])
-    log_D = log_D[:, :, :child_log_R_values.shape[-1]]
-
-    log_D = np.log1p(log_D) + maxes
-    log_D = np.add.reduce(log_D)
-
-    return log_D
-
-
-def _compute_log_D_n_scipy_fft(child_log_R, prev_log_D_n):
-    """ Compute the recursion over D using the FFT.
-    """
-    log_R_max = child_log_R.max()
-
-    log_D_max = prev_log_D_n.max()
-
-    R_norm = np.expm1(child_log_R - log_R_max)
-
-    D_norm = np.expm1(prev_log_D_n - log_D_max)
-
-    result_raw = fftconvolve(R_norm, D_norm)
-
-    result = result_raw[:len(child_log_R)]
-
-    # result[result <= 0] = 1e-100
-
-    result = np.log1p(result) + log_D_max + log_R_max
-
-    return result
 
 
 def _compute_log_D_n(child_log_R, prev_log_D_n):
-    """ Compute the recursion over D using the FFT.
+    """ Compute the recursion over D not using the FFT.
     """
     log_R_max = child_log_R.max()
 
