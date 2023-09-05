@@ -7,7 +7,7 @@ import numpy as np
 from phyclone.consensus import get_clades
 from phyclone.math_utils import log_sum_exp
 import itertools
-from phyclone.utils import list_of_np_cache
+from phyclone.utils import list_of_np_cache, two_np_arr_cache
 
 
 class FSCRPDistribution(object):
@@ -94,6 +94,10 @@ class Tree(object):
 
         self._graph = nx.DiGraph()
 
+        self._log_p_comp_memo = memo_logs["log_p"]
+
+        self._set_log_p_memo()
+
         self._add_node("root")
 
         self.sum_of_log_data_points_outlier_prob_gt_zero = {'data_points_on_outlier_node': 0,
@@ -105,21 +109,11 @@ class Tree(object):
 
         self.factorial_arr = factorial_arr
 
-        self.log_p_comp_memo = memo_logs["log_p"]
-
         self.memo_logs = memo_logs
 
         self.log_factorial_sum = 0
 
         self.log_factorials_nodewise = defaultdict(int)
-
-        tmp_hash = get_set_hash({"log_p"})
-        tmp_hash_2 = get_set_hash({"zeros"})
-        if tmp_hash not in self.log_p_comp_memo:
-            self.log_p_comp_memo[tmp_hash] = np.ones(self.grid_size) * self._log_prior
-        if tmp_hash_2 not in self.log_p_comp_memo:
-            self.log_p_comp_memo[tmp_hash_2] = np.zeros(self.grid_size)
-            # self.log_r_comp_memo[tmp_hash_2] = self.log_p_comp_memo[tmp_hash_2]
 
     def __hash__(self):
         return hash((get_clades(self), frozenset(self.outliers)))
@@ -226,6 +220,14 @@ class Tree(object):
 
         return new
 
+    def _set_log_p_memo(self):
+        tmp_hash = get_set_hash({"log_p"})
+        tmp_hash_2 = get_set_hash({"zeros"})
+        if tmp_hash not in self._log_p_comp_memo:
+            self._log_p_comp_memo[tmp_hash] = np.ones(self.grid_size) * self._log_prior
+        if tmp_hash_2 not in self._log_p_comp_memo:
+            self._log_p_comp_memo[tmp_hash_2] = np.zeros(self.grid_size)
+
     def to_dict(self):
         return {
             "graph": nx.to_dict_of_dicts(self._graph),
@@ -236,9 +238,9 @@ class Tree(object):
         old_set_hash = get_set_hash(edit_set)
         edit_set.add(data_point.name)
         set_hash = get_set_hash(edit_set)
-        if set_hash not in self.log_p_comp_memo:
-            base_val = self.log_p_comp_memo[old_set_hash]
-            self.log_p_comp_memo[set_hash] = base_val + data_point.value
+        if set_hash not in self._log_p_comp_memo:
+            base_val = self._log_p_comp_memo[old_set_hash]
+            self._log_p_comp_memo[set_hash] = base_val + data_point.value
         return set_hash
 
     def add_data_point_to_node(self, data_point, node):
@@ -252,7 +254,8 @@ class Tree(object):
             self._add_datapoint_to_log_val_trackers(data_point, node)
 
         if node != -1:
-            self._graph.nodes[node]["log_R"] += data_point.value
+            # self._graph.nodes[node]["log_R"] += data_point.value
+            self._graph.nodes[node]["log_R"] = compute_log_R(self._graph.nodes[node]["log_R"], data_point.value)
             _ = self.add_item_to_dp_set_update_global(data_point, self._graph.nodes[node]["datapoints_log_p"])
 
             self._update_path_to_root(self.get_parent(node))
@@ -466,7 +469,7 @@ class Tree(object):
 
         new.memo_logs = memo_logs
 
-        new.log_p_comp_memo = memo_logs["log_p"]
+        new._log_p_comp_memo = memo_logs["log_p"]
 
         new.log_factorial_sum = 0
 
@@ -493,7 +496,8 @@ class Tree(object):
 
         for node in new._graph:
 
-            new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"].copy()
+            # new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"].copy()
+            new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"]
             new._graph.nodes[node]["datapoints_log_p"] = self._graph.nodes[node]["datapoints_log_p"].copy()
 
         return new
@@ -624,7 +628,8 @@ class Tree(object):
 
     def _add_node(self, node):
         self._graph.add_node(node)
-        self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size)
+        # self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size)
+        self._graph.nodes[node]["log_R"] = self._log_p_comp_memo[get_set_hash({"zeros"})]
         self._graph.nodes[node]["datapoints_log_p"] = {"log_p"}
 
     def _update_path_to_root(self, source):
@@ -659,7 +664,13 @@ class Tree(object):
 
         log_p_set_hash = get_set_hash(self._graph.nodes[node]["datapoints_log_p"])
 
-        self._graph.nodes[node]["log_R"] = np.add(self.log_p_comp_memo[log_p_set_hash], log_s, order='C')
+        # self._graph.nodes[node]["log_R"] = np.add(self.log_p_comp_memo[log_p_set_hash], log_s, order='C')
+        self._graph.nodes[node]["log_R"] = compute_log_R(self._log_p_comp_memo[log_p_set_hash], log_s)
+
+
+@two_np_arr_cache(maxsize=1024)
+def compute_log_R(log_p, log_s):
+    return np.add(log_p, log_s, order='C')
 
 
 @list_of_np_cache(maxsize=1024)
