@@ -79,7 +79,7 @@ class TreeJointDistribution(object):
 
 
 def get_set_hash(datapoints_set):
-    ret = hash(frozenset(datapoints_set))
+    ret = frozenset(datapoints_set)
     return ret
 
 
@@ -224,9 +224,9 @@ class Tree(object):
         tmp_hash = get_set_hash({"log_p"})
         tmp_hash_2 = get_set_hash({"zeros"})
         if tmp_hash not in self._log_p_comp_memo:
-            self._log_p_comp_memo[tmp_hash] = np.ones(self.grid_size) * self._log_prior
+            self._log_p_comp_memo[tmp_hash] = np.ascontiguousarray(np.ones(self.grid_size) * self._log_prior)
         if tmp_hash_2 not in self._log_p_comp_memo:
-            self._log_p_comp_memo[tmp_hash_2] = np.zeros(self.grid_size)
+            self._log_p_comp_memo[tmp_hash_2] = np.zeros(self.grid_size, order='C')
 
     def to_dict(self):
         return {
@@ -234,14 +234,14 @@ class Tree(object):
             "labels": self.labels
         }
 
-    def add_item_to_dp_set_update_global(self, data_point, edit_set):
-        old_set_hash = get_set_hash(edit_set)
-        edit_set.add(data_point.name)
-        set_hash = get_set_hash(edit_set)
-        if set_hash not in self._log_p_comp_memo:
-            base_val = self._log_p_comp_memo[old_set_hash]
-            self._log_p_comp_memo[set_hash] = base_val + data_point.value
-        return set_hash
+    # def add_item_to_dp_set_update_global(self, data_point, edit_set):
+    #     old_set_hash = get_set_hash(edit_set)
+    #     edit_set.add(data_point.name)
+    #     set_hash = get_set_hash(edit_set)
+    #     if set_hash not in self._log_p_comp_memo:
+    #         base_val = self._log_p_comp_memo[old_set_hash]
+    #         self._log_p_comp_memo[set_hash] = base_val + data_point.value
+    #     return set_hash
 
     def add_data_point_to_node(self, data_point, node):
         assert data_point.idx not in self.labels.keys()
@@ -256,7 +256,8 @@ class Tree(object):
         if node != -1:
             # self._graph.nodes[node]["log_R"] += data_point.value
             self._graph.nodes[node]["log_R"] = compute_log_R(self._graph.nodes[node]["log_R"], data_point.value)
-            _ = self.add_item_to_dp_set_update_global(data_point, self._graph.nodes[node]["datapoints_log_p"])
+            self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
+            # _ = self.add_item_to_dp_set_update_global(data_point, self._graph.nodes[node]["datapoints_log_p"])
 
             self._update_path_to_root(self.get_parent(node))
 
@@ -432,7 +433,8 @@ class Tree(object):
             if data_point.outlier_prob > 0:
                 self._add_datapoint_to_log_val_trackers(data_point, node)
 
-            self.add_item_to_dp_set_update_global(data_point, self._graph.nodes[node]["datapoints_log_p"])
+            # self.add_item_to_dp_set_update_global(data_point, self._graph.nodes[node]["datapoints_log_p"])
+            self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
 
         self._add_node_to_log_factorial_trackers(node, len(data))
 
@@ -498,7 +500,8 @@ class Tree(object):
 
             # new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"].copy()
             new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"]
-            new._graph.nodes[node]["datapoints_log_p"] = self._graph.nodes[node]["datapoints_log_p"].copy()
+            new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"]
+            # new._graph.nodes[node]["datapoints_log_p"] = self._graph.nodes[node]["datapoints_log_p"].copy()
 
         return new
 
@@ -534,7 +537,8 @@ class Tree(object):
             node_data = list(self._data[node])
             new._data[node] = node_data
 
-            new._graph.nodes[node]["datapoints_log_p"] = self._graph.nodes[node]["datapoints_log_p"].copy()
+            # new._graph.nodes[node]["datapoints_log_p"] = self._graph.nodes[node]["datapoints_log_p"].copy()
+            new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"]
 
             outlier_prob_gt_zero_node_val = self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node]
 
@@ -591,7 +595,8 @@ class Tree(object):
             self._remove_datapoint_from_log_val_trackers(data_point, node)
 
         if node != -1:
-            self._graph.nodes[node]["datapoints_log_p"].remove(data_point.name)
+            # self._graph.nodes[node]["datapoints_log_p"].remove(data_point.name)
+            self._graph.nodes[node]["log_p"] = subtract_from_log_p(self._graph.nodes[node]["log_p"], data_point.value)
 
             self._update_path_to_root(node)
 
@@ -629,8 +634,9 @@ class Tree(object):
     def _add_node(self, node):
         self._graph.add_node(node)
         # self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size)
+        self._graph.nodes[node]["log_p"] = self._log_p_comp_memo[get_set_hash({"log_p"})]
         self._graph.nodes[node]["log_R"] = self._log_p_comp_memo[get_set_hash({"zeros"})]
-        self._graph.nodes[node]["datapoints_log_p"] = {"log_p"}
+        # self._graph.nodes[node]["datapoints_log_p"] = {"log_p"}
 
     def _update_path_to_root(self, source):
         """ Update recursion values for all nodes on the path between the source node and root inclusive.
@@ -662,10 +668,23 @@ class Tree(object):
         if isinstance(log_s, float):
             log_s = np.zeros(self.grid_size)
 
-        log_p_set_hash = get_set_hash(self._graph.nodes[node]["datapoints_log_p"])
+        # log_p_set_hash = get_set_hash(self._graph.nodes[node]["datapoints_log_p"])
+        #
+        # log_p = self._log_p_comp_memo[log_p_set_hash]
+        log_p = self._graph.nodes[node]["log_p"]
 
         # self._graph.nodes[node]["log_R"] = np.add(self.log_p_comp_memo[log_p_set_hash], log_s, order='C')
-        self._graph.nodes[node]["log_R"] = compute_log_R(self._log_p_comp_memo[log_p_set_hash], log_s)
+        self._graph.nodes[node]["log_R"] = compute_log_R(log_p, log_s)
+
+
+@two_np_arr_cache(maxsize=1024)
+def add_to_log_p(log_p, data_arr):
+    return np.add(log_p, data_arr, order='C')
+
+
+@two_np_arr_cache(maxsize=1024)
+def subtract_from_log_p(log_p, data_arr):
+    return np.subtract(log_p, data_arr, order='C')
 
 
 @two_np_arr_cache(maxsize=1024)
