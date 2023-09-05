@@ -198,8 +198,10 @@ class Tree(object):
         return list(self._graph.successors("root"))
 
     @staticmethod
-    def from_dict(data, tree_dict):
-        new = Tree(data[0].grid_size, None)  # TODO: check with Andy if this needs to be able to compute stuff
+    def from_dict(data, tree_dict, memo_logs=None):
+        if memo_logs is None:
+            memo_logs = {"log_p": {}}
+        new = Tree(data[0].grid_size, None, memo_logs)  # TODO: check with Andy if this needs to be able to compute stuff
 
         new._graph = nx.DiGraph(tree_dict["graph"])
 
@@ -212,9 +214,11 @@ class Tree(object):
             new._data[node].append(data[idx])
 
             if node != -1:
-                new._graph.nodes[node]["log_p"] += data[idx].value
-
-                new._graph.nodes[node]["log_R"] += data[idx].value
+                # new._graph.nodes[node]["log_p"] += data[idx].value
+                #
+                # new._graph.nodes[node]["log_R"] += data[idx].value
+                new._graph.nodes[node]["log_p"] = add_to_log_p(new._graph.nodes[node]["log_p"], data[idx].value)
+                new._graph.nodes[node]["log_R"] = compute_log_R(new._graph.nodes[node]["log_R"], data[idx].value)
 
         new.update()
 
