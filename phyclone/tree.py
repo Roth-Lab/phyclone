@@ -724,9 +724,11 @@ def compute_log_D(child_log_R_values):
     if len(child_log_R_values) == 0:
         return 0
 
-    fft_log_d = _comp_log_d_fft(child_log_R_values)
+    # fft_log_d = _comp_log_d_fft(child_log_R_values)
+    #
+    # log_D = fft_log_d
 
-    log_D = fft_log_d
+    log_D = _comp_log_d_split(child_log_R_values)
 
     return log_D
 
@@ -783,14 +785,34 @@ def _compute_log_D_n(child_log_R, prev_log_D_n):
 
     log_D_max = prev_log_D_n.max()
 
-    R_norm = np.expm1(child_log_R - log_R_max)
+    R_norm = np.exp(child_log_R - log_R_max)
 
-    D_norm = np.expm1(prev_log_D_n - log_D_max)
+    D_norm = np.exp(prev_log_D_n - log_D_max)
 
     result = np.convolve(R_norm, D_norm)
 
     result = result[:len(child_log_R)]
 
-    # result[result <= 0] = 1e-100
+    result[result <= 0] = 1e-100
 
-    return np.log1p(result) + log_D_max + log_R_max
+    return np.log(result) + log_D_max + log_R_max
+
+
+# def _compute_log_D_n(child_log_R, prev_log_D_n):
+#     """ Compute the recursion over D not using the FFT.
+#     """
+#     log_R_max = child_log_R.max()
+#
+#     log_D_max = prev_log_D_n.max()
+#
+#     R_norm = np.expm1(child_log_R - log_R_max)
+#
+#     D_norm = np.expm1(prev_log_D_n - log_D_max)
+#
+#     result = np.convolve(R_norm, D_norm)
+#
+#     result = result[:len(child_log_R)]
+#
+#     # result[result <= 0] = 1e-100
+#
+#     return np.log1p(result) + log_D_max + log_R_max
