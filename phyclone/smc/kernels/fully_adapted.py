@@ -29,7 +29,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         """
         p = np.exp(np.array(list(self._log_p.values())))
 
-        idx = discrete_rvs(p)
+        idx = discrete_rvs(p, self._rng)
 
         tree = list(self._log_p.keys())[idx]
 
@@ -109,8 +109,8 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
 class FullyAdaptedKernel(Kernel):
 
-    def __init__(self, tree_prior_dist, factorial_arr, memo_logs, outlier_proposal_prob=0, perm_dist=None):
-        super().__init__(tree_prior_dist, factorial_arr, memo_logs, perm_dist=perm_dist)
+    def __init__(self, tree_prior_dist, factorial_arr, memo_logs, rng, outlier_proposal_prob=0, perm_dist=None):
+        super().__init__(tree_prior_dist, factorial_arr, memo_logs, rng, perm_dist=perm_dist)
 
         self.outlier_proposal_prob = outlier_proposal_prob
 

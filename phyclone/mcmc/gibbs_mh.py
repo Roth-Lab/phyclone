@@ -12,15 +12,19 @@ class DataPointSampler(object):
     TODO: Confirm this is valid since we have a special condition to avoid creating empty nodes.
     """
 
-    def __init__(self, tree_dist, outliers=False):
+    def __init__(self, tree_dist, rng: np.random.Generator, outliers=False):
         self.tree_dist = tree_dist
         
         self.outliers = outliers
 
+        self._rng = rng
+
     def sample_tree(self, tree):
             data_idxs = list(tree.labels.keys())
             
-            random.shuffle(data_idxs)
+            # random.shuffle(data_idxs)
+
+            self._rng.shuffle(data_idxs)
             
             for data_idx in data_idxs:
                 if len(tree.node_data[tree.labels[data_idx]]) > 1:
@@ -61,7 +65,8 @@ class DataPointSampler(object):
         
         q = q / sum(q)
 
-        tree_idx = np.random.multinomial(1, q).argmax()
+        # tree_idx = np.random.multinomial(1, q).argmax()
+        tree_idx = self._rng.multinomial(1, q).argmax()
         
         return new_trees[tree_idx]  
 
@@ -70,8 +75,10 @@ class PruneRegraphSampler(object):
     """ Prune a subtree and regraph by Gibbs sampling possible attachement points
     """
 
-    def __init__(self, tree_dist):
+    def __init__(self, tree_dist, rng: np.random.Generator):
         self.tree_dist = tree_dist
+
+        self._rng = rng
 
     def sample_tree(self, tree):
         if len(tree.nodes) <= 1:
@@ -79,7 +86,8 @@ class PruneRegraphSampler(object):
 
         new_tree = tree.copy()
 
-        subtree_root = random.choice(new_tree.nodes)
+        # subtree_root = random.choice(new_tree.nodes)
+        subtree_root = self._rng.choice(new_tree.nodes)
 
         subtree = new_tree.get_subtree(subtree_root)
 
@@ -113,7 +121,7 @@ class PruneRegraphSampler(object):
 
         p, _ = exp_normalize(log_p)
 
-        idx = discrete_rvs(p)
+        idx = discrete_rvs(p, self._rng)
 
         return trees[idx]
 

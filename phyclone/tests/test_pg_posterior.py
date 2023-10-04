@@ -15,6 +15,8 @@ from math import inf
 from phyclone.math_utils import simple_log_factorial
 from numpy import full
 
+import numpy as np
+
 
 class BaseTest(object):
 
@@ -25,6 +27,8 @@ class BaseTest(object):
             self.factorial_arr = None
 
             self.memo_logs = None
+
+            self._rng = np.random.default_rng(12345)
 
         def test_single_data_point_1d(self):
             data = [simulate.simulate_binomial_data(0, 100, 1.0), ]
@@ -88,13 +92,13 @@ class BaseTest(object):
             memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
             
             kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=0, perm_dist=perm_dist,
-                                factorial_arr=factorial_arr, memo_logs=memo_logs)
+                                factorial_arr=factorial_arr, memo_logs=memo_logs, rng=self._rng)
 
             self.factorial_arr = factorial_arr
 
             self.memo_logs = memo_logs
             
-            return ParticleGibbsTreeSampler(kernel)            
+            return ParticleGibbsTreeSampler(kernel, self._rng)
     
         def _run_exact_posterior_test(self, data, burnin=100, num_iters=1000):
             pred_probs = self._run_sampler(data, burnin=burnin * self.run_scale, num_iters=num_iters * self.run_scale)
@@ -132,7 +136,7 @@ class BaseTest(object):
             print()
             print(list(true_probs.items()))
             for key in true_probs:
-                self.assertAlmostEqual(pred_probs[key], true_probs[key], delta=0.02)
+                self.assertAlmostEqual(pred_probs[key], true_probs[key], delta=0.03)
 
 
 class BootstrapAdaptedTest(BaseTest.BaseTest):

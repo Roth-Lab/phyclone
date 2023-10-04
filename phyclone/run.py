@@ -8,7 +8,7 @@ import gzip
 import numpy as np
 import pandas as pd
 import pickle
-import random
+# import random
 from math import inf
 
 from phyclone.concentration import GammaPriorConcentrationSampler
@@ -234,9 +234,12 @@ def run(
         thin=1):
 
     if seed is not None:
-        np.random.seed(seed)
-
-        random.seed(seed)
+        # np.random.seed(seed)
+        #
+        # random.seed(seed)
+        rng = np.random.default_rng(seed)
+    else:
+        rng = np.random.default_rng()
 
     data, samples = phyclone.data.pyclone.load_data(
         in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
@@ -265,24 +268,24 @@ def run(
 
     memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
 
-    kernel = kernel_cls(tree_dist, factorial_arr, memo_logs, outlier_proposal_prob=outlier_proposal_prob)
+    kernel = kernel_cls(tree_dist, factorial_arr, memo_logs, rng, outlier_proposal_prob=outlier_proposal_prob)
 
-    dp_sampler = DataPointSampler(tree_dist, outliers=(outlier_prob > 0))
+    dp_sampler = DataPointSampler(tree_dist, rng, outliers=(outlier_prob > 0))
 
-    prg_sampler = PruneRegraphSampler(tree_dist)
+    prg_sampler = PruneRegraphSampler(tree_dist, rng)
 
-    conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
+    conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
 
     burnin_sampler = UnconditionalSMCSampler(
         kernel, num_particles=num_particles, resample_threshold=resample_threshold
     )
 
     tree_sampler = ParticleGibbsTreeSampler(
-        kernel, num_particles=20, resample_threshold=0.5
+        kernel, rng, num_particles=20, resample_threshold=0.5
     )
 
     subtree_sampler = ParticleGibbsSubtreeSampler(
-        kernel, num_particles=20, resample_threshold=0.5
+        kernel, rng, num_particles=20, resample_threshold=0.5
     )
 
     tree = Tree.get_single_node_tree(data, factorial_arr, memo_logs)
@@ -342,7 +345,8 @@ def run(
             if i % print_freq == 0:
                 print_stats(i, tree, tree_dist)
 
-            if random.random() < subtree_update_prob:
+            # if random.random() < subtree_update_prob:
+            if rng.random() < subtree_update_prob:
                 tree = subtree_sampler.sample_tree(tree)
 
             else:
@@ -404,8 +408,10 @@ class UnconditionalSMCSampler(object):
 
         self.resample_threshold = resample_threshold
 
+        self._rng = kernel.rng
+
     def sample_tree(self, tree):
-        data_sigma = RootPermutationDistribution.sample(tree)
+        data_sigma = RootPermutationDistribution.sample(tree, self._rng)
 
         smc_sampler = SMCSampler(
             data_sigma, self.kernel, num_particles=self.num_particles, resample_threshold=self.resample_threshold
@@ -413,6 +419,6 @@ class UnconditionalSMCSampler(object):
 
         swarm = smc_sampler.sample()
 
-        idx = phyclone.math_utils.discrete_rvs(swarm.weights)
+        idx = phyclone.math_utils.discrete_rvs(swarm.weights, self._rng)
 
         return swarm.particles[idx].tree

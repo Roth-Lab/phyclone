@@ -9,14 +9,25 @@ import numpy as np
 import random
 
 
-def bernoulli_rvs(p=0.5):
-    return (random.random() < p)
+# def bernoulli_rvs(p=0.5):
+#     return (random.random() < p)
+#
+#
+# def discrete_rvs(p):
+#     p = p / np.sum(p)
+#
+#     return np.random.multinomial(1, p).argmax()
+
+def bernoulli_rvs(rng: np.random.Generator, p=0.5):
+    # return (random.random() < p)
+    return rng.random() < p
 
 
-def discrete_rvs(p):
+def discrete_rvs(p, rng):
     p = p / np.sum(p)
 
-    return np.random.multinomial(1, p).argmax()
+    # return np.random.multinomial(1, p).argmax()
+    return rng.multinomial(1, p).argmax()
 
 
 # TODO: consider turning simple factorial fxns into loop versions since python doesn't like recursion

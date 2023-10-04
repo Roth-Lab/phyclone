@@ -146,8 +146,8 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
 class SemiAdaptedKernel(Kernel):
 
-    def __init__(self, tree_prior_dist, factorial_arr, memo_logs, outlier_proposal_prob=0.0, perm_dist=None):
-        super().__init__(tree_prior_dist, factorial_arr, memo_logs, perm_dist=perm_dist)
+    def __init__(self, tree_prior_dist, factorial_arr, memo_logs, rng, outlier_proposal_prob=0.0, perm_dist=None):
+        super().__init__(tree_prior_dist, factorial_arr, memo_logs, rng, perm_dist=perm_dist)
 
         self.outlier_proposal_prob = outlier_proposal_prob
 

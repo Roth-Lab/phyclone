@@ -17,6 +17,8 @@ class AbstractSMCSampler(object):
 
         self.swarm = None
 
+        self._rng = kernel.rng
+
     def sample(self):
         self._init_swarm()
 

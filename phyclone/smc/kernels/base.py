@@ -18,12 +18,16 @@ class Kernel(object):
     Sub-classes should implement the get_proposal_distribution method.
     """
 
+    @property
+    def rng(self):
+        return self._rng
+
     def get_proposal_distribution(self, data_point, parent_particle):
         """ Get proposal distribution given the current data point and parent particle.
         """
         raise NotImplementedError
 
-    def __init__(self, tree_dist, factorial_arr, memo_logs, perm_dist=None):
+    def __init__(self, tree_dist, factorial_arr, memo_logs, rng, perm_dist=None):
         """
         Parameters
         ----------
@@ -42,6 +46,8 @@ class Kernel(object):
         self.perm_dist = perm_dist
 
         self.memo_logs = memo_logs
+
+        self._rng = rng
 
     def create_particle(self, data_point, log_q, parent_particle, tree):
         """  Create a new particle from a parent particle.
@@ -95,6 +101,8 @@ class ProposalDistribution(object):
         self.factorial_arr = factorial_arr
 
         self.memo_logs = kernel.memo_logs
+
+        self._rng = kernel.rng
 
     def _empty_tree(self):
         """ Tree has no nodes

@@ -23,7 +23,8 @@ class SMCSampler(AbstractSMCSampler):
 
             log_uniform_weight = -np.log(self.num_particles)
 
-            multiplicities = np.random.multinomial(self.num_particles, self.swarm.weights)
+            # multiplicities = np.random.multinomial(self.num_particles, self.swarm.weights)
+            multiplicities = self._rng.multinomial(self.num_particles, self.swarm.weights)
 
             for particle, multiplicity in zip(self.swarm.particles, multiplicities):
                 for _ in range(multiplicity):

@@ -13,12 +13,20 @@ from phyclone.tests.exact_posterior import get_exact_posterior
 import phyclone.tests.simulate as simulate
 from math import inf
 from phyclone.math_utils import simple_log_factorial
-from numpy import full
+from numpy import full, random
 
 
 class BaseTest(object):
 
-    class BaseTest(unittest.TestCase): 
+    class BaseTest(unittest.TestCase):
+
+        def __init__(self, methodName: str = ...):
+            super().__init__(methodName)
+            # self.factorial_arr = None
+            #
+            # self.memo_logs = None
+
+            self._rng = random.default_rng(12345)
     
         def test_single_data_point_1d(self):
             node_data = [simulate.simulate_binomial_data(0, 100, 1.0), ]
@@ -71,9 +79,9 @@ class BaseTest(object):
             self.memo_logs = memo_logs
             
             kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=0, perm_dist=perm_dist,
-                                factorial_arr=factorial_arr, memo_logs=memo_logs)
+                                factorial_arr=factorial_arr, memo_logs=memo_logs, rng=self._rng)
             
-            return ParticleGibbsSubtreeSampler(kernel)
+            return ParticleGibbsSubtreeSampler(kernel, self._rng)
     
         def _run_exact_posterior_test(self, data, burnin=100, num_iters=1000):
             pred_probs = self._run_sampler(data, burnin=int(self.run_scale * burnin), num_iters=int(self.run_scale * num_iters))

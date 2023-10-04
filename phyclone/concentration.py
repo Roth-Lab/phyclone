@@ -11,7 +11,7 @@ class GammaPriorConcentrationSampler(object):
     """ Gibbs update assuming a gamma prior on the concentration parameter.
     """
 
-    def __init__(self, a, b):
+    def __init__(self, a, b, rng):
         """
         Parameters
         ----------
@@ -24,9 +24,11 @@ class GammaPriorConcentrationSampler(object):
 
         self.b = b
 
+        self._rng = rng
+
     def sample(self, old_value, num_clusters, num_data_points):
         if num_clusters == 0:
-            new_value = stats.gamma.rvs(self.a, scale=(1 / self.b))
+            new_value = stats.gamma.rvs(self.a, scale=(1 / self.b), random_state=self._rng)
         
         else:
             a = self.a
@@ -37,7 +39,7 @@ class GammaPriorConcentrationSampler(object):
     
             n = num_data_points
     
-            eta = stats.beta.rvs(a=old_value + 1, b=n)
+            eta = stats.beta.rvs(a=old_value + 1, b=n, random_state=self._rng)
     
             shape = (a + k - 1)
     
@@ -47,9 +49,9 @@ class GammaPriorConcentrationSampler(object):
     
             pi = x / (1 + x)
     
-            shape += stats.bernoulli.rvs(pi)
+            shape += stats.bernoulli.rvs(pi, random_state=self._rng)
     
-            new_value = stats.gamma.rvs(shape, scale=(1 / rate))
+            new_value = stats.gamma.rvs(shape, scale=(1 / rate), random_state=self._rng)
     
             new_value = max(new_value, 1e-10)  # Catch numerical error
 
