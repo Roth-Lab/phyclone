@@ -5,16 +5,16 @@ from functools import lru_cache, wraps
 import xxhash
 
 
-def set_seed(seed):
-    if seed is not None:
-        np.random.seed(seed)
-
-        set_numba_seed(seed)
-
-
-@numba.jit(nopython=True)
-def set_numba_seed(seed):
-    np.random.seed(seed)
+# def set_seed(seed):
+#     if seed is not None:
+#         np.random.seed(seed)
+#
+#         set_numba_seed(seed)
+#
+#
+# @numba.jit(nopython=True)
+# def set_numba_seed(seed):
+#     np.random.seed(seed)
 
 
 class Timer:

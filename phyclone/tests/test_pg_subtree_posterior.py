@@ -29,37 +29,37 @@ class BaseTest(object):
             self._rng = random.default_rng(12345)
     
         def test_single_data_point_1d(self):
-            node_data = [simulate.simulate_binomial_data(0, 100, 1.0), ]
+            node_data = [simulate.simulate_binomial_data(0, 100, 1.0, self._rng), ]
     
             self._run_exact_posterior_test(node_data, burnin=100, num_iters=100)
     
         def test_single_data_point_2d(self):
-            node_data = [simulate.simulate_binomial_data(0, 100, [1.0, 1.0]), ]
+            node_data = [simulate.simulate_binomial_data(0, 100, [1.0, 1.0], self._rng), ]
     
             self._run_exact_posterior_test(node_data, burnin=100, num_iters=100)
     
         def test_four_data_point_1d_non_informative(self):
             node_data = [
-                simulate.simulate_binomial_data(0, 0, 1.0),
-                simulate.simulate_binomial_data(1, 0, 1.0),
-                simulate.simulate_binomial_data(2, 0, 1.0),
-                simulate.simulate_binomial_data(3, 0, 1.0),
+                simulate.simulate_binomial_data(0, 0, 1.0, self._rng),
+                simulate.simulate_binomial_data(1, 0, 1.0, self._rng),
+                simulate.simulate_binomial_data(2, 0, 1.0, self._rng),
+                simulate.simulate_binomial_data(3, 0, 1.0, self._rng),
             ]
     
             self._run_exact_posterior_test(node_data, burnin=100, num_iters=2000)
     
         def test_two_data_point_1d_two_cluster(self):
             node_data = [
-                simulate.simulate_binomial_data(0, 10, 1.0),
-                simulate.simulate_binomial_data(1, 10, 0.5)
+                simulate.simulate_binomial_data(0, 10, 1.0, self._rng),
+                simulate.simulate_binomial_data(1, 10, 0.5, self._rng)
             ]
     
             self._run_exact_posterior_test(node_data, burnin=100, num_iters=1000)
     
         def test_two_data_point_2d_two_cluster(self):
             node_data = [
-                simulate.simulate_binomial_data(0, 100, [1.0, 1.0]),
-                simulate.simulate_binomial_data(1, 100, [0.5, 0.7])
+                simulate.simulate_binomial_data(0, 100, [1.0, 1.0], self._rng),
+                simulate.simulate_binomial_data(1, 100, [0.5, 0.7], self._rng)
             ]
     
             self._run_exact_posterior_test(node_data, burnin=100, num_iters=1000)

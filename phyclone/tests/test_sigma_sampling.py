@@ -22,12 +22,13 @@ class Test(unittest.TestCase):
         super().__init__(methodName)
         self.factorial_arr = None
         self.memo_logs = None
+        self._rng = np.random.default_rng(12345)
 
     def test_interleave(self):
         x = range(10)
         y = range(10, 20)
 
-        z = interleave_lists([list(x), list(y)])
+        z = interleave_lists([list(x), list(y)], self._rng)
 
         prev_idx = -1
 
@@ -65,7 +66,7 @@ class Test(unittest.TestCase):
         for i in range(10):
             tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), root)
             
-        sigma = RootPermutationDistribution.sample(tree)
+        sigma = RootPermutationDistribution.sample(tree, self._rng)
  
         self.assertGreater(min([x.idx for x in sigma[:20]]), 9)
  
@@ -91,7 +92,7 @@ class Test(unittest.TestCase):
         for i in range(10):
             tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), root)
             
-        sigma = RootPermutationDistribution.sample(tree)
+        sigma = RootPermutationDistribution.sample(tree, self._rng)
  
         self.assertGreater(min([x.idx for x in sigma[:10]]), 19)
  
@@ -124,7 +125,7 @@ class Test(unittest.TestCase):
         for i in range(10, 20):
             tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_1)
             
-        sigma = RootPermutationDistribution.sample(tree)
+        sigma = RootPermutationDistribution.sample(tree, self._rng)
  
         self.assertGreater(min([x.idx for x in sigma[:20]]), 19)
 

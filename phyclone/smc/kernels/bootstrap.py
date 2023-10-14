@@ -57,7 +57,8 @@ class BootstrapProposalDistribution(ProposalDistribution):
     def sample(self):
         """ Sample a new tree from the proposal distribution.
         """
-        u = random.random()
+        # u = random.random()
+        u = self._rng.random()
         
         # First particle
         if self.parent_particle is None:
@@ -96,7 +97,8 @@ class BootstrapProposalDistribution(ProposalDistribution):
     def _propose_existing_node(self):
         nodes = self.parent_particle.tree.roots
    
-        node = random.choice(list(nodes))
+        # node = random.choice(list(nodes))
+        node = self._rng.choice(list(nodes))
 
         tree = self.parent_particle.tree.copy()
 
@@ -107,9 +109,11 @@ class BootstrapProposalDistribution(ProposalDistribution):
     def _propose_new_node(self):
         num_roots = len(self.parent_particle.tree.roots)
 
-        num_children = random.randint(0, num_roots)
+        # num_children = random.randint(0, num_roots)
+        num_children = self._rng.integers(0, num_roots+1)
 
-        children = random.sample(self.parent_particle.tree.roots, num_children)
+        # children = random.sample(self.parent_particle.tree.roots, num_children)
+        children = self._rng.choice(self.parent_particle.tree.roots, num_children, replace=False)
 
         tree = self.parent_particle.tree.copy()
 

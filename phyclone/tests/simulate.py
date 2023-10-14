@@ -4,13 +4,13 @@ import scipy.stats as stats
 from phyclone.data.base import DataPoint
 
 
-def simulate_binomial_data(idx, n, p, outlier_prob=0.0):
+def simulate_binomial_data(idx, n, p, rng, outlier_prob=0.0):
     p = np.atleast_1d(p)
 
     data = []
 
     for p_i in p:
-        x = stats.binom.rvs(n, p_i)
+        x = stats.binom.rvs(n, p_i, random_state=rng)
 
         data.append(log_binomial_likelihood(n, x))
 

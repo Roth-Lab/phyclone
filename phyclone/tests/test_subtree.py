@@ -14,6 +14,7 @@ from math import inf
 from phyclone.math_utils import simple_log_factorial
 from numpy import full
 
+
 class Test(unittest.TestCase):
 
     def test_chain_error(self):

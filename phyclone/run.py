@@ -23,7 +23,7 @@ from phyclone.utils import Timer
 
 import phyclone.data.pyclone
 import phyclone.math_utils
-from phyclone.math_utils import simple_log_factorial
+from phyclone.math_utils import simple_log_factorial, discrete_rvs
 
 
 def write_map_results(in_file, out_table_file, out_tree_file):
@@ -419,6 +419,6 @@ class UnconditionalSMCSampler(object):
 
         swarm = smc_sampler.sample()
 
-        idx = phyclone.math_utils.discrete_rvs(swarm.weights, self._rng)
+        idx = discrete_rvs(swarm.weights, self._rng)
 
         return swarm.particles[idx].tree
