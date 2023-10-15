@@ -300,9 +300,10 @@ def run(
         print("Burnin")
         print("#" * 100)
 
-        i = 0
+        # i = 0
 
-        while (i < burnin) and (timer.elapsed < max_time):
+        # while (i < burnin) and (timer.elapsed < max_time):
+        for i in range(burnin):
             with timer:
                 if i % print_freq == 0:
                     print_stats(i, tree, tree_dist)
@@ -317,7 +318,10 @@ def run(
 
                 tree.relabel_nodes()
 
-                i += 1
+                if timer.elapsed < max_time:
+                    break
+
+                # i += 1
 
     # =========================================================================
     # Main sampler
@@ -338,11 +342,12 @@ def run(
         "tree": tree.to_dict()
     })
 
-    i = 0
+    # i = 0
 
     random_draws = rng.random(num_iters)
 
-    while True:
+    # while True:
+    for i in range(num_iters):
         with timer:
             if i % print_freq == 0:
                 print_stats(i, tree, tree_dist)
@@ -374,7 +379,7 @@ def run(
 
                 tree_dist.prior.alpha = conc_sampler.sample(tree_dist.prior.alpha, len(tree.nodes), sum(node_sizes))
 
-            i += 1
+            # i += 1
 
             if i % thin == 0:
                 trace.append({
@@ -385,7 +390,9 @@ def run(
                     "tree": tree.to_dict()
                 })
 
-            if (i >= num_iters) or (timer.elapsed >= max_time):
+            # if (i >= num_iters) or (timer.elapsed >= max_time):
+            #     break
+            if timer.elapsed >= max_time:
                 break
 
     results = {"data": data, "samples": samples, "trace": trace}
