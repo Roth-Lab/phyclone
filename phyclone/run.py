@@ -340,13 +340,16 @@ def run(
 
     i = 0
 
+    random_draws = rng.random(num_iters)
+
     while True:
         with timer:
             if i % print_freq == 0:
                 print_stats(i, tree, tree_dist)
 
             # if random.random() < subtree_update_prob:
-            if rng.random() < subtree_update_prob:
+            # if rng.random() < subtree_update_prob:
+            if random_draws[i] < subtree_update_prob:
                 tree = subtree_sampler.sample_tree(tree)
 
             else:
