@@ -26,7 +26,7 @@ import phyclone.math_utils
 from phyclone.math_utils import simple_log_factorial, discrete_rvs
 
 
-def write_map_results(in_file, out_table_file, out_tree_file):
+def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file):
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
@@ -48,12 +48,17 @@ def write_map_results(in_file, out_table_file, out_tree_file):
 
     table = get_clone_table(data, results["samples"], tree, clusters=clusters)
 
+    _create_results_output_files(out_log_probs_file, out_table_file, out_tree_file, results, table, tree)
+
+
+def _create_results_output_files(out_log_probs_file, out_table_file, out_tree_file, results, table, tree):
     table.to_csv(out_table_file, index=False, sep="\t")
-
     Bio.Phylo.write(get_bp_tree_from_graph(tree.graph), out_tree_file, "newick", plain=True)
+    log_probs_table = pd.DataFrame(results["trace"], columns=['iter', 'time', 'log_p'])
+    log_probs_table.to_csv(out_log_probs_file, index=False, sep="\t")
 
 
-def write_consensus_results(in_file, out_table_file, out_tree_file):
+def write_consensus_results(in_file, out_table_file, out_tree_file, out_log_probs_file):
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
@@ -71,9 +76,15 @@ def write_consensus_results(in_file, out_table_file, out_tree_file):
 
     table = pd.DataFrame(table)
 
-    table.to_csv(out_table_file, index=False, sep="\t")
+    _create_results_output_files(out_log_probs_file, out_table_file, out_tree_file, results, table, tree)
 
-    Bio.Phylo.write(get_bp_tree_from_graph(tree.graph), out_tree_file, "newick", plain=True)
+    # table.to_csv(out_table_file, index=False, sep="\t")
+    #
+    # Bio.Phylo.write(get_bp_tree_from_graph(tree.graph), out_tree_file, "newick", plain=True)
+    #
+    # log_probs_table = pd.DataFrame(results["trace"], columns=['iter', 'time', 'log_p'])
+    #
+    # log_probs_table.to_csv(out_log_probs_file, index=False, sep="\t")
 
 
 def get_clades(tree, source=None):

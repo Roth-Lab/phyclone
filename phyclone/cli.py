@@ -22,6 +22,11 @@ import phyclone.run
     required=True,
     type=click.Path(resolve_path=True)
 )
+@click.option(
+    "-p", "--out-log-probs-file",
+    required=True,
+    type=click.Path(resolve_path=True)
+)
 def consensus(**kwargs):
     """ Build consensus results.
     """
@@ -44,6 +49,11 @@ def consensus(**kwargs):
 )
 @click.option(
     "-t", "--out-tree-file",
+    required=True,
+    type=click.Path(resolve_path=True)
+)
+@click.option(
+    "-p", "--out-log-probs-file",
     required=True,
     type=click.Path(resolve_path=True)
 )
