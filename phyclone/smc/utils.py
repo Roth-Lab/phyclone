@@ -7,6 +7,7 @@ import numpy as np
 # import random
 
 from phyclone.math_utils import log_factorial, log_binomial_coefficient, log_multinomial_coefficient
+from copy import deepcopy
 
 
 class RootPermutationDistribution(object):
@@ -103,7 +104,7 @@ class RootPermutationDistribution(object):
 
 
 def interleave_lists(lists, rng):
-    result = []
+    # result = []
 
     sentinels = []
 
@@ -113,7 +114,9 @@ def interleave_lists(lists, rng):
     # random.shuffle(sentinels)
     rng.shuffle(sentinels)
 
-    for idx in sentinels:
-        result.append(lists[idx].pop(0))
+    # for idx in sentinels:
+    #     result.append(lists[idx].pop(0))
+
+    result = [lists[idx].pop(0) for idx in sentinels]
 
     return result

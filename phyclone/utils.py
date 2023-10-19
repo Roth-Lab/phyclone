@@ -5,18 +5,6 @@ from functools import lru_cache, wraps
 import xxhash
 
 
-# def set_seed(seed):
-#     if seed is not None:
-#         np.random.seed(seed)
-#
-#         set_numba_seed(seed)
-#
-#
-# @numba.jit(nopython=True)
-# def set_numba_seed(seed):
-#     np.random.seed(seed)
-
-
 class Timer:
     """ Taken from https://www.safaribooksonline.com/library/view/python-cookbook-3rd/9781449357337/ch13s13.html
     """
@@ -105,13 +93,6 @@ class NumpyTwoArraysHasher:
         self.input_1 = arr_1
         self.input_2 = arr_2
         self.h = (xxhash.xxh3_64_hexdigest(arr_1), xxhash.xxh3_64_hexdigest(arr_2))
-
-    # @staticmethod
-    # def _create_hashable(list_of_np_arrays):
-    #     hashable = np.array([xxhash.xxh3_64_hexdigest(arr) for arr in list_of_np_arrays], order='C')
-    #     hashable.sort()
-    #     ret = xxhash.xxh3_64_hexdigest(hashable)
-    #     return ret
 
     def __hash__(self) -> int:
         return hash(self.h)

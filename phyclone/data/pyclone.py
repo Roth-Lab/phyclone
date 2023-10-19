@@ -176,14 +176,6 @@ class DataPoint(object):
 
         log_ll = np.zeros(shape)
 
-        # for s_idx, data_point in enumerate(self.sample_data_points):
-        #     for i, ccf in enumerate(self.get_ccf_grid(grid_size)):
-        #         if density == 'beta-binomial':
-        #             log_ll[s_idx, i] = log_pyclone_beta_binomial_pdf(data_point, ccf, precision)
-        #
-        #         elif density == 'binomial':
-        #             log_ll[s_idx, i] = log_pyclone_binomial_pdf(data_point, ccf)
-
         sample_data_points = self.sample_data_points
         ccf_grid = self.get_ccf_grid(grid_size)
 

@@ -1,6 +1,5 @@
 import numpy as np
 from scipy import fft
-from scipy.signal import fftconvolve
 
 from phyclone.utils import two_np_arr_cache, list_of_np_cache
 
@@ -114,11 +113,7 @@ def _compute_log_D_n(child_log_R, prev_log_D_n):
 
     D_norm = np.exp(prev_log_D_n - log_D_max)
 
-    if len(child_log_R) < 1000:
-        result = np.convolve(R_norm, D_norm)
-
-    else:
-        result = fftconvolve(R_norm, D_norm)
+    result = np.convolve(R_norm, D_norm)
 
     result = result[:len(child_log_R)]
 
