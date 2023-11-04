@@ -31,41 +31,41 @@ def discrete_rvs(p, rng):
 
 
 # TODO: consider turning simple factorial fxns into loop versions since python doesn't like recursion
-def simple_factorial(n, arr):
-    if n <= 1:
-        return 1
-
-    if arr[n] > -math.inf:
-        return arr[n]
-
-    arr[n] = n * simple_factorial(n - 1, arr)
-    return arr[n]
-
-
-def simple_log_factorial(n, arr):
-    if n <= 1:
-        if arr[1] == -math.inf:
-            arr[1] = np.log(1)
-            arr[0] = np.log(1)
-        return 0  # because log(1) = 0
-
-    if arr[n] > -math.inf:
-        return arr[n]
-
-    arr[n] = np.log(n) + simple_log_factorial(n - 1, arr)
-    return arr[n]
-
-# @numba.jit(cache=True, nopython=True)
-# def simple_log_factorial_looped(n, arr):
-#     idxs = np.nonzero(arr == -math.inf)[0]
+# def simple_factorial(n, arr):
+#     if n <= 1:
+#         return 1
 #
-#     for i in idxs:
-#         if i > n:
-#             break
-#         if i == 0:
-#             arr[i] = np.log(1)
-#         else:
-#             arr[i] = np.log(i) + arr[i - 1]
+#     if arr[n] > -math.inf:
+#         return arr[n]
+#
+#     arr[n] = n * simple_factorial(n - 1, arr)
+#     return arr[n]
+#
+#
+# def simple_log_factorial(n, arr):
+#     if n <= 1:
+#         if arr[1] == -math.inf:
+#             arr[1] = np.log(1)
+#             arr[0] = np.log(1)
+#         return 0  # because log(1) = 0
+#
+#     if arr[n] > -math.inf:
+#         return arr[n]
+#
+#     arr[n] = np.log(n) + simple_log_factorial(n - 1, arr)
+#     return arr[n]
+
+@numba.jit(cache=True, nopython=True)
+def simple_log_factorial(n, arr):
+    idxs = np.nonzero(arr == -math.inf)[0]
+
+    for i in idxs:
+        if i > n:
+            break
+        if i == 0:
+            arr[i] = np.log(1)
+        else:
+            arr[i] = np.log(i) + arr[i - 1]
 
 
 @numba.jit(cache=True, nopython=True)
