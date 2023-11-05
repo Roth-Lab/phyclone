@@ -16,6 +16,7 @@ from phyclone.math_utils import simple_log_factorial
 from numpy import full
 
 import numpy as np
+import pyfftw
 
 
 class BaseTest(object):
@@ -147,6 +148,9 @@ class BootstrapAdaptedTest(BaseTest.BaseTest):
 
         self.run_scale = 1
 
+        pyfftw.interfaces.cache.enable()
+        pyfftw.interfaces.cache.set_keepalive_time(1800)
+
 
 class FullyAdaptedTest(BaseTest.BaseTest):
 
@@ -155,6 +159,9 @@ class FullyAdaptedTest(BaseTest.BaseTest):
 
         self.run_scale = 1
 
+        pyfftw.interfaces.cache.enable()
+        pyfftw.interfaces.cache.set_keepalive_time(1800)
+
 
 class SemiAdaptedTest(BaseTest.BaseTest):
 
@@ -162,6 +169,8 @@ class SemiAdaptedTest(BaseTest.BaseTest):
         self.sampler = self._get_sampler(SemiAdaptedKernel)
 
         self.run_scale = 1
+        pyfftw.interfaces.cache.enable()
+        pyfftw.interfaces.cache.set_keepalive_time(1800)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 import numpy as np
 from scipy import fft
+from scipy.special import logsumexp
+import pyfftw
 
 from phyclone.utils import two_np_arr_cache, list_of_np_cache
 
@@ -52,7 +54,10 @@ def compute_log_D(child_log_R_values):
     if len(child_log_R_values) == 0:
         return 0
 
-    log_D = _comp_log_d_split(child_log_R_values)
+    if child_log_R_values[0].size >= 1000:
+        log_D = _comp_log_d_split_pyfft(child_log_R_values)
+    else:
+        log_D = _comp_log_d_split(child_log_R_values)
 
     return log_D
 
@@ -73,33 +78,90 @@ def _comp_log_d_split(child_log_R_values):
     return log_D
 
 
-def _comp_log_d_fft(child_log_R_values):
+def _comp_log_d_split_pyfft(child_log_R_values):
     num_children = len(child_log_R_values)
-
     if num_children == 1:
         return child_log_R_values[0].copy()
 
-    maxes = np.max(child_log_R_values, axis=-1, keepdims=True)
-    child_log_R_values_norm = np.expm1(child_log_R_values - maxes)
+    log_D = child_log_R_values[0]
 
-    relevant_axis_length = child_log_R_values.shape[-1]
+    for j in range(1, num_children):
+        log_D = _comp_log_d_fft(log_D, child_log_R_values[j])
+
+    return log_D
+
+
+def exp_normalize_nary(log_p):
+    log_norm = logsumexp(log_p, axis=-1, keepdims=True)
+
+    p = np.exp(log_p - log_norm)
+
+    p = p / p.sum(axis=-1, keepdims=True)
+
+    return p, log_norm
+
+
+def _comp_log_d_fft(child_log_r_values_1, child_log_r_values_2, ):
+    child_log_r_values_norm_1, maxes_1 = exp_normalize_nary(child_log_r_values_1)
+
+    child_log_r_values_norm_2, maxes_2 = exp_normalize_nary(child_log_r_values_2)
+
+    relevant_axis_length = child_log_r_values_norm_1.shape[-1]
+
+    # delta = 1 / (relevant_axis_length - 1)
 
     outlen = relevant_axis_length + relevant_axis_length - 1
 
     pad_to = fft.next_fast_len(outlen, real=True)
 
-    fwd = fft.rfft(child_log_R_values_norm, n=pad_to, axis=-1)
+    with fft.set_backend(pyfftw.interfaces.scipy_fft):
+        fwd = fft.rfft(child_log_r_values_norm_1, n=pad_to, axis=-1)
 
-    c_fft = fwd * fwd
+        fwd_2 = fft.rfft(child_log_r_values_norm_2, n=pad_to, axis=-1)
 
-    log_D = fft.irfft(c_fft, n=pad_to, axis=-1)
+        c_fft = fwd * fwd_2
 
-    log_D = log_D[..., :relevant_axis_length]
+        log_d = fft.irfft(c_fft, n=pad_to, axis=-1)
 
-    log_D = np.log1p(log_D) + maxes
-    log_D = np.add.reduce(log_D)
+    log_d = log_d[..., :relevant_axis_length]
 
-    return log_D
+    log_d[log_d <= 0] = 1e-314
+
+    log_d = np.log(log_d, order='C', dtype=np.float64)
+
+    log_d += maxes_1
+    log_d += maxes_2
+
+    return log_d
+
+
+# def _comp_log_d_fft(child_log_R_values):
+#     num_children = len(child_log_R_values)
+#
+#     if num_children == 1:
+#         return child_log_R_values[0].copy()
+#
+#     maxes = np.max(child_log_R_values, axis=-1, keepdims=True)
+#     child_log_R_values_norm = np.expm1(child_log_R_values - maxes)
+#
+#     relevant_axis_length = child_log_R_values.shape[-1]
+#
+#     outlen = relevant_axis_length + relevant_axis_length - 1
+#
+#     pad_to = fft.next_fast_len(outlen, real=True)
+#
+#     fwd = fft.rfft(child_log_R_values_norm, n=pad_to, axis=-1)
+#
+#     c_fft = fwd * fwd
+#
+#     log_D = fft.irfft(c_fft, n=pad_to, axis=-1)
+#
+#     log_D = log_D[..., :relevant_axis_length]
+#
+#     log_D = np.log1p(log_D) + maxes
+#     log_D = np.add.reduce(log_D)
+#
+#     return log_D
 
 
 def _compute_log_D_n(child_log_R, prev_log_D_n):
@@ -119,4 +181,4 @@ def _compute_log_D_n(child_log_R, prev_log_D_n):
 
     result[result <= 0] = 1e-100
 
-    return np.log(result) + log_D_max + log_R_max
+    return np.log(result, order='C', dtype=np.float64) + log_D_max + log_R_max
