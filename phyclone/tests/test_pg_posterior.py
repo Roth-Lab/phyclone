@@ -16,7 +16,6 @@ from phyclone.math_utils import simple_log_factorial
 from numpy import full
 
 import numpy as np
-import pyfftw
 from numba import set_num_threads
 
 

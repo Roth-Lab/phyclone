@@ -8,7 +8,6 @@ import gzip
 import numpy as np
 import pandas as pd
 import pickle
-import pyfftw
 from numba import set_num_threads
 from math import inf
 
@@ -28,6 +27,7 @@ from phyclone.math_utils import simple_log_factorial, discrete_rvs
 
 
 def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file):
+    set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
@@ -60,6 +60,7 @@ def _create_results_output_files(out_log_probs_file, out_table_file, out_tree_fi
 
 
 def write_consensus_results(in_file, out_table_file, out_tree_file, out_log_probs_file):
+    set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
@@ -247,15 +248,9 @@ def run(
         num_threads=1):
 
     if seed is not None:
-        # np.random.seed(seed)
-        #
-        # random.seed(seed)
         rng = np.random.default_rng(seed)
     else:
         rng = np.random.default_rng()
-
-    # pyfftw.interfaces.cache.enable()
-    # pyfftw.interfaces.cache.set_keepalive_time(1800)
 
     set_num_threads(num_threads)
 

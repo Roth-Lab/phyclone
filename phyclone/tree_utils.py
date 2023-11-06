@@ -1,10 +1,9 @@
 import numpy as np
-from scipy import fft
+# from scipy import fft
 from scipy.special import logsumexp
-from scipy.signal import fftconvolve
-import pyfftw
+# from scipy.signal import fftconvolve
+# import pyfftw
 import numba
-import math
 
 from phyclone.utils import two_np_arr_cache, list_of_np_cache
 
@@ -89,17 +88,17 @@ def _comp_log_d_internals(child_log_R_values, log_D, num_children, num_dims):
             log_D[i, :] = conv_log(child_log_R[i, :], log_D[i, :])
 
 
-def _comp_log_d_split_pyfft(child_log_R_values):
-    num_children = len(child_log_R_values)
-    if num_children == 1:
-        return child_log_R_values[0].copy()
-
-    log_D = child_log_R_values[0].copy()
-
-    for j in range(1, num_children):
-        log_D = _comp_log_d_fft(log_D, child_log_R_values[j])
-
-    return log_D
+# def _comp_log_d_split_pyfft(child_log_R_values):
+#     num_children = len(child_log_R_values)
+#     if num_children == 1:
+#         return child_log_R_values[0].copy()
+#
+#     log_D = child_log_R_values[0].copy()
+#
+#     for j in range(1, num_children):
+#         log_D = _comp_log_d_fft(log_D, child_log_R_values[j])
+#
+#     return log_D
 
 
 def exp_normalize_nary(log_p):
@@ -112,53 +111,43 @@ def exp_normalize_nary(log_p):
     return p, log_norm
 
 
-def exp_normalize_nary_2(log_p):
-    log_norm = np.max(log_p, axis=-1, keepdims=True)
+# def exp_normalize_nary_2(log_p):
+#     log_norm = np.max(log_p, axis=-1, keepdims=True)
+#
+#     p = np.exp(log_p - log_norm, dtype='longdouble')
+#
+#     # p = p / p.sum(axis=-1, keepdims=True)
+#
+#     return p, log_norm
 
-    p = np.exp(log_p - log_norm, dtype='longdouble')
 
-    # p = p / p.sum(axis=-1, keepdims=True)
-
-    return p, log_norm
-
-
-def _comp_log_d_fft(child_log_r_values_1, child_log_r_values_2, ):
-    child_log_r_values_norm_1, maxes_1 = exp_normalize_nary_2(child_log_r_values_1)
-
-    child_log_r_values_norm_2, maxes_2 = exp_normalize_nary_2(child_log_r_values_2)
-
-    # child_log_r_values_norm_1 = child_log_r_values_1
-    # child_log_r_values_norm_2 = child_log_r_values_2
-
-    relevant_axis_length = child_log_r_values_norm_1.shape[-1]
-
-    # delta = 1 / (relevant_axis_length - 1)
-
-    # outlen = relevant_axis_length + relevant_axis_length - 1
-    #
-    # pad_to = fft.next_fast_len(outlen, real=True)
-
-    with fft.set_backend(pyfftw.interfaces.scipy_fft):
-        # fwd = fft.rfft(child_log_r_values_norm_1, n=pad_to, axis=-1)
-        #
-        # fwd_2 = fft.rfft(child_log_r_values_norm_2, n=pad_to, axis=-1)
-        #
-        # c_fft = fwd * fwd_2
-        #
-        # log_d = fft.irfft(c_fft, n=pad_to, axis=-1)
-        log_d = fftconvolve(child_log_r_values_norm_2, child_log_r_values_norm_1, axes=-1)
-
-    log_d = log_d[..., :relevant_axis_length]
-
-    # log_d[log_d <= 0] = 1e-100
-    log_d[log_d < 0] = 0
-
-    log_d = np.log(log_d, order='C', dtype=np.float64)
-
-    log_d += maxes_1
-    log_d += maxes_2
-
-    return log_d
+# def _comp_log_d_fft(child_log_r_values_1, child_log_r_values_2, ):
+#     child_log_r_values_norm_1, maxes_1 = exp_normalize_nary_2(child_log_r_values_1)
+#
+#     child_log_r_values_norm_2, maxes_2 = exp_normalize_nary_2(child_log_r_values_2)
+#
+#     relevant_axis_length = child_log_r_values_norm_1.shape[-1]
+#
+#     with fft.set_backend(pyfftw.interfaces.scipy_fft):
+#         # fwd = fft.rfft(child_log_r_values_norm_1, n=pad_to, axis=-1)
+#         #
+#         # fwd_2 = fft.rfft(child_log_r_values_norm_2, n=pad_to, axis=-1)
+#         #
+#         # c_fft = fwd * fwd_2
+#         #
+#         # log_d = fft.irfft(c_fft, n=pad_to, axis=-1)
+#         log_d = fftconvolve(child_log_r_values_norm_2, child_log_r_values_norm_1, axes=-1)
+#
+#     log_d = log_d[..., :relevant_axis_length]
+#
+#     log_d[log_d <= 0] = 1e-100
+#
+#     log_d = np.log(log_d, order='C', dtype=np.float64)
+#
+#     log_d += maxes_1
+#     log_d += maxes_2
+#
+#     return log_d
 
 
 @numba.jit(cache=True, nopython=True)
