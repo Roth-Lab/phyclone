@@ -252,8 +252,8 @@ def run(
     else:
         rng = np.random.default_rng()
 
-    pyfftw.interfaces.cache.enable()
-    pyfftw.interfaces.cache.set_keepalive_time(1800)
+    # pyfftw.interfaces.cache.enable()
+    # pyfftw.interfaces.cache.set_keepalive_time(1800)
 
     data, samples = phyclone.data.pyclone.load_data(
         in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
