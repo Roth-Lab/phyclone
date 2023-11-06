@@ -159,12 +159,15 @@ def lse(log_X):
 
     x = log_X[np.isfinite(log_X)]
 
-    ans = x[0]
+    # ans = x[0]
 
-    for i in x:
-        ma = max(ans, i)
-        mi = min(ans, i)
-        ans = ma + np.log1p(np.exp(mi-ma))
+    # for i in x:
+    #     ma = max(ans, i)
+    #     mi = min(ans, i)
+    #     ans = ma + np.log1p(np.exp(mi-ma))
+    ma = np.max(x)
+    mi = np.min(x)
+    ans = ma + np.log1p(np.exp(mi - ma))
 
     return ans
 
@@ -210,14 +213,14 @@ def conv_log(log_x, log_y):
 
     ans = np.zeros(m)
 
-    # v = np.zeros(n+1)
+    v = np.zeros(n+1)
 
     for k in range(1, n+1):
-        v = np.zeros(k)
+        # v = np.zeros(k)
         for j in range(k):
             v[j] = log_x[j] + log_y[n-(k-j)]
 
-        ans[k] = lse(v)
+        ans[k] = lse(v[:k])
 
         # if np.isneginf(max(v)):
         #     ans[k] = -math.inf
