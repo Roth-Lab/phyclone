@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import pyfftw
+from numba import set_num_threads
 from math import inf
 
 from phyclone.concentration import GammaPriorConcentrationSampler
@@ -254,6 +255,8 @@ def run(
 
     # pyfftw.interfaces.cache.enable()
     # pyfftw.interfaces.cache.set_keepalive_time(1800)
+
+    set_num_threads(8)
 
     data, samples = phyclone.data.pyclone.load_data(
         in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,

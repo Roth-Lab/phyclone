@@ -17,6 +17,7 @@ from numpy import full
 
 import numpy as np
 import pyfftw
+from numba import set_num_threads
 
 
 class BaseTest(object):
@@ -158,6 +159,8 @@ class FullyAdaptedTest(BaseTest.BaseTest):
         self.sampler = self._get_sampler(FullyAdaptedKernel)
 
         self.run_scale = 1
+
+        set_num_threads(8)
 
         # pyfftw.interfaces.cache.enable()
         # pyfftw.interfaces.cache.set_keepalive_time(1800)
