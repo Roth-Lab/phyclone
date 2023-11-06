@@ -243,7 +243,8 @@ def run(
         resample_threshold=0.5,
         seed=None,
         subtree_update_prob=0,
-        thin=1):
+        thin=1,
+        num_threads=1):
 
     if seed is not None:
         # np.random.seed(seed)
@@ -256,7 +257,7 @@ def run(
     # pyfftw.interfaces.cache.enable()
     # pyfftw.interfaces.cache.set_keepalive_time(1800)
 
-    set_num_threads(8)
+    set_num_threads(num_threads)
 
     data, samples = phyclone.data.pyclone.load_data(
         in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
