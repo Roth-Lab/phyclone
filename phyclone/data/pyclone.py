@@ -64,7 +64,7 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
 
 def compute_outlier_prob(outlier_prob, cluster_size):
     if outlier_prob == 0:
-        return outlier_prob, 1.0
+        return outlier_prob, np.log(1.0)
     else:
         res = np.log(outlier_prob) * cluster_size
         res_not = np.log1p(-outlier_prob) * cluster_size
