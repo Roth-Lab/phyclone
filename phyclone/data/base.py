@@ -4,9 +4,9 @@ import numpy as np
 
 
 class DataPoint(object):
-    __slots__ = ('idx', 'value', 'name', 'outlier_prob', 'outlier_marginal_prob')
+    __slots__ = ('idx', 'value', 'name', 'outlier_prob', 'outlier_marginal_prob', 'outlier_prob_not')
 
-    def __init__(self, idx, value, name=None, outlier_prob=0):
+    def __init__(self, idx, value, name=None, outlier_prob=0, outlier_prob_not=1):
         self.idx = idx
 
         self.value = value
@@ -17,6 +17,8 @@ class DataPoint(object):
         self.name = name
 
         self.outlier_prob = outlier_prob
+
+        self.outlier_prob_not = outlier_prob_not
 
         log_prior = -np.log(value.shape[1])
 

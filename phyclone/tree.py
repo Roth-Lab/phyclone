@@ -4,11 +4,78 @@ import networkx as nx
 import numpy as np
 
 from phyclone.consensus import get_clades
-from phyclone.math_utils import log_sum_exp
+from phyclone.math_utils import log_sum_exp, log_factorial
 import itertools
 
 from phyclone.tree_utils import get_set_hash, add_to_log_p, subtract_from_log_p, compute_log_R, compute_log_S
 
+
+# class FSCRPDistribution(object):
+#     """ FSCRP prior distribution on trees.
+#     """
+#
+#     def __init__(self, alpha):
+#         self.alpha = alpha
+#
+#     def log_p(self, tree):
+#         log_p = 0
+#
+#         # CRP prior
+#         num_nodes = len(tree.nodes)
+#
+#         log_p += num_nodes * np.log(self.alpha)
+#
+#         log_factorial_sum = tree.log_factorial_sum
+#
+#         log_p += log_factorial_sum
+#
+#         # Uniform prior on toplogies
+#         log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
+#
+#         return log_p
+#
+#
+# class TreeJointDistribution(object):
+#
+#     def __init__(self, prior):
+#         self.prior = prior
+#
+#     def log_p(self, tree):
+#         """ The log likelihood of the data marginalized over root node parameters.
+#         """
+#         log_p = self.prior.log_p(tree)
+#
+#         log_p_res = self._get_log_p_precomputed_vals_from_tree(tree)
+#
+#         if len(tree.roots) > 0:
+#             for i in range(tree.grid_size[0]):
+#                 log_p += log_sum_exp(tree.data_log_likelihood[i, :])
+#
+#         log_p += log_p_res
+#
+#         return log_p
+#
+#     def _get_log_p_precomputed_vals_from_tree(self, tree):
+#         log_p_outlier_probs_out_node = tree.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_outlier_node']
+#         log_p_outlier_probs_in_nodes = tree.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_included_nodes']
+#         log_p_outlier_marginal_probs = tree.sum_of_outlier_data_points_marginal_prob
+#         log_p_res = log_p_outlier_probs_out_node + log_p_outlier_probs_in_nodes + log_p_outlier_marginal_probs
+#         return log_p_res
+#
+#     def log_p_one(self, tree):
+#         """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
+#         """
+#         log_p = self.prior.log_p(tree)
+#
+#         log_p_res = self._get_log_p_precomputed_vals_from_tree(tree)
+#
+#         if len(tree.roots) > 0:
+#             for i in range(tree.grid_size[0]):
+#                 log_p += tree.data_log_likelihood[i, -1]
+#
+#         log_p += log_p_res
+#
+#         return log_p
 
 class FSCRPDistribution(object):
     """ FSCRP prior distribution on trees.
@@ -25,9 +92,13 @@ class FSCRPDistribution(object):
 
         log_p += num_nodes * np.log(self.alpha)
 
-        log_factorial_sum = tree.log_factorial_sum
+        for node, node_data in tree.node_data.items():
+            if node == -1:
+                continue
 
-        log_p += log_factorial_sum
+            num_data_points = len(node_data)
+
+            log_p += log_factorial(num_data_points - 1)
 
         # Uniform prior on toplogies
         log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
@@ -45,35 +116,49 @@ class TreeJointDistribution(object):
         """
         log_p = self.prior.log_p(tree)
 
-        log_p_res = self._get_log_p_precomputed_vals_from_tree(tree)
+        # Outlier prior
+        for node, node_data in tree.node_data.items():
+            for data_point in node_data:
+                if data_point.outlier_prob != 0:
+                    if node == -1:
+                        # log_p += np.log(data_point.outlier_prob)
+                        log_p += data_point.outlier_prob
+
+                    else:
+                        # log_p += np.log1p(-data_point.outlier_prob)
+                        log_p += data_point.outlier_prob_not
 
         if len(tree.roots) > 0:
             for i in range(tree.grid_size[0]):
                 log_p += log_sum_exp(tree.data_log_likelihood[i, :])
 
-        log_p += log_p_res
+        for data_point in tree.outliers:
+            log_p += data_point.outlier_marginal_prob
 
         return log_p
-
-    def _get_log_p_precomputed_vals_from_tree(self, tree):
-        log_p_outlier_probs_out_node = tree.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_outlier_node']
-        log_p_outlier_probs_in_nodes = tree.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_included_nodes']
-        log_p_outlier_marginal_probs = tree.sum_of_outlier_data_points_marginal_prob
-        log_p_res = log_p_outlier_probs_out_node + log_p_outlier_probs_in_nodes + log_p_outlier_marginal_probs
-        return log_p_res
 
     def log_p_one(self, tree):
         """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
         """
         log_p = self.prior.log_p(tree)
 
-        log_p_res = self._get_log_p_precomputed_vals_from_tree(tree)
+        # Outlier prior
+        for node, node_data in tree.node_data.items():
+            for data_point in node_data:
+                if data_point.outlier_prob != 0:
+                    if node == -1:
+                        # log_p += np.log(data_point.outlier_prob)
+                        log_p += data_point.outlier_prob
+
+                    else:
+                        log_p += data_point.outlier_prob_not
 
         if len(tree.roots) > 0:
             for i in range(tree.grid_size[0]):
                 log_p += tree.data_log_likelihood[i, -1]
 
-        log_p += log_p_res
+        for data_point in tree.outliers:
+            log_p += data_point.outlier_marginal_prob
 
         return log_p
 
@@ -240,7 +325,7 @@ class Tree(object):
 
         self._data[node].append(data_point)
 
-        if data_point.outlier_prob > 0:
+        if data_point.outlier_prob != 0:
             self._add_datapoint_to_log_val_trackers(data_point, node)
 
         if node != -1:
@@ -250,15 +335,17 @@ class Tree(object):
             self._update_path_to_root(self.get_parent(node))
 
     def _add_datapoint_to_log_val_trackers(self, data_point, node):
-        if data_point.outlier_prob > 0:
-            log_p_val_adjust = np.log1p(-data_point.outlier_prob)
+        if data_point.outlier_prob != 0:
+            # log_p_val_adjust = np.log1p(-data_point.outlier_prob)
+            log_p_val_adjust = data_point.outlier_prob_not
 
             self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_included_nodes'] += log_p_val_adjust
             self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] += log_p_val_adjust
 
     def _add_datapoint_to_outlier_log_val_trackers(self, data_point, node):
-        if data_point.outlier_prob > 0:
-            log_p_val_adjust = np.log(data_point.outlier_prob)
+        if data_point.outlier_prob != 0:
+            # log_p_val_adjust = np.log(data_point.outlier_prob)
+            log_p_val_adjust = data_point.outlier_prob
 
             self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_outlier_node'] += log_p_val_adjust
             self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] += log_p_val_adjust
@@ -266,15 +353,17 @@ class Tree(object):
         self.sum_of_outlier_data_points_marginal_prob += data_point.outlier_marginal_prob
 
     def _remove_datapoint_from_log_val_trackers(self, data_point, node):
-        if data_point.outlier_prob > 0:
-            log_p_val_adjust = np.log1p(-data_point.outlier_prob)
+        if data_point.outlier_prob != 0:
+            # log_p_val_adjust = np.log1p(-data_point.outlier_prob)
+            log_p_val_adjust = data_point.outlier_prob_not
 
             self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_included_nodes'] -= log_p_val_adjust
             self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] -= log_p_val_adjust
 
     def _remove_datapoint_from_outlier_log_val_trackers(self, data_point, node):
-        if data_point.outlier_prob > 0:
-            log_p_val_adjust = np.log(data_point.outlier_prob)
+        if data_point.outlier_prob != 0:
+            # log_p_val_adjust = np.log(data_point.outlier_prob)
+            log_p_val_adjust = data_point.outlier_prob
 
             self.sum_of_log_data_points_outlier_prob_gt_zero['data_points_on_outlier_node'] -= log_p_val_adjust
             self.sum_of_log_data_points_outlier_prob_gt_zero_nodewise[node] -= log_p_val_adjust
@@ -421,7 +510,7 @@ class Tree(object):
 
             self._data[node].append(data_point)
 
-            if data_point.outlier_prob > 0:
+            if data_point.outlier_prob != 0:
                 self._add_datapoint_to_log_val_trackers(data_point, node)
 
             self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
@@ -578,7 +667,7 @@ class Tree(object):
 
         self._data[node].remove(data_point)
 
-        if data_point.outlier_prob > 0:
+        if data_point.outlier_prob != 0:
             self._remove_datapoint_from_log_val_trackers(data_point, node)
 
         if node != -1:

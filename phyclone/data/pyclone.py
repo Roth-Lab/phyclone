@@ -46,16 +46,29 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
         for idx, cluster_id in enumerate(sorted(raw_data.keys())):
             val = np.sum(np.array(raw_data[cluster_id]), axis=0)
 
+            out_probs = compute_outlier_prob(outlier_prob, cluster_sizes[cluster_id])
+
             data_point = phyclone.data.base.DataPoint(
                 idx,
                 val,
                 name="{}".format(cluster_id),
-                outlier_prob=outlier_prob ** cluster_sizes[cluster_id]
+                outlier_prob=out_probs[0],
+                outlier_prob_not=out_probs[1]
+                # outlier_prob=outlier_prob ** cluster_sizes[cluster_id]
             )
 
             data.append(data_point)
 
     return data, samples
+
+
+def compute_outlier_prob(outlier_prob, cluster_size):
+    if outlier_prob == 0:
+        return outlier_prob, 1.0
+    else:
+        res = np.log(outlier_prob) * cluster_size
+        res_not = np.log1p(-outlier_prob) * cluster_size
+        return res, res_not
 
 
 def load_pyclone_data(file_name):
