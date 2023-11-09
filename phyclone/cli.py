@@ -24,7 +24,8 @@ import phyclone.run
 )
 @click.option(
     "-p", "--out-log-probs-file",
-    required=True,
+    # required=True,
+    default=None,
     type=click.Path(resolve_path=True)
 )
 def consensus(**kwargs):
@@ -54,7 +55,8 @@ def consensus(**kwargs):
 )
 @click.option(
     "-p", "--out-log-probs-file",
-    required=True,
+    # required=True,
+    default=None,
     type=click.Path(resolve_path=True)
 )
 def map(**kwargs):
@@ -168,9 +170,9 @@ def map(**kwargs):
 )
 @click.option(
     "--num-particles",
-    default=10,
+    default=20,
     type=int,
-    help="""Number of particles to use during PG sampling. Default is 10."""
+    help="""Number of particles to use during PG sampling. Default is 20."""
 )
 @click.option(
     "--num-samples-data-point",

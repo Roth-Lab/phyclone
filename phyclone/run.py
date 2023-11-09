@@ -26,7 +26,7 @@ import phyclone.math_utils
 from phyclone.math_utils import simple_log_factorial, discrete_rvs
 
 
-def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file):
+def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None):
     set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
@@ -55,11 +55,12 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
 def _create_results_output_files(out_log_probs_file, out_table_file, out_tree_file, results, table, tree):
     table.to_csv(out_table_file, index=False, sep="\t")
     Bio.Phylo.write(get_bp_tree_from_graph(tree.graph), out_tree_file, "newick", plain=True)
-    log_probs_table = pd.DataFrame(results["trace"], columns=['iter', 'time', 'log_p'])
-    log_probs_table.to_csv(out_log_probs_file, index=False, sep="\t")
+    if out_log_probs_file:
+        log_probs_table = pd.DataFrame(results["trace"], columns=['iter', 'time', 'log_p'])
+        log_probs_table.to_csv(out_log_probs_file, index=False, sep="\t")
 
 
-def write_consensus_results(in_file, out_table_file, out_tree_file, out_log_probs_file):
+def write_consensus_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None):
     set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
@@ -79,14 +80,6 @@ def write_consensus_results(in_file, out_table_file, out_tree_file, out_log_prob
     table = pd.DataFrame(table)
 
     _create_results_output_files(out_log_probs_file, out_table_file, out_tree_file, results, table, tree)
-
-    # table.to_csv(out_table_file, index=False, sep="\t")
-    #
-    # Bio.Phylo.write(get_bp_tree_from_graph(tree.graph), out_tree_file, "newick", plain=True)
-    #
-    # log_probs_table = pd.DataFrame(results["trace"], columns=['iter', 'time', 'log_p'])
-    #
-    # log_probs_table.to_csv(out_log_probs_file, index=False, sep="\t")
 
 
 def get_clades(tree, source=None):
@@ -295,11 +288,11 @@ def run(
     )
 
     tree_sampler = ParticleGibbsTreeSampler(
-        kernel, rng, num_particles=20, resample_threshold=0.5
+        kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
     )
 
     subtree_sampler = ParticleGibbsSubtreeSampler(
-        kernel, rng, num_particles=20, resample_threshold=0.5
+        kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
     )
 
     tree = Tree.get_single_node_tree(data, factorial_arr, memo_logs)
@@ -366,8 +359,6 @@ def run(
             if i % print_freq == 0:
                 print_stats(i, tree, tree_dist)
 
-            # if random.random() < subtree_update_prob:
-            # if rng.random() < subtree_update_prob:
             if random_draws[i] < subtree_update_prob:
                 tree = subtree_sampler.sample_tree(tree)
 
