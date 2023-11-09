@@ -41,7 +41,7 @@ def sample(data_points):
     factorial_arr = np.full(len(data_points) + 1, -inf)
     simple_log_factorial(len(data_points), factorial_arr)
 
-    kernel = FullyAdaptedKernel(tree_dist, factorial_arr, outlier_proposal_prob=0.1)
+    kernel = FullyAdaptedKernel(tree_dist, outlier_proposal_prob=0.1)
     
     smc_sampler = SMCSampler(
         data_points,

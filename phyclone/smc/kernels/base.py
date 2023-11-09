@@ -15,7 +15,7 @@ class Particle(object):
 class Kernel(object):
     """ Abstract class representing an SMC kernel targeting the marginal FS-CRP distribution.
 
-    Sub-classes should implement the get_proposal_distribution method.
+    Subclasses should implement the get_proposal_distribution method.
     """
 
     @property
@@ -27,7 +27,7 @@ class Kernel(object):
         """
         raise NotImplementedError
 
-    def __init__(self, tree_dist, factorial_arr, memo_logs, rng, perm_dist=None):
+    def __init__(self, tree_dist, memo_logs, rng, perm_dist=None):
         """
         Parameters
         ----------
@@ -41,7 +41,7 @@ class Kernel(object):
         """
         self.tree_dist = tree_dist
 
-        self.factorial_arr = factorial_arr
+        # self.factorial_arr = factorial_arr
 
         self.perm_dist = perm_dist
 
@@ -91,14 +91,14 @@ class ProposalDistribution(object):
     """ Abstract class for proposal distribution.
     """
 
-    def __init__(self, data_point, kernel, parent_particle, factorial_arr):
+    def __init__(self, data_point, kernel, parent_particle):
         self.data_point = data_point
 
         self.kernel = kernel
 
         self.parent_particle = parent_particle
 
-        self.factorial_arr = factorial_arr
+        # self.factorial_arr = factorial_arr
 
         self.memo_logs = kernel.memo_logs
 

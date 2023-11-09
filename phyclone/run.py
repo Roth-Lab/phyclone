@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pickle
 from numba import set_num_threads
-from math import inf
+from dataclasses import dataclass
 
 from phyclone.concentration import GammaPriorConcentrationSampler
 from phyclone.map import get_map_node_ccfs
@@ -240,10 +240,7 @@ def run(
         thin=1,
         num_threads=1):
 
-    if seed is not None:
-        rng = np.random.default_rng(seed)
-    else:
-        rng = np.random.default_rng()
+    rng = instantiate_and_seed_RNG(seed)
 
     set_num_threads(num_threads)
 
@@ -254,106 +251,57 @@ def run(
 
     tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
 
-    if outlier_prob > 0:
-        outlier_proposal_prob = 0.1
+    kernel = setup_kernel(outlier_prob, proposal, rng, tree_dist)
 
-    else:
-        outlier_proposal_prob = 0
+    samplers = setup_samplers(kernel,
+                              num_particles,
+                              outlier_prob,
+                              resample_threshold,
+                              rng,
+                              tree_dist)
 
-    if proposal == "bootstrap":
-        kernel_cls = BootstrapKernel
-
-    elif proposal == "fully-adapted":
-        kernel_cls = FullyAdaptedKernel
-
-    elif proposal == "semi-adapted":
-        kernel_cls = SemiAdaptedKernel
-
-    # factorial_arr = np.full(len(data) + 1, -inf)
-    # simple_log_factorial(len(data), factorial_arr).
-    factorial_arr = None
-
-    memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
-
-    kernel = kernel_cls(tree_dist, factorial_arr, memo_logs, rng, outlier_proposal_prob=outlier_proposal_prob)
-
-    dp_sampler = DataPointSampler(tree_dist, rng, outliers=(outlier_prob > 0))
-
-    prg_sampler = PruneRegraphSampler(tree_dist, rng)
-
-    conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
-
-    burnin_sampler = UnconditionalSMCSampler(
-        kernel, num_particles=num_particles, resample_threshold=resample_threshold
-    )
-
-    tree_sampler = ParticleGibbsTreeSampler(
-        kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
-    )
-
-    subtree_sampler = ParticleGibbsSubtreeSampler(
-        kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
-    )
-
-    tree = Tree.get_single_node_tree(data, factorial_arr, memo_logs)
+    tree = Tree.get_single_node_tree(data, kernel.memo_logs)
 
     timer = Timer()
 
     # =========================================================================
     # Burnin
     # =========================================================================
-    if burnin > 0:
-        print("#" * 100)
-        print("Burnin")
-        print("#" * 100)
-
-        # i = 0
-
-        # while (i < burnin) and (timer.elapsed < max_time):
-        for i in range(burnin):
-            with timer:
-                if i % print_freq == 0:
-                    print_stats(i, tree, tree_dist)
-
-                tree = burnin_sampler.sample_tree(tree)
-
-                for _ in range(num_samples_data_point):
-                    tree = dp_sampler.sample_tree(tree)
-
-                for _ in range(num_samples_prune_regraph):
-                    tree = prg_sampler.sample_tree(tree)
-
-                tree.relabel_nodes()
-
-                if timer.elapsed < max_time:
-                    break
-
-                # i += 1
+    tree = _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regraph, print_freq, samplers, timer,
+                       tree, tree_dist)
 
     # =========================================================================
     # Main sampler
     # =========================================================================
-    print()
-    print("#" * 100)
-    print("Post-burnin")
-    print("#" * 100)
-    print()
 
-    trace = []
+    trace = setup_trace(timer, tree, tree_dist)
 
-    trace.append({
-        "iter": 0,
-        "time": timer.elapsed,
-        "alpha": tree_dist.prior.alpha,
-        "log_p": tree_dist.log_p_one(tree),
-        "tree": tree.to_dict()
-    })
+    results = _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
+                                num_samples_prune_regraph, print_freq, rng, samplers, samples, subtree_update_prob,
+                                thin, timer, trace, tree, tree_dist)
 
-    # i = 0
+    _create_main_run_output(cluster_file, out_file, results)
+
+
+def _create_main_run_output(cluster_file, out_file, results):
+    if cluster_file is not None:
+        results["clusters"] = pd.read_csv(cluster_file, sep="\t")[["mutation_id", "cluster_id"]].drop_duplicates()
+    with gzip.GzipFile(out_file, mode="wb") as fh:
+        pickle.dump(results, fh)
+
+
+def _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
+                      num_samples_prune_regraph, print_freq, rng, samplers, samples, subtree_update_prob, thin, timer,
+                      trace, tree, tree_dist):
+
+    dp_sampler = samplers.dp_sampler
+    prg_sampler = samplers.prg_sampler
+    subtree_sampler = samplers.subtree_sampler
+    tree_sampler = samplers.tree_sampler
+    conc_sampler = samplers.conc_sampler
 
     random_draws = rng.random(num_iters)
 
-    # while True:
     for i in range(num_iters):
         with timer:
             if i % print_freq == 0:
@@ -384,8 +332,6 @@ def run(
 
                 tree_dist.prior.alpha = conc_sampler.sample(tree_dist.prior.alpha, len(tree.nodes), sum(node_sizes))
 
-            # i += 1
-
             if i % thin == 0:
                 trace.append({
                     "iter": i,
@@ -395,23 +341,62 @@ def run(
                     "tree": tree.to_dict()
                 })
 
-            # if (i >= num_iters) or (timer.elapsed >= max_time):
-            #     break
             if timer.elapsed >= max_time:
                 break
-
     results = {"data": data, "samples": samples, "trace": trace}
-
-    if cluster_file is not None:
-        results["clusters"] = pd.read_csv(cluster_file, sep="\t")[["mutation_id", "cluster_id"]].drop_duplicates()
-
-    with gzip.GzipFile(out_file, mode="wb") as fh:
-        pickle.dump(results, fh)
+    return results
 
 
-def print_stats(iter_id, tree, tree_dist):
-    print(iter_id, tree_dist.prior.alpha, tree_dist.log_p_one(tree),
-          len(tree.nodes), len(tree.outliers), len(tree.roots))
+def setup_trace(timer, tree, tree_dist):
+    trace = []
+    trace.append({
+        "iter": 0,
+        "time": timer.elapsed,
+        "alpha": tree_dist.prior.alpha,
+        "log_p": tree_dist.log_p_one(tree),
+        "tree": tree.to_dict()
+    })
+    return trace
+
+
+def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regraph, print_freq, samplers, timer, tree,
+                tree_dist):
+    burnin_sampler = samplers.burnin_sampler
+    dp_sampler = samplers.dp_sampler
+    prg_sampler = samplers.prg_sampler
+    if burnin > 0:
+        print("#" * 100)
+        print("Burnin")
+        print("#" * 100)
+
+        # i = 0
+
+        # while (i < burnin) and (timer.elapsed < max_time):
+        for i in range(burnin):
+            with timer:
+                if i % print_freq == 0:
+                    print_stats(i, tree, tree_dist)
+
+                tree = burnin_sampler.sample_tree(tree)
+
+                for _ in range(num_samples_data_point):
+                    tree = dp_sampler.sample_tree(tree)
+
+                for _ in range(num_samples_prune_regraph):
+                    tree = prg_sampler.sample_tree(tree)
+
+                tree.relabel_nodes()
+
+                if timer.elapsed < max_time:
+                    break
+
+                # i += 1
+    print()
+    print("#" * 100)
+    print("Post-burnin")
+    print("#" * 100)
+    print()
+    return tree
 
 
 class UnconditionalSMCSampler(object):
@@ -437,3 +422,65 @@ class UnconditionalSMCSampler(object):
         idx = discrete_rvs(swarm.weights, self._rng)
 
         return swarm.particles[idx].tree
+
+
+@dataclass
+class SamplersHolder:
+    dp_sampler: DataPointSampler
+    prg_sampler: PruneRegraphSampler
+    conc_sampler: GammaPriorConcentrationSampler
+    burnin_sampler: UnconditionalSMCSampler
+    tree_sampler: ParticleGibbsTreeSampler
+    subtree_sampler: ParticleGibbsSubtreeSampler
+
+
+def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist):
+    dp_sampler = DataPointSampler(tree_dist, rng, outliers=(outlier_prob > 0))
+    prg_sampler = PruneRegraphSampler(tree_dist, rng)
+    conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
+    burnin_sampler = UnconditionalSMCSampler(
+        kernel, num_particles=num_particles, resample_threshold=resample_threshold
+    )
+    tree_sampler = ParticleGibbsTreeSampler(
+        kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
+    )
+    subtree_sampler = ParticleGibbsSubtreeSampler(
+        kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
+    )
+    # return burnin_sampler, conc_sampler, dp_sampler, prg_sampler, subtree_sampler, tree_sampler
+    return SamplersHolder(dp_sampler,
+                          prg_sampler,
+                          conc_sampler,
+                          burnin_sampler,
+                          tree_sampler,
+                          subtree_sampler)
+
+
+def setup_kernel(outlier_prob, proposal, rng, tree_dist):
+    if outlier_prob > 0:
+        outlier_proposal_prob = 0.1
+    else:
+        outlier_proposal_prob = 0
+    kernel_cls = FullyAdaptedKernel
+    if proposal == "bootstrap":
+        kernel_cls = BootstrapKernel
+    elif proposal == "fully-adapted":
+        kernel_cls = FullyAdaptedKernel
+    elif proposal == "semi-adapted":
+        kernel_cls = SemiAdaptedKernel
+    memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
+    kernel = kernel_cls(tree_dist, memo_logs, rng, outlier_proposal_prob=outlier_proposal_prob)
+    return kernel
+
+
+def instantiate_and_seed_RNG(seed):
+    if seed is not None:
+        rng = np.random.default_rng(seed)
+    else:
+        rng = np.random.default_rng()
+    return rng
+
+
+def print_stats(iter_id, tree, tree_dist):
+    print(iter_id, tree_dist.prior.alpha, tree_dist.log_p_one(tree),
+          len(tree.nodes), len(tree.outliers), len(tree.roots))

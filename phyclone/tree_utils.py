@@ -79,31 +79,15 @@ def _comp_log_d_internals(child_log_R_values, log_D, num_children, num_dims):
             log_D[i, :] = conv_log(child_log_R[i, :], log_D[i, :])
 
 
-# def exp_normalize_nary(log_p):
-#     log_norm = logsumexp(log_p, axis=-1, keepdims=True)
-#
-#     p = np.exp(log_p - log_norm)
-#
-#     p = p / p.sum(axis=-1, keepdims=True)
-#
-#     return p, log_norm
-
-
 @numba.jit(cache=True, nopython=True)
-def lse(log_X):
-    max_exp = np.max(log_X)
+def lse(log_x):
+    max_exp = np.max(log_x)
 
     if np.isinf(max_exp):
         return max_exp
 
-    x = log_X[np.isfinite(log_X)]
+    x = log_x[np.isfinite(log_x)]
 
-    # ans = x[0]
-
-    # for i in x:
-    #     max_value = max(ans, i)
-    #     min_value = min(ans, i)
-    #     ans = max_value + np.log1p(np.exp(min_value-max_value))
     max_value = np.max(x)
     min_value = np.min(x)
     ans = max_value + np.log1p(np.exp(min_value - max_value))
@@ -113,6 +97,8 @@ def lse(log_X):
 
 @numba.jit(cache=True, nopython=True)
 def conv_log(log_x, log_y):
+    """ Convolve in log space.
+    """
     nx = len(log_x)
 
     log_y = log_y[::-1]
@@ -132,10 +118,10 @@ def conv_log(log_x, log_y):
     return ans[1:n+1]
 
 
-def _compute_log_D_n(child_log_R, prev_log_D_n):
-    """ Compute the recursion over D not using the FFT.
-    """
-
-    result = conv_log(child_log_R, prev_log_D_n)
-
-    return np.ascontiguousarray(result)
+# def _compute_log_D_n(child_log_R, prev_log_D_n):
+#     """ Compute the recursion over D not using the FFT.
+#     """
+#
+#     result = conv_log(child_log_R, prev_log_D_n)
+#
+#     return np.ascontiguousarray(result)

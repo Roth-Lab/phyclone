@@ -94,7 +94,7 @@ class BaseTest(object):
             memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
 
             kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=0, perm_dist=perm_dist,
-                                factorial_arr=factorial_arr, memo_logs=memo_logs, rng=self._rng)
+                                memo_logs=memo_logs, rng=self._rng)
 
             self.factorial_arr = factorial_arr
 
@@ -105,7 +105,7 @@ class BaseTest(object):
         def _run_exact_posterior_test(self, data, burnin=100, num_iters=1000):
             pred_probs = self._run_sampler(data, burnin=burnin * self.run_scale, num_iters=num_iters * self.run_scale)
 
-            true_probs = get_exact_posterior(data, self.tree_dist, self.factorial_arr, self.memo_logs)
+            true_probs = get_exact_posterior(data, self.tree_dist, self.memo_logs)
 
             self._test_posterior(pred_probs, true_probs)
 
@@ -113,7 +113,7 @@ class BaseTest(object):
 
             test_counts = Counter()
 
-            tree = Tree.get_single_node_tree(data, self.factorial_arr, self.memo_logs)
+            tree = Tree.get_single_node_tree(data, self.memo_logs)
 
             for i in range(-burnin, num_iters):
                 if i % 10 == 0:

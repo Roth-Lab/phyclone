@@ -52,7 +52,7 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, sh
 
     idx = 0
 
-    tree = Tree((len(cluster_params[0]), grid_size))
+    tree = Tree((len(cluster_params[0]), grid_size), )
 
     node_0 = tree.create_root_node([], [])
     node_1 = tree.create_root_node([], [])

@@ -21,7 +21,7 @@ class Test(unittest.TestCase):
 
         memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
 
-        self.tree = Tree(grid_size, factorial_arr, memo_logs)
+        self.tree = Tree(grid_size, memo_logs)
         
         self.tree_dist = FSCRPDistribution(1.0)
 

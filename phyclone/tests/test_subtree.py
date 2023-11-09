@@ -26,7 +26,7 @@ class Test(unittest.TestCase):
 
         memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
 
-        tree = Tree(grid_shape, factorial_arr, memo_logs)
+        tree = Tree(grid_shape, memo_logs)
 
         data = [
             DataPoint(0, np.zeros(grid_shape)),

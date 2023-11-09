@@ -16,13 +16,13 @@ data, true_tree = load_test_data(cluster_size=5)
 factorial_arr = np.full(len(data)+1, -inf)
 simple_log_factorial(len(data), factorial_arr)
 
-tree = Tree.get_single_node_tree(data, factorial_arr)
+tree = Tree.get_single_node_tree(data)
 
 conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
 
 mh_sampler = PruneRegraphSampler()
 
-kernel = SemiAdaptedKernel(FSCRPDistribution(1.0), factorial_arr)
+kernel = SemiAdaptedKernel(FSCRPDistribution(1.0))
 
 pg_sampler = ParticleGibbsTreeSampler(kernel)
 

@@ -13,8 +13,8 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     should provide a computational advantage over the fully adapted proposal.
     """
 
-    def __init__(self, data_point, kernel, parent_particle, factorial_arr, outlier_proposal_prob=0.0):
-        super().__init__(data_point, kernel, parent_particle, factorial_arr)
+    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0):
+        super().__init__(data_point, kernel, parent_particle)
         
         self.outlier_proposal_prob = outlier_proposal_prob
         
@@ -63,7 +63,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         if self._empty_tree():
             # First particle
             if self.parent_particle is None:
-                tree = Tree(self.data_point.grid_size, self.factorial_arr, self.memo_logs)
+                tree = Tree(self.data_point.grid_size, self.memo_logs)
             
             else:
                 tree = self.parent_particle.tree.copy()
@@ -150,8 +150,8 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
 class SemiAdaptedKernel(Kernel):
 
-    def __init__(self, tree_prior_dist, factorial_arr, memo_logs, rng, outlier_proposal_prob=0.0, perm_dist=None):
-        super().__init__(tree_prior_dist, factorial_arr, memo_logs, rng, perm_dist=perm_dist)
+    def __init__(self, tree_prior_dist, memo_logs, rng, outlier_proposal_prob=0.0, perm_dist=None):
+        super().__init__(tree_prior_dist, memo_logs, rng, perm_dist=perm_dist)
 
         self.outlier_proposal_prob = outlier_proposal_prob
 
@@ -160,6 +160,5 @@ class SemiAdaptedKernel(Kernel):
             data_point,
             self,
             parent_particle,
-            self.factorial_arr,
             outlier_proposal_prob=self.outlier_proposal_prob
         )

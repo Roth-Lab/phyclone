@@ -49,7 +49,7 @@ class Test(unittest.TestCase):
 
         fact_arr = self.get_factorial_arr()
         
-        tree = Tree(grid_size, fact_arr, self.get_memo_logs())
+        tree = Tree(grid_size, self.get_memo_logs())
         
         node_1 = tree.create_root_node(children=[], data=[])
         
@@ -75,7 +75,7 @@ class Test(unittest.TestCase):
 
         fact_arr = self.get_factorial_arr()
         
-        tree = Tree(grid_size, fact_arr, self.get_memo_logs())
+        tree = Tree(grid_size, self.get_memo_logs())
         
         node_2 = tree.create_root_node(children=[], data=[])
         
@@ -103,7 +103,7 @@ class Test(unittest.TestCase):
 
         fact_arr = self.get_factorial_arr()
 
-        tree = Tree(grid_size, fact_arr, self.get_memo_logs())
+        tree = Tree(grid_size, self.get_memo_logs())
 
         node_2 = tree.create_root_node(children=[], data=[])
         

@@ -97,10 +97,10 @@ class TreeJointDistribution(object):
 
 class Tree(object):
 
-    def __init__(self, grid_size, factorial_arr, memo_logs):
+    def __init__(self, grid_size, memo_logs):
         self.grid_size = grid_size
 
-        self.factorial_arr = factorial_arr
+        # self.factorial_arr = factorial_arr
 
         self._data = defaultdict(list)
 
@@ -135,7 +135,7 @@ class Tree(object):
             self._log_p_comp_memo[tmp_hash_2] = np.zeros(self.grid_size, order='C')
 
     @staticmethod
-    def get_single_node_tree(data, factorial_arr, memo_logs):
+    def get_single_node_tree(data, memo_logs):
         """ Load a tree with all data points assigned single node.
 
         Parameters
@@ -143,7 +143,7 @@ class Tree(object):
         data: list
             Data points.
         """
-        tree = Tree(data[0].grid_size, factorial_arr, memo_logs)
+        tree = Tree(data[0].grid_size, memo_logs)
 
         node = tree.create_root_node([])
 
@@ -217,7 +217,7 @@ class Tree(object):
         if memo_logs is None:
             memo_logs = {"log_p": {}}
 
-        new = Tree(data[0].grid_size, None, memo_logs)
+        new = Tree(data[0].grid_size, memo_logs)
 
         new._graph = nx.DiGraph(tree_dict["graph"])
 
@@ -334,7 +334,7 @@ class Tree(object):
 
         new.memo_logs = self.memo_logs
 
-        new.factorial_arr = self.factorial_arr
+        # new.factorial_arr = self.factorial_arr
 
         new._log_p_comp_memo = self.memo_logs["log_p"]
 
@@ -376,7 +376,7 @@ class Tree(object):
         if subtree_root == "root":
             return self.copy()
 
-        new = Tree(self.grid_size, None, self.memo_logs)
+        new = Tree(self.grid_size, self.memo_logs)
 
         subtree_graph = nx.dfs_tree(self._graph, subtree_root)
 
@@ -439,7 +439,7 @@ class Tree(object):
 
     def remove_subtree(self, subtree):
         if subtree == self:
-            self.__init__(self.grid_size, None, self.memo_logs)
+            self.__init__(self.grid_size, self.memo_logs)
 
         else:
             assert len(subtree.roots) == 1
