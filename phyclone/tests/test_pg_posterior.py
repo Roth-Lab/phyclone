@@ -148,9 +148,6 @@ class BootstrapAdaptedTest(BaseTest.BaseTest):
 
         self.run_scale = 1
 
-        # pyfftw.interfaces.cache.enable()
-        # pyfftw.interfaces.cache.set_keepalive_time(1800)
-
 
 class FullyAdaptedTest(BaseTest.BaseTest):
 
@@ -159,10 +156,7 @@ class FullyAdaptedTest(BaseTest.BaseTest):
 
         self.run_scale = 1
 
-        set_num_threads(8)
-
-        # pyfftw.interfaces.cache.enable()
-        # pyfftw.interfaces.cache.set_keepalive_time(1800)
+        set_num_threads(1)
 
 
 class SemiAdaptedTest(BaseTest.BaseTest):
@@ -171,8 +165,6 @@ class SemiAdaptedTest(BaseTest.BaseTest):
         self.sampler = self._get_sampler(SemiAdaptedKernel)
 
         self.run_scale = 1
-        # pyfftw.interfaces.cache.enable()
-        # pyfftw.interfaces.cache.set_keepalive_time(1800)
 
 
 if __name__ == "__main__":

@@ -276,8 +276,9 @@ def run(
     elif proposal == "semi-adapted":
         kernel_cls = SemiAdaptedKernel
 
-    factorial_arr = np.full(len(data) + 1, -inf)
-    simple_log_factorial(len(data), factorial_arr)  # TODO: any point to having this pre-computed?
+    # factorial_arr = np.full(len(data) + 1, -inf)
+    # simple_log_factorial(len(data), factorial_arr).
+    factorial_arr = None
 
     memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
 
