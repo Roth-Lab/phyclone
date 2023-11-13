@@ -16,11 +16,13 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
         data = []
 
         for idx, (mut, val) in enumerate(pyclone_data.items()):
+            out_probs = compute_outlier_prob(outlier_prob, 1)
             data_point = phyclone.data.base.DataPoint(
                 idx,
                 val.to_likelihood_grid(density, grid_size, precision=precision),
                 name=mut,
-                outlier_prob=outlier_prob
+                outlier_prob=out_probs[0],
+                outlier_prob_not=out_probs[1]
             )
 
             data.append(data_point)
