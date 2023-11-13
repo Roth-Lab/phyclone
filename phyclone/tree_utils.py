@@ -1,6 +1,7 @@
 import numpy as np
 import numba
 from phyclone.utils import two_np_arr_cache, list_of_np_cache
+from math import inf
 
 
 def get_set_hash(datapoints_set):
@@ -99,6 +100,10 @@ def lse(log_x):
 # def cached_conv_log(log_x, log_y):
 #     result = conv_log(log_x, log_y)
 #     return result
+@numba.jit(cache=True, nopython=True)
+def sub_lse(max_value, min_value):
+    ans = max_value + np.log1p(np.exp(min_value - max_value))
+    return ans
 
 
 @numba.jit(cache=True, nopython=True)
@@ -113,13 +118,27 @@ def conv_log(log_x, log_y):
 
     ans = np.zeros(m)
 
-    v = np.zeros(n+1)
+    # v = np.zeros(n+1)
 
+    # for k in range(1, n+1):
+    #     for j in range(k):
+    #         v[j] = log_x[j] + log_y[n-(k-j)]
+    #
+    #     ans[k] = lse(v[:k])
+    # max_val = inf
+    # min_val = -inf
     for k in range(1, n+1):
+        max_val = -inf
+        min_val = inf
         for j in range(k):
-            v[j] = log_x[j] + log_y[n-(k-j)]
+            curr = log_x[j] + log_y[n-(k-j)]
+            if curr > max_val:
+                max_val = curr
+            if curr < min_val:
+                min_val = curr
 
-        ans[k] = lse(v[:k])
+        # ans[k] = sub_lse(max_val, min_val)
+        ans[k] = max_val + np.log1p(np.exp(min_val - max_val))
 
     return ans[1:n+1]
 
