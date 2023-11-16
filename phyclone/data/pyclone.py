@@ -30,11 +30,17 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
     else:
         cluster_df = pd.read_csv(cluster_file, sep="\t")
 
-        cluster_df = cluster_df[["mutation_id", "cluster_id"]].drop_duplicates()
+        if 'outlier_prob' not in cluster_df.columns:
+            print('Cluster level outlier probability column not found. Setting values to {p}'.format(p=outlier_prob))
+            cluster_df.loc[:, 'outlier_prob'] = outlier_prob
+
+        cluster_df = cluster_df[["mutation_id", "cluster_id", "outlier_prob"]].drop_duplicates()
         
         cluster_sizes = cluster_df["cluster_id"].value_counts().to_dict()
 
         clusters = cluster_df.set_index("mutation_id")["cluster_id"].to_dict()
+
+        cluster_outlier_probs = cluster_df.set_index("cluster_id")["outlier_prob"].to_dict()
         
         print("Using input clustering with {} clusters".format(cluster_df["cluster_id"].nunique()))
 
@@ -47,8 +53,8 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
 
         for idx, cluster_id in enumerate(sorted(raw_data.keys())):
             val = np.sum(np.array(raw_data[cluster_id]), axis=0)
-
-            out_probs = compute_outlier_prob(outlier_prob, cluster_sizes[cluster_id])
+            cluster_outlier_prob = cluster_outlier_probs[cluster_id]
+            out_probs = compute_outlier_prob(cluster_outlier_prob, cluster_sizes[cluster_id])
 
             data_point = phyclone.data.base.DataPoint(
                 idx,
@@ -56,7 +62,6 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
                 name="{}".format(cluster_id),
                 outlier_prob=out_probs[0],
                 outlier_prob_not=out_probs[1]
-                # outlier_prob=outlier_prob ** cluster_sizes[cluster_id]
             )
 
             data.append(data_point)
