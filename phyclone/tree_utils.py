@@ -72,11 +72,11 @@ def _comp_log_d_split(child_log_R_values):
     return log_D
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(cache=True, nopython=True, parallel=True)
 def _comp_log_d_internals(child_log_R_values, log_D, num_children, num_dims):
     for j in range(1, num_children):
         child_log_R = child_log_R_values[j]
-        for i in range(num_dims):
+        for i in numba.prange(num_dims):
             log_D[i, :] = conv_log(child_log_R[i, :], log_D[i, :])
 
 
