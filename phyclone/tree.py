@@ -6,7 +6,7 @@ import numpy as np
 from phyclone.consensus import get_clades
 from phyclone.math_utils import log_sum_exp, log_factorial
 
-from phyclone.tree_utils import get_set_hash, add_to_log_p, subtract_from_log_p, compute_log_R, compute_log_S
+from phyclone.tree_utils import add_to_log_p, subtract_from_log_p, compute_log_R, compute_log_S
 
 
 class FSCRPDistribution(object):
@@ -127,8 +127,8 @@ class Tree(object):
         return self_key == other_key
 
     def _set_log_p_memo(self):
-        tmp_hash = get_set_hash({"log_p"})
-        tmp_hash_2 = get_set_hash({"zeros"})
+        tmp_hash = "log_p"
+        tmp_hash_2 = "zeros"
         if tmp_hash not in self._log_p_comp_memo:
             self._log_p_comp_memo[tmp_hash] = np.ascontiguousarray(np.ones(self.grid_size) * self._log_prior)
         if tmp_hash_2 not in self._log_p_comp_memo:
@@ -460,8 +460,10 @@ class Tree(object):
     def _add_node(self, node):
         self._graph.add_node(node)
 
-        self._graph.nodes[node]["log_p"] = self._log_p_comp_memo[get_set_hash({"log_p"})]
-        self._graph.nodes[node]["log_R"] = self._log_p_comp_memo[get_set_hash({"zeros"})]
+        # self._graph.nodes[node]["log_p"] = self._log_p_comp_memo[get_set_hash({"log_p"})]
+        # self._graph.nodes[node]["log_R"] = self._log_p_comp_memo[get_set_hash({"zeros"})]
+        self._graph.nodes[node]["log_p"] = self._log_p_comp_memo["log_p"]
+        self._graph.nodes[node]["log_R"] = self._log_p_comp_memo["zeros"]
 
         # self._graph.nodes[node]["log_p"] = np.ones(self.grid_size) * self._log_prior
         #
@@ -493,19 +495,13 @@ class Tree(object):
     def _update_node(self, node):
         child_log_r_values = [self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)]
 
-        log_s = compute_log_S(child_log_r_values)
-
-        if isinstance(log_s, float):
-            log_s = np.zeros(self.grid_size)
+        if len(child_log_r_values) == 0:
+            log_s = np.zeros(self.grid_size, order='C')
+        else:
+            log_s = compute_log_S(child_log_r_values)
 
         log_p = self._graph.nodes[node]["log_p"]
 
         self._graph.nodes[node]["log_R"] = compute_log_R(log_p, log_s)
 
-        # self._graph.nodes[node]["log_S"] = compute_log_S(child_log_r_values)
-        #
-        # if isinstance(self._graph.nodes[node]["log_S"], float):
-        #     self._graph.nodes[node]["log_S"] = np.zeros(self.grid_size)
-        #
-        # self._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_p"] + self._graph.nodes[node]["log_S"]
 

@@ -4,9 +4,9 @@ from phyclone.utils import two_np_arr_cache, list_of_np_cache
 from math import inf
 
 
-def get_set_hash(datapoints_set):
-    ret = frozenset(datapoints_set)
-    return ret
+# def get_set_hash(datapoints_set):
+#     ret = frozenset(datapoints_set)
+#     return ret
 
 
 @two_np_arr_cache(maxsize=1024)
@@ -96,10 +96,6 @@ def lse(log_x):
     return ans
 
 
-# @two_np_arr_cache(maxsize=1024)
-# def cached_conv_log(log_x, log_y):
-#     result = conv_log(log_x, log_y)
-#     return result
 @numba.jit(cache=True, nopython=True)
 def sub_lse(max_value, min_value):
     ans = max_value + np.log1p(np.exp(min_value - max_value))
@@ -114,19 +110,10 @@ def conv_log(log_x, log_y):
 
     log_y = log_y[::-1]
     n = nx
-    m = n+1
+    # m = n+1
 
-    ans = np.zeros(m)
+    ans = np.zeros(n)
 
-    # v = np.zeros(n+1)
-
-    # for k in range(1, n+1):
-    #     for j in range(k):
-    #         v[j] = log_x[j] + log_y[n-(k-j)]
-    #
-    #     ans[k] = lse(v[:k])
-    # max_val = inf
-    # min_val = -inf
     for k in range(1, n+1):
         max_val = -inf
         min_val = inf
@@ -137,16 +124,7 @@ def conv_log(log_x, log_y):
             if curr < min_val:
                 min_val = curr
 
-        # ans[k] = sub_lse(max_val, min_val)
-        ans[k] = max_val + np.log1p(np.exp(min_val - max_val))
+        ans[k-1] = max_val + np.log1p(np.exp(min_val - max_val))
 
-    return ans[1:n+1]
+    return ans
 
-
-# def _compute_log_D_n(child_log_R, prev_log_D_n):
-#     """ Compute the recursion over D not using the FFT.
-#     """
-#
-#     result = conv_log(child_log_R, prev_log_D_n)
-#
-#     return np.ascontiguousarray(result)
