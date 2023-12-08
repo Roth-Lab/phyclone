@@ -4,11 +4,6 @@ from phyclone.utils import two_np_arr_cache, list_of_np_cache
 from math import inf
 
 
-# def get_set_hash(datapoints_set):
-#     ret = frozenset(datapoints_set)
-#     return ret
-
-
 @two_np_arr_cache(maxsize=1024)
 def add_to_log_p(log_p, data_arr):
     return np.add(log_p, data_arr, order='C')
@@ -114,17 +109,33 @@ def conv_log(log_x, log_y):
 
     ans = np.zeros(n)
 
-    for k in range(1, n+1):
+    for k in range(1, n + 1):
         max_val = -inf
         min_val = inf
         for j in range(k):
-            curr = log_x[j] + log_y[n-(k-j)]
+            curr = log_x[j] + log_y[n - (k - j)]
             if curr > max_val:
                 max_val = curr
             if curr < min_val:
                 min_val = curr
 
-        ans[k-1] = max_val + np.log1p(np.exp(min_val - max_val))
+        ans[k - 1] = max_val + np.log1p(np.exp(min_val - max_val))
 
     return ans
 
+
+def _cache_ratio(cache_obj):
+    ratio = cache_obj.hits / (cache_obj.hits + cache_obj.misses)
+    return ratio
+
+
+def create_cache_info_file(out_file):
+    with open(out_file, "w") as f:
+        print('compute_s cache info: {}, hit ratio: {}'.format(compute_log_S.cache_info(),
+                                                               _cache_ratio(compute_log_S.cache_info())), file=f)
+        print('add_to_log_p cache info: {}, hit ratio: {}'.format(add_to_log_p.cache_info(),
+                                                                  _cache_ratio(add_to_log_p.cache_info())), file=f)
+        print('subtract_from_log_p cache info: {}, hit ratio: {}'.format(subtract_from_log_p.cache_info(),
+                                                                         _cache_ratio(subtract_from_log_p.cache_info())), file=f)
+        print('compute_log_R cache info: {}, hit ratio: {}'.format(compute_log_R.cache_info(),
+                                                                   _cache_ratio(compute_log_R.cache_info())), file=f)

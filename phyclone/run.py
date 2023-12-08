@@ -10,6 +10,7 @@ import pandas as pd
 import pickle
 from numba import set_num_threads
 from dataclasses import dataclass
+import os
 
 from phyclone.concentration import GammaPriorConcentrationSampler
 from phyclone.map import get_map_node_ccfs
@@ -20,13 +21,14 @@ from phyclone.smc.samplers import SMCSampler
 from phyclone.smc.utils import RootPermutationDistribution
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer
+from phyclone.tree_utils import create_cache_info_file
 
 import phyclone.data.pyclone
 import phyclone.math_utils
 from phyclone.math_utils import discrete_rvs
 
 
-def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None):
+def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None, topology_report=False):
     set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
@@ -35,11 +37,25 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
 
     map_val = float("-inf")
 
+    topologies = []
+
     for i, x in enumerate(results["trace"]):
         if x["log_p"] > map_val:
             map_iter = i
 
             map_val = x["log_p"]
+
+        if topology_report:
+            found = False
+            for topology in topologies:
+                top = topology[0]
+                if top == x['tree']:
+                    topology[1] += 1
+                    topology[2].append(x['log_p'])
+                    found = True
+                    break
+            if not found:
+                topologies.append([x['tree'], 1, [x['log_p']]])
 
     data = results["data"]
 
@@ -239,7 +255,6 @@ def run(
         subtree_update_prob=0,
         thin=1,
         num_threads=1):
-
     rng = instantiate_and_seed_RNG(seed)
 
     set_num_threads(num_threads)
@@ -289,18 +304,20 @@ def _create_main_run_output(cluster_file, out_file, results):
     with gzip.GzipFile(out_file, mode="wb") as fh:
         pickle.dump(results, fh)
 
+    cache_txt_file = os.path.join(os.path.dirname(out_file), 'cache_info.txt')
+    create_cache_info_file(cache_txt_file)
+
 
 def _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
                       num_samples_prune_regraph, print_freq, rng, samplers, samples, subtree_update_prob, thin, timer,
                       trace, tree, tree_dist):
-
     dp_sampler = samplers.dp_sampler
     prg_sampler = samplers.prg_sampler
     subtree_sampler = samplers.subtree_sampler
     tree_sampler = samplers.tree_sampler
     conc_sampler = samplers.conc_sampler
 
-    random_draws = rng.random(num_iters)
+    random_draws = rng.random(num_iters)  # TODO: reconsider this, could become a memory blah if enough iters requested
 
     for i in range(num_iters):
         with timer:
@@ -438,7 +455,7 @@ def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng,
     dp_sampler = DataPointSampler(tree_dist, rng, outliers=(outlier_prob > 0))
     prg_sampler = PruneRegraphSampler(tree_dist, rng)
     conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
-    burn_in_particles = int(max(1, np.rint(num_particles/2)))
+    burn_in_particles = int(max(1, np.rint(num_particles / 2)))
     burnin_sampler = UnconditionalSMCSampler(
         kernel, num_particles=burn_in_particles, resample_threshold=resample_threshold
     )

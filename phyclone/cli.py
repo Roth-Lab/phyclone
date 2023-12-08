@@ -55,9 +55,13 @@ def consensus(**kwargs):
 )
 @click.option(
     "-p", "--out-log-probs-file",
-    # required=True,
     default=None,
     type=click.Path(resolve_path=True)
+)
+@click.option(
+    "--topology-report/--no-topology-report",
+    default=False,
+    help="Whether the topology counts should be computed."
 )
 def map(**kwargs):
     """ Build MAP results.
@@ -201,7 +205,7 @@ def map(**kwargs):
 @click.option(
     "--resample-threshold",
     default=0.5,
-    type=float,
+    type=click.FloatRange(0.0, 1.0, clamp=True),
     help="""ESS threshold to trigger resampling. Default is 0.5."""
 )
 @click.option(
