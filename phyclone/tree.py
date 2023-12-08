@@ -6,7 +6,7 @@ import numpy as np
 from phyclone.consensus import get_clades
 from phyclone.math_utils import log_sum_exp, log_factorial
 
-from phyclone.tree_utils import add_to_log_p, subtract_from_log_p, compute_log_R, compute_log_S
+from phyclone.tree_utils import add_to_log_p, subtract_from_log_p, compute_log_R, compute_log_S, add_to_log_R
 
 
 class FSCRPDistribution(object):
@@ -233,7 +233,8 @@ class Tree(object):
                 # new._graph.nodes[node]["log_p"] += data[idx].value
                 # new._graph.nodes[node]["log_R"] += data[idx].value
                 new._graph.nodes[node]["log_p"] = add_to_log_p(new._graph.nodes[node]["log_p"], data[idx].value)
-                new._graph.nodes[node]["log_R"] = compute_log_R(new._graph.nodes[node]["log_R"], data[idx].value)
+                new._graph.nodes[node]["log_R"] = add_to_log_R(new._graph.nodes[node]["log_R"], data[idx].value)
+                # new._graph.nodes[node]["log_R"] = compute_log_R(new._graph.nodes[node]["log_R"], data[idx].value)
 
         new.update()
 
@@ -253,7 +254,8 @@ class Tree(object):
         if node != -1:
             # self._graph.nodes[node]["log_p"] += data_point.value
             # self._graph.nodes[node]["log_R"] += data_point.value
-            self._graph.nodes[node]["log_R"] = compute_log_R(self._graph.nodes[node]["log_R"], data_point.value)
+            # self._graph.nodes[node]["log_R"] = compute_log_R(self._graph.nodes[node]["log_R"], data_point.value)
+            self._graph.nodes[node]["log_R"] = add_to_log_R(self._graph.nodes[node]["log_R"], data_point.value)
             self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
 
             self._update_path_to_root(self.get_parent(node))

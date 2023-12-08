@@ -19,7 +19,12 @@ def compute_log_R(log_p, log_s):
     return np.add(log_p, log_s, order='C')
 
 
-@list_of_np_cache(maxsize=1024)
+@two_np_arr_cache(maxsize=1024)
+def add_to_log_R(log_r, data_arr):
+    return np.add(log_r, data_arr, order='C')
+
+
+@list_of_np_cache(maxsize=2048)
 def compute_log_S(child_log_R_values):
     """ Compute log(S) recursion.
 
@@ -125,7 +130,10 @@ def conv_log(log_x, log_y):
 
 
 def _cache_ratio(cache_obj):
-    ratio = cache_obj.hits / (cache_obj.hits + cache_obj.misses)
+    try:
+        ratio = cache_obj.hits / (cache_obj.hits + cache_obj.misses)
+    except ZeroDivisionError:
+        ratio = 0.0
     return ratio
 
 
@@ -136,6 +144,10 @@ def create_cache_info_file(out_file):
         print('add_to_log_p cache info: {}, hit ratio: {}'.format(add_to_log_p.cache_info(),
                                                                   _cache_ratio(add_to_log_p.cache_info())), file=f)
         print('subtract_from_log_p cache info: {}, hit ratio: {}'.format(subtract_from_log_p.cache_info(),
-                                                                         _cache_ratio(subtract_from_log_p.cache_info())), file=f)
+                                                                         _cache_ratio(
+                                                                             subtract_from_log_p.cache_info())), file=f)
         print('compute_log_R cache info: {}, hit ratio: {}'.format(compute_log_R.cache_info(),
                                                                    _cache_ratio(compute_log_R.cache_info())), file=f)
+        print('add_to_log_R cache info: {}, hit ratio: {}'.format(add_to_log_R.cache_info(),
+                                                                  _cache_ratio(add_to_log_R.cache_info())), file=f)
+
