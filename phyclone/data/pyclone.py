@@ -100,7 +100,11 @@ def load_pyclone_data(file_name, mitochondrial):
 
     mutations = sorted(df['mutation_id'].unique())
 
-    print('Samples: {}'.format(' '.join(samples)))
+    if len(samples) > 10:
+        print('Num Samples: {}'.format(len(samples)))
+        print('Samples: {}...'.format(' '.join(samples[:4])))
+    else:
+        print('Samples: {}'.format(' '.join(samples)))
 
     print('Num mutations: {}'.format(len(mutations)))
 
