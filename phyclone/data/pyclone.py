@@ -9,8 +9,9 @@ import phyclone.math_utils
 from phyclone.exceptions import MajorCopyNumberError
 
 
-def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400):
-    pyclone_data, samples = load_pyclone_data(file_name)
+def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400,
+              mitochondrial=False):
+    pyclone_data, samples = load_pyclone_data(file_name, mitochondrial)
 
     if cluster_file is None:
         data = []
@@ -78,8 +79,17 @@ def compute_outlier_prob(outlier_prob, cluster_size):
         return res, res_not
 
 
-def load_pyclone_data(file_name):
-    df = pd.read_csv(file_name, sep='\t')
+def load_pyclone_data(file_name, mitochondrial):
+    df = pd.read_table(file_name)
+
+    if len(df.columns) == 1:
+        df = pd.read_csv(file_name)
+
+    if mitochondrial:
+        print('Data is marked as mitochondrial, setting copy number columns to haploid settings.')
+        df['major_cn'] = 1
+        df['minor_cn'] = 0
+        df['normal_cn'] = 1
 
     df['sample_id'] = df['sample_id'].astype(str)
 

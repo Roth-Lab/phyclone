@@ -258,14 +258,15 @@ def run(
         seed=None,
         subtree_update_prob=0,
         thin=1,
-        num_threads=1):
+        num_threads=1,
+        mitochondrial=False):
     rng = instantiate_and_seed_RNG(seed)
 
     set_num_threads(num_threads)
 
     data, samples = phyclone.data.pyclone.load_data(
         in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
-        precision=precision
+        precision=precision, mitochondrial=mitochondrial
     )
 
     tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
