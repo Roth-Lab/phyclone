@@ -321,14 +321,12 @@ def _run_main_sampler(concentration_update, data, max_time, num_iters, num_sampl
     tree_sampler = samplers.tree_sampler
     conc_sampler = samplers.conc_sampler
 
-    random_draws = rng.random(num_iters)  # TODO: reconsider this, could become a memory blah if enough iters requested
-
     for i in range(num_iters):
         with timer:
             if i % print_freq == 0:
                 print_stats(i, tree, tree_dist)
 
-            if random_draws[i] < subtree_update_prob:
+            if rng.random() < subtree_update_prob:
                 tree = subtree_sampler.sample_tree(tree)
 
             else:
@@ -390,9 +388,6 @@ def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regr
         print("Burnin")
         print("#" * 100)
 
-        # i = 0
-
-        # while (i < burnin) and (timer.elapsed < max_time):
         for i in range(burnin):
             with timer:
                 if i % print_freq == 0:
@@ -411,7 +406,6 @@ def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regr
                 if timer.elapsed < max_time:
                     break
 
-                # i += 1
     print()
     print("#" * 100)
     print("Post-burnin")
@@ -469,7 +463,6 @@ def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng,
     subtree_sampler = ParticleGibbsSubtreeSampler(
         kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
     )
-    # return burnin_sampler, conc_sampler, dp_sampler, prg_sampler, subtree_sampler, tree_sampler
     return SamplersHolder(dp_sampler,
                           prg_sampler,
                           conc_sampler,
@@ -504,5 +497,6 @@ def instantiate_and_seed_RNG(seed):
 
 
 def print_stats(iter_id, tree, tree_dist):
-    print(iter_id, tree_dist.prior.alpha, tree_dist.log_p_one(tree),
-          len(tree.nodes), len(tree.outliers), len(tree.roots))
+    string_template = 'iter: {}, alpha: {}, log_p: {}, num_nodes: {}, num_outliers: {}, num_roots: {}'
+    print(string_template.format(iter_id, tree_dist.prior.alpha, tree_dist.log_p_one(tree),
+          len(tree.nodes), len(tree.outliers), len(tree.roots)))
