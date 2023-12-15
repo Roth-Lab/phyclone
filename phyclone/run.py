@@ -46,16 +46,7 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
             map_val = x["log_p"]
 
         if topology_report:
-            found = False
-            for topology in topologies:
-                top = topology[0]
-                if top == x['tree']:
-                    topology[1] += 1
-                    topology[2].append(x['log_p'])
-                    found = True
-                    break
-            if not found:
-                topologies.append([x['tree'], 1, [x['log_p']]])
+            count_topology(topologies, x)
 
     data = results["data"]
 
@@ -66,6 +57,19 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
     table = get_clone_table(data, results["samples"], tree, clusters=clusters)
 
     _create_results_output_files(out_log_probs_file, out_table_file, out_tree_file, results, table, tree)
+
+
+def count_topology(topologies, x):
+    found = False
+    for topology in topologies:
+        top = topology['topology']
+        if top == x['tree']:
+            topology['count'] += 1
+            topology['log_p_list'].append(x['log_p'])
+            found = True
+            break
+    if not found:
+        topologies.append({'topology': x['tree'], 'count': 1, 'log_p_list': [x['log_p']]})
 
 
 def _create_results_output_files(out_log_probs_file, out_table_file, out_tree_file, results, table, tree):
