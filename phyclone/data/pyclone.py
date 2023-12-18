@@ -85,11 +85,7 @@ def load_pyclone_data(file_name, mitochondrial):
     if len(df.columns) == 1:
         df = pd.read_csv(file_name)
 
-    if mitochondrial:
-        print('Data is marked as mitochondrial, setting copy number columns to haploid settings.')
-        df['major_cn'] = 1
-        df['minor_cn'] = 0
-        df['normal_cn'] = 1
+    set_mitochondrial_copy_numbers(df, mitochondrial)
 
     df['sample_id'] = df['sample_id'].astype(str)
 
@@ -146,6 +142,17 @@ def load_pyclone_data(file_name, mitochondrial):
         data[name] = DataPoint(samples, sample_data_points)
 
     return data, samples
+
+
+def set_mitochondrial_copy_numbers(df, mitochondrial):
+    if mitochondrial:
+        print('Data is marked as mitochondrial, setting copy number columns to haploid settings.')
+        if 'major_cn' not in df.columns:
+            df['major_cn'] = 1
+        if 'minor_cn' not in df.columns:
+            df['minor_cn'] = 0
+        if 'normal_cn' not in df.columns:
+            df['normal_cn'] = 1
 
 
 def get_major_cn_prior(major_cn, minor_cn, normal_cn, error_rate=1e-3):
