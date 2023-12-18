@@ -24,7 +24,7 @@ def add_to_log_R(log_r, data_arr):
     return np.add(log_r, data_arr, order='C')
 
 
-@list_of_np_cache(maxsize=2048)
+@list_of_np_cache(maxsize=1024)
 def compute_log_S(child_log_R_values):
     """ Compute log(S) recursion.
 
