@@ -14,7 +14,7 @@ def subtract_from_log_p(log_p, data_arr):
     return np.subtract(log_p, data_arr, order='C')
 
 
-@two_np_arr_cache(maxsize=1024)
+@two_np_arr_cache(maxsize=2048)
 def compute_log_R(log_p, log_s):
     return np.add(log_p, log_s, order='C')
 
@@ -24,7 +24,7 @@ def add_to_log_R(log_r, data_arr):
     return np.add(log_r, data_arr, order='C')
 
 
-@list_of_np_cache(maxsize=1024)
+@list_of_np_cache(maxsize=4096)
 def compute_log_S(child_log_R_values):
     """ Compute log(S) recursion.
 
