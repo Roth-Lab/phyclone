@@ -423,7 +423,7 @@ def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regr
 
                 tree.relabel_nodes()
 
-                if timer.elapsed < max_time:
+                if timer.elapsed > max_time:
                     break
 
     print()
@@ -518,5 +518,5 @@ def instantiate_and_seed_RNG(seed):
 
 def print_stats(iter_id, tree, tree_dist):
     string_template = 'iter: {}, alpha: {}, log_p: {}, num_nodes: {}, num_outliers: {}, num_roots: {}'
-    print(string_template.format(iter_id, tree_dist.prior.alpha, tree_dist.log_p_one(tree),
+    print(string_template.format(iter_id, round(tree_dist.prior.alpha, 3), round(tree_dist.log_p_one(tree), 3),
           len(tree.nodes), len(tree.outliers), len(tree.roots)))
