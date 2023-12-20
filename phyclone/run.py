@@ -22,7 +22,7 @@ from phyclone.smc.samplers import SMCSampler
 from phyclone.smc.utils import RootPermutationDistribution
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer
-from phyclone.tree_utils import create_cache_info_file
+from phyclone.tree_utils import create_cache_info_file, clear_function_caches
 
 import phyclone.data.pyclone
 import phyclone.math_utils
@@ -431,6 +431,8 @@ def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regr
     print("Post-burnin")
     print("#" * 100)
     print()
+
+    clear_function_caches()
     return tree
 
 

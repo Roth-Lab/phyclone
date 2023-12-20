@@ -6,7 +6,7 @@ import numpy as np
 from phyclone.consensus import get_clades
 from phyclone.math_utils import log_sum_exp, log_factorial
 
-from phyclone.tree_utils import add_to_log_p, subtract_from_log_p, compute_log_R, compute_log_S, add_to_log_R
+from phyclone.tree_utils import add_to_log_p, subtract_from_log_p, compute_log_S
 
 
 class FSCRPDistribution(object):

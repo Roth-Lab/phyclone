@@ -151,3 +151,9 @@ def create_cache_info_file(out_file):
         # print('add_to_log_R cache info: {}, hit ratio: {}'.format(add_to_log_R.cache_info(),
         #                                                           _cache_ratio(add_to_log_R.cache_info())), file=f)
 
+
+def clear_function_caches(clear_all=False):
+    compute_log_S.cache_clear()
+    if clear_all:
+        add_to_log_p.cache_clear()
+        subtract_from_log_p.cache_clear()
