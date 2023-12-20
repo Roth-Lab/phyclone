@@ -62,7 +62,7 @@ def compute_log_D(child_log_R_values):
 def _comp_log_d_split(child_log_R_values):
     num_children = len(child_log_R_values)
     if num_children == 1:
-        return child_log_R_values[0].copy()
+        return child_log_R_values[0]
 
     log_D = child_log_R_values[0].copy()
     num_dims = log_D.shape[0]
@@ -146,8 +146,8 @@ def create_cache_info_file(out_file):
         print('subtract_from_log_p cache info: {}, hit ratio: {}'.format(subtract_from_log_p.cache_info(),
                                                                          _cache_ratio(
                                                                              subtract_from_log_p.cache_info())), file=f)
-        print('compute_log_R cache info: {}, hit ratio: {}'.format(compute_log_R.cache_info(),
-                                                                   _cache_ratio(compute_log_R.cache_info())), file=f)
-        print('add_to_log_R cache info: {}, hit ratio: {}'.format(add_to_log_R.cache_info(),
-                                                                  _cache_ratio(add_to_log_R.cache_info())), file=f)
+        # print('compute_log_R cache info: {}, hit ratio: {}'.format(compute_log_R.cache_info(),
+        #                                                            _cache_ratio(compute_log_R.cache_info())), file=f)
+        # print('add_to_log_R cache info: {}, hit ratio: {}'.format(add_to_log_R.cache_info(),
+        #                                                           _cache_ratio(add_to_log_R.cache_info())), file=f)
 
