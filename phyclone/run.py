@@ -432,7 +432,7 @@ def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regr
     print("#" * 100)
     print()
 
-    clear_function_caches()
+    # clear_function_caches()
     return tree
 
 

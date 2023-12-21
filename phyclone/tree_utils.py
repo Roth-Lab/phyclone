@@ -64,20 +64,50 @@ def _comp_log_d_split(child_log_R_values):
     if num_children == 1:
         return child_log_R_values[0]
 
-    log_D = child_log_R_values[0].copy()
-    num_dims = log_D.shape[0]
-    num_children = child_log_R_values.shape[0]
-
-    _comp_log_d_internals(child_log_R_values, log_D, num_children, num_dims)
+    # log_D = child_log_R_values[0].copy()
+    # num_dims = log_D.shape[0]
+    # num_children = child_log_R_values.shape[0]
+    #
+    # _comp_log_d_internals(child_log_R_values, log_D, num_children, num_dims)
+    log_D = _comp_log_d_internals(child_log_R_values, num_children)
     return log_D
 
 
+# @numba.jit(cache=True, nopython=True, parallel=True)
+# def _comp_log_d_internals(child_log_R_values, log_D, num_children, num_dims):
+#     for j in range(1, num_children):
+#         child_log_R = child_log_R_values[j]
+#         for i in numba.prange(num_dims):
+#             log_D[i, :] = conv_log(child_log_R[i, :], log_D[i, :])
+
+# @numba.jit(cache=True, nopython=True)
+# def _comp_log_d_internals(child_log_R_values, log_D, num_children, num_dims):
+#     for j in range(1, num_children):
+#         child_log_R = child_log_R_values[j]
+#         for i in range(num_dims):
+#             log_D[i, :] = conv_log(child_log_R[i, :], log_D[i, :])
+
+
+# @numba.jit(cache=True, nopython=True)
+def _comp_log_d_internals(child_log_R_values, num_children):
+    conv_res = _convolve_two_children(child_log_R_values[0], child_log_R_values[1])
+    for j in range(2, num_children):
+        conv_res = _convolve_two_children(child_log_R_values[j], conv_res)
+    return conv_res
+
+
+@two_np_arr_cache(maxsize=4096)
+def _convolve_two_children(child_1, child_2):
+    num_dims = child_1.shape[0]
+    res_arr = np.empty_like(child_1)
+    _conv_two_children_jit(child_1, child_2, num_dims, res_arr)
+    return res_arr
+
+
 @numba.jit(cache=True, nopython=True, parallel=True)
-def _comp_log_d_internals(child_log_R_values, log_D, num_children, num_dims):
-    for j in range(1, num_children):
-        child_log_R = child_log_R_values[j]
-        for i in numba.prange(num_dims):
-            log_D[i, :] = conv_log(child_log_R[i, :], log_D[i, :])
+def _conv_two_children_jit(child_1, child_2, num_dims, res_arr):
+    for i in numba.prange(num_dims):
+        conv_log(child_1[i, :], child_2[i, :], res_arr[i, :])
 
 
 @numba.jit(cache=True, nopython=True)
@@ -103,7 +133,7 @@ def sub_lse(max_value, min_value):
 
 
 @numba.jit(cache=True, nopython=True)
-def conv_log(log_x, log_y):
+def conv_log(log_x, log_y, ans):
     """ Convolve in log space.
     """
     nx = len(log_x)
@@ -112,7 +142,7 @@ def conv_log(log_x, log_y):
     n = nx
     # m = n+1
 
-    ans = np.zeros(n)
+    # ans = np.zeros(n)
 
     for k in range(1, n + 1):
         max_val = -inf
@@ -146,6 +176,10 @@ def create_cache_info_file(out_file):
         print('subtract_from_log_p cache info: {}, hit ratio: {}'.format(subtract_from_log_p.cache_info(),
                                                                          _cache_ratio(
                                                                              subtract_from_log_p.cache_info())), file=f)
+        print('_convolve_two_children cache info: {}, hit ratio: {}'.format(_convolve_two_children.cache_info(),
+                                                                            _cache_ratio(
+                                                                                _convolve_two_children.cache_info())),
+              file=f)
         # print('compute_log_R cache info: {}, hit ratio: {}'.format(compute_log_R.cache_info(),
         #                                                            _cache_ratio(compute_log_R.cache_info())), file=f)
         # print('add_to_log_R cache info: {}, hit ratio: {}'.format(add_to_log_R.cache_info(),
