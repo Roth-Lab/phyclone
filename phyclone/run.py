@@ -23,6 +23,7 @@ from phyclone.smc.utils import RootPermutationDistribution
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer
 from phyclone.tree_utils import create_cache_info_file, clear_function_caches
+from phyclone.consensus import get_consensus_tree
 
 import phyclone.data.pyclone
 import phyclone.math_utils
@@ -99,7 +100,7 @@ def _create_topology_result_file(topologies, out_table_file, data):
     df.to_csv(out_file, index=False, sep="\t")
 
 
-def write_consensus_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None):
+def write_consensus_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None, consensus_threshold=0.5):
     set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
@@ -108,7 +109,7 @@ def write_consensus_results(in_file, out_table_file, out_tree_file, out_log_prob
 
     trees = [Tree.from_dict(data, x["tree"]) for x in results["trace"]]
 
-    graph = phyclone.consensus.get_consensus_tree(trees, data=data)
+    graph = get_consensus_tree(trees, data=data, threshold=consensus_threshold)
 
     tree = get_tree_from_consensus_graph(data, graph)
 

@@ -28,6 +28,12 @@ import phyclone.run
     default=None,
     type=click.Path(resolve_path=True)
 )
+@click.option(
+    "--consensus-threshold",
+    default=0.5,
+    type=click.FloatRange(0.0, 1.0, clamp=True),
+    help="""Consensus threshold to keep an SNV."""
+)
 def consensus(**kwargs):
     """ Build consensus results.
     """
