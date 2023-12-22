@@ -1,10 +1,11 @@
 from collections import defaultdict
 
 import networkx as nx
+import numpy as np
 
 
-def get_consensus_tree(trees, data=None, threshold=0.5, weighted=False):
-    clades_counter = clade_probabilities(trees, weighted=weighted)
+def get_consensus_tree(trees, data=None, threshold=0.5, weighted=True, log_p_list=None):
+    clades_counter = clade_probabilities(trees, weighted=weighted, log_p_list=log_p_list)
 
     consensus_clades = key_above_threshold(clades_counter, threshold)
 
@@ -78,15 +79,17 @@ def clean_tree(tree, data=None):
     return new_tree
 
 
-def clade_probabilities(trees, weighted=False):
+def clade_probabilities(trees, weighted=False, log_p_list=None):
     """ Return a clade probabilities.
     """
     clades_counter = defaultdict(float)
 
-    for tree in trees:
-        for clade in get_clades(tree):
+    for i, tree in enumerate(trees):
+        tree_clades = get_clades(tree)
+        for clade in tree_clades:
             if weighted:
-                clades_counter[clade] += trees[tree]
+                # clades_counter[clade] += trees[tree]
+                clades_counter[clade] += log_p_list[i]
 
             else:
                 clades_counter[clade] += 1

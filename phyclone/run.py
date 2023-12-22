@@ -27,7 +27,7 @@ from phyclone.consensus import get_consensus_tree
 
 import phyclone.data.pyclone
 import phyclone.math_utils
-from phyclone.math_utils import discrete_rvs
+from phyclone.math_utils import discrete_rvs, exp_normalize
 
 
 def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None, topology_report=False):
@@ -109,7 +109,11 @@ def write_consensus_results(in_file, out_table_file, out_tree_file, out_log_prob
 
     trees = [Tree.from_dict(data, x["tree"]) for x in results["trace"]]
 
-    graph = get_consensus_tree(trees, data=data, threshold=consensus_threshold)
+    probs = np.array([x["log_p"] for x in results["trace"]])
+
+    probs, norm = exp_normalize(probs)
+
+    graph = get_consensus_tree(trees, data=data, threshold=consensus_threshold, log_p_list=probs)
 
     tree = get_tree_from_consensus_graph(data, graph)
 
