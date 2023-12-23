@@ -32,7 +32,14 @@ import phyclone.run
     "--consensus-threshold",
     default=0.5,
     type=click.FloatRange(0.0, 1.0, clamp=True),
+    show_default=True,
     help="""Consensus threshold to keep an SNV."""
+)
+@click.option(
+    "--weighted-consensus/--no-topology-report",
+    default=True,
+    show_default=True,
+    help="Whether the consensus tree should be computed using weighted trees."
 )
 def consensus(**kwargs):
     """ Build consensus results.

@@ -100,7 +100,10 @@ def _create_topology_result_file(topologies, out_table_file, data):
     df.to_csv(out_file, index=False, sep="\t")
 
 
-def write_consensus_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None, consensus_threshold=0.5):
+def write_consensus_results(in_file, out_table_file, out_tree_file,
+                            out_log_probs_file=None,
+                            consensus_threshold=0.5,
+                            weighted_consensus=True):
     set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
@@ -113,7 +116,8 @@ def write_consensus_results(in_file, out_table_file, out_tree_file, out_log_prob
 
     probs, norm = exp_normalize(probs)
 
-    graph = get_consensus_tree(trees, data=data, threshold=consensus_threshold, log_p_list=probs)
+    graph = get_consensus_tree(trees, data=data, threshold=consensus_threshold,
+                               weighted=weighted_consensus, log_p_list=probs)
 
     tree = get_tree_from_consensus_graph(data, graph)
 

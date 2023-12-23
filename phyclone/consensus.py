@@ -4,7 +4,7 @@ import networkx as nx
 import numpy as np
 
 
-def get_consensus_tree(trees, data=None, threshold=0.5, weighted=True, log_p_list=None):
+def get_consensus_tree(trees, data=None, threshold=0.5, weighted=False, log_p_list=None):
     clades_counter = clade_probabilities(trees, weighted=weighted, log_p_list=log_p_list)
 
     consensus_clades = key_above_threshold(clades_counter, threshold)
