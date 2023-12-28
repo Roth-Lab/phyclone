@@ -83,6 +83,30 @@ def map(**kwargs):
 
 
 # =========================================================================
+# Topology Output
+# =========================================================================
+
+@click.command(
+    context_settings={"max_content_width": 120}
+)
+@click.option(
+    "-i", "--in-file",
+    required=True,
+    type=click.Path(resolve_path=True),
+    help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file."""
+)
+@click.option(
+    "-o", "--out-file",
+    required=True,
+    type=click.Path(resolve_path=True)
+)
+def topology_report(**kwargs):
+    """ Build topology results.
+    """
+    phyclone.run.write_topology_report(**kwargs)
+
+
+# =========================================================================
 # Analysis
 # =========================================================================
 @click.command(
@@ -248,4 +272,5 @@ def main():
 
 main.add_command(consensus)
 main.add_command(map)
+main.add_command(topology_report)
 main.add_command(run)

@@ -48,7 +48,7 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
             map_val = x["log_p"]
 
         if topology_report:
-            count_topology(topologies, x)
+            count_topology(topologies, x, i)
 
     data = results["data"]
 
@@ -63,7 +63,24 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
         _create_topology_result_file(topologies, out_table_file, data)
 
 
-def count_topology(topologies, x):
+def write_topology_report(in_file, out_file):
+    set_num_threads(1)
+
+    with gzip.GzipFile(in_file, "rb") as fh:
+        results = pickle.load(fh)
+
+    topologies = []
+
+    for i, x in enumerate(results["trace"]):
+        count_topology(topologies, x, i)
+
+    data = results["data"]
+
+    df = _create_topology_dataframe(data, topologies)
+    df.to_csv(out_file, index=False, sep="\t")
+
+
+def count_topology(topologies, x, i):
     found = False
     for topology in topologies:
         top = topology['topology']
@@ -72,10 +89,11 @@ def count_topology(topologies, x):
             curr_log_p = x['log_p']
             if curr_log_p > topology['log_p_max']:
                 topology['log_p_max'] = curr_log_p
+                topology['iter'] = i
             found = True
             break
     if not found:
-        topologies.append({'topology': x['tree'], 'count': 1, 'log_p_max': x['log_p']})
+        topologies.append({'topology': x['tree'], 'count': 1, 'log_p_max': x['log_p'], 'iter': i})
 
 
 def _create_results_output_files(out_log_probs_file, out_table_file, out_tree_file, results, table, tree):
@@ -87,17 +105,23 @@ def _create_results_output_files(out_log_probs_file, out_table_file, out_tree_fi
 
 
 def _create_topology_result_file(topologies, out_table_file, data):
-    tmp_str_io = StringIO()
+    df = _create_topology_dataframe(data, topologies)
+
+    out_file = os.path.join(os.path.dirname(out_table_file), 'topology_info.tsv')
+    df.to_csv(out_file, index=False, sep="\t")
+
+
+def _create_topology_dataframe(data, topologies):
+
     for topology in topologies:
+        tmp_str_io = StringIO()
         tree = Tree.from_dict(data, topology['topology'])
         Bio.Phylo.write(get_bp_tree_from_graph(tree.graph), tmp_str_io, "newick", plain=True)
         as_str = tmp_str_io.getvalue().rstrip()
         topology['topology'] = as_str
-        tmp_str_io.seek(0)
-
-    out_file = os.path.join(os.path.dirname(out_table_file), 'topology_info.tsv')
+        # tmp_str_io.seek(0)
     df = pd.DataFrame(topologies)
-    df.to_csv(out_file, index=False, sep="\t")
+    return df
 
 
 def write_consensus_results(in_file, out_table_file, out_tree_file,
