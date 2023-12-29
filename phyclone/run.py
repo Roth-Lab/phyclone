@@ -22,7 +22,7 @@ from phyclone.smc.samplers import SMCSampler
 from phyclone.smc.utils import RootPermutationDistribution
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer
-from phyclone.tree_utils import create_cache_info_file, clear_function_caches
+from phyclone.tree_utils import create_cache_info_file
 from phyclone.consensus import get_consensus_tree
 
 import phyclone.data.pyclone
@@ -30,7 +30,7 @@ import phyclone.math_utils
 from phyclone.math_utils import discrete_rvs, exp_normalize
 
 
-def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None, topology_report=False):
+def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None):
     set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
@@ -38,8 +38,6 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
     map_iter = 0
 
     map_val = float("-inf")
-
-    topologies = []
 
     data = results["data"]
 
@@ -49,9 +47,6 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
 
             map_val = x["log_p"]
 
-        if topology_report:
-            count_topology(topologies, x, i, data)
-
     tree = Tree.from_dict(data, results["trace"][map_iter]["tree"])
 
     clusters = results.get("clusters", None)
@@ -59,8 +54,6 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
     table = get_clone_table(data, results["samples"], tree, clusters=clusters)
 
     _create_results_output_files(out_log_probs_file, out_table_file, out_tree_file, results, table, tree)
-    if topology_report:
-        _create_topology_result_file(topologies, out_table_file, data)
 
 
 def write_topology_report(in_file, out_file):
@@ -76,7 +69,7 @@ def write_topology_report(in_file, out_file):
     for i, x in enumerate(results["trace"]):
         count_topology(topologies, x, i, data)
 
-    df = _create_topology_dataframe(data, topologies)
+    df = _create_topology_dataframe(topologies)
     df.to_csv(out_file, index=False, sep="\t")
 
 
@@ -105,23 +98,15 @@ def _create_results_output_files(out_log_probs_file, out_table_file, out_tree_fi
         log_probs_table.to_csv(out_log_probs_file, index=False, sep="\t")
 
 
-def _create_topology_result_file(topologies, out_table_file, data):
-    df = _create_topology_dataframe(data, topologies)
-
-    out_file = os.path.join(os.path.dirname(out_table_file), 'topology_info.tsv')
-    df.to_csv(out_file, index=False, sep="\t")
-
-
-def _create_topology_dataframe(data, topologies):
+def _create_topology_dataframe(topologies):
 
     for topology in topologies:
         tmp_str_io = StringIO()
-        # tree = Tree.from_dict(data, topology['topology'])
         tree = topology['topology']
         Bio.Phylo.write(get_bp_tree_from_graph(tree.graph), tmp_str_io, "newick", plain=True)
         as_str = tmp_str_io.getvalue().rstrip()
         topology['topology'] = as_str
-        # tmp_str_io.seek(0)
+
     df = pd.DataFrame(topologies)
     return df
 
@@ -467,7 +452,6 @@ def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regr
     print("#" * 100)
     print()
 
-    # clear_function_caches()
     return tree
 
 
