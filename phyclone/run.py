@@ -41,6 +41,8 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
 
     topologies = []
 
+    data = results["data"]
+
     for i, x in enumerate(results["trace"]):
         if x["log_p"] > map_val:
             map_iter = i
@@ -48,9 +50,7 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
             map_val = x["log_p"]
 
         if topology_report:
-            count_topology(topologies, x, i)
-
-    data = results["data"]
+            count_topology(topologies, x, i, data)
 
     tree = Tree.from_dict(data, results["trace"][map_iter]["tree"])
 
@@ -71,20 +71,21 @@ def write_topology_report(in_file, out_file):
 
     topologies = []
 
-    for i, x in enumerate(results["trace"]):
-        count_topology(topologies, x, i)
-
     data = results["data"]
+
+    for i, x in enumerate(results["trace"]):
+        count_topology(topologies, x, i, data)
 
     df = _create_topology_dataframe(data, topologies)
     df.to_csv(out_file, index=False, sep="\t")
 
 
-def count_topology(topologies, x, i):
+def count_topology(topologies, x, i, data):
     found = False
+    x_top = Tree.from_dict(data, x['tree'])
     for topology in topologies:
         top = topology['topology']
-        if top == x['tree']:
+        if top == x_top:
             topology['count'] += 1
             curr_log_p = x['log_p']
             if curr_log_p > topology['log_p_max']:
@@ -93,7 +94,7 @@ def count_topology(topologies, x, i):
             found = True
             break
     if not found:
-        topologies.append({'topology': x['tree'], 'count': 1, 'log_p_max': x['log_p'], 'iter': i})
+        topologies.append({'topology': x_top, 'count': 1, 'log_p_max': x['log_p'], 'iter': i})
 
 
 def _create_results_output_files(out_log_probs_file, out_table_file, out_tree_file, results, table, tree):
@@ -115,7 +116,8 @@ def _create_topology_dataframe(data, topologies):
 
     for topology in topologies:
         tmp_str_io = StringIO()
-        tree = Tree.from_dict(data, topology['topology'])
+        # tree = Tree.from_dict(data, topology['topology'])
+        tree = topology['topology']
         Bio.Phylo.write(get_bp_tree_from_graph(tree.graph), tmp_str_io, "newick", plain=True)
         as_str = tmp_str_io.getvalue().rstrip()
         topology['topology'] = as_str
