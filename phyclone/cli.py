@@ -282,6 +282,7 @@ def run(**kwargs):
 # Setup main interface
 # =========================================================================
 @click.group(name="phyclone")
+@click.version_option()
 def main():
     pass
 

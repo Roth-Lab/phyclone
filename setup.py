@@ -1,8 +1,8 @@
 from setuptools import find_packages, setup
 
 setup(
-    name='phyclone',
-    version='0.1.0',
+    name='PhyClone',
+    version='0.2.0',
     description='A method for inferring clonal phylogenies from SNV data.',
     author='Andrew Roth',
     author_email='andrewjlroth@gmail.com',
