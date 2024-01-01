@@ -9,14 +9,38 @@ import numpy as np
 import random
 
 
-def bernoulli_rvs(p=0.5):
-    return (random.random() < p)
+# def bernoulli_rvs(p=0.5):
+#     return (random.random() < p)
+#
+#
+# def discrete_rvs(p):
+#     p = p / np.sum(p)
+#
+#     return np.random.multinomial(1, p).argmax()
+
+def bernoulli_rvs(rng: np.random.Generator, p=0.5):
+    # return (random.random() < p)
+    return rng.random() < p
 
 
-def discrete_rvs(p):
+def discrete_rvs(p, rng):
     p = p / np.sum(p)
 
-    return np.random.multinomial(1, p).argmax()
+    # return np.random.multinomial(1, p).argmax()
+    return rng.multinomial(1, p).argmax()
+
+
+@numba.jit(cache=True, nopython=True)
+def simple_log_factorial(n, arr):
+    idxs = np.nonzero(arr == -math.inf)[0]
+
+    for i in idxs:
+        if i > n:
+            break
+        if i == 0:
+            arr[i] = np.log(1)
+        else:
+            arr[i] = np.log(i) + arr[i - 1]
 
 
 @numba.jit(cache=True, nopython=True)
@@ -134,11 +158,11 @@ def log_binomial_likelihood(n, x, p):
     return x * np.log(p) + (n - x) * np.log(1 - p)
 
 
-@numba.jit(nopython=True)
+@numba.jit(cache=True, nopython=True)
 def log_binomial_pdf(n, x, p):
     return log_binomial_coefficient(n, x) + log_binomial_likelihood(n, x, p)
 
 
-@numba.jit(nopython=True)
+@numba.jit(cache=True, nopython=True)
 def log_beta_binomial_pdf(n, x, a, b):
     return log_binomial_coefficient(n, x) + log_beta_binomial_likelihood(n, x, a, b)

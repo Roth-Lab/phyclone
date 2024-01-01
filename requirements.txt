@@ -1,4 +1,4 @@
-python>=3.6
+python>=3.10
 biopython
 click
 matplotlib
@@ -8,3 +8,4 @@ numpy
 pandas
 scikit-learn
 scipy
+python-xxhash

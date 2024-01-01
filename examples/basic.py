@@ -7,8 +7,14 @@ from phyclone.smc.kernels import SemiAdaptedKernel
 from phyclone.tree import FSCRPDistribution, Tree
 
 from toy_data import load_test_data
+from phyclone.math_utils import simple_log_factorial
+from math import inf
+import numpy as np
 
 data, true_tree = load_test_data(cluster_size=5)
+
+factorial_arr = np.full(len(data)+1, -inf)
+simple_log_factorial(len(data), factorial_arr)
 
 tree = Tree.get_single_node_tree(data)
 

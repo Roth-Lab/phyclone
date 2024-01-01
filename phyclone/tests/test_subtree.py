@@ -10,6 +10,9 @@ import numpy as np
 from phyclone.data.base import DataPoint
 from phyclone.tree import Tree
 from phyclone.consensus import get_clades
+from math import inf
+from phyclone.math_utils import simple_log_factorial
+from numpy import full
 
 
 class Test(unittest.TestCase):
@@ -17,7 +20,13 @@ class Test(unittest.TestCase):
     def test_chain_error(self):
         grid_shape = (1, 10)
 
-        tree = Tree(grid_shape)
+        factorial_arr = full(6, -inf)
+        simple_log_factorial(5, factorial_arr)
+        # self.factorial_arr = factorial_arr
+
+        memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
+
+        tree = Tree(grid_shape, memo_logs)
 
         data = [
             DataPoint(0, np.zeros(grid_shape)),

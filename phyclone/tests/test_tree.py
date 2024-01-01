@@ -6,13 +6,22 @@ from phyclone.data.base import DataPoint
 from phyclone.tree import FSCRPDistribution, Tree
 from phyclone.math_utils import log_factorial
 
+from math import inf
+from phyclone.math_utils import simple_log_factorial
+from numpy import full
+
 
 class Test(unittest.TestCase):
 
     def setUp(self):
         grid_size = (1, 10)
 
-        self.tree = Tree(grid_size)
+        factorial_arr = full(8, -inf)
+        simple_log_factorial(7, factorial_arr)
+
+        memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
+
+        self.tree = Tree(grid_size, memo_logs)
         
         self.tree_dist = FSCRPDistribution(1.0)
 

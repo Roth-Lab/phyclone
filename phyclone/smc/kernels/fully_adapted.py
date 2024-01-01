@@ -29,7 +29,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         """
         p = np.exp(np.array(list(self._log_p.values())))
 
-        idx = discrete_rvs(p)
+        idx = discrete_rvs(p, self._rng)
 
         tree = list(self._log_p.keys())[idx]
 
@@ -74,7 +74,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         trees = []
         
         if self.parent_particle is None:
-            tree = Tree(self.data_point.grid_size)
+            tree = Tree(self.data_point.grid_size, self.memo_logs)
             
             tree.create_root_node(children=[], data=[self.data_point])
             
@@ -97,7 +97,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         """ Get the tree obtained by adding data point as outlier
         """
         if self.parent_particle is None:
-            tree = Tree(self.data_point.grid_size)
+            tree = Tree(self.data_point.grid_size, self.memo_logs)
         
         else:
             tree = self.parent_particle.tree.copy()
@@ -109,8 +109,8 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
 class FullyAdaptedKernel(Kernel):
 
-    def __init__(self, tree_prior_dist, outlier_proposal_prob=0, perm_dist=None): 
-        super().__init__(tree_prior_dist, perm_dist=perm_dist)
+    def __init__(self, tree_prior_dist, memo_logs, rng, outlier_proposal_prob=0, perm_dist=None):
+        super().__init__(tree_prior_dist, memo_logs, rng, perm_dist=perm_dist)
 
         self.outlier_proposal_prob = outlier_proposal_prob
 

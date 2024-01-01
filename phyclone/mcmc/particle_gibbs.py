@@ -1,21 +1,25 @@
-import random
+# import random
 
 import phyclone.math_utils
 import phyclone.smc.samplers
 import phyclone.smc.swarm
 import phyclone.smc.utils
 
+# import numpy as np
+
 
 class ParticleGibbsTreeSampler(object):
     """ Particle Gibbs sampler targeting sampling a full tree.
     """
 
-    def __init__(self, kernel, num_particles=10, resample_threshold=0.5):
+    def __init__(self, kernel, rng, num_particles=10, resample_threshold=0.5):
         self.kernel = kernel
 
         self.num_particles = num_particles
 
         self.resample_threshold = resample_threshold
+
+        self._rng = rng
 
     def sample_tree(self, tree):
         """ Sample a new tree
@@ -29,7 +33,7 @@ class ParticleGibbsTreeSampler(object):
         """
         perm_dist = phyclone.smc.utils.RootPermutationDistribution()
 
-        data_sigma = perm_dist.sample(tree)
+        data_sigma = perm_dist.sample(tree, self._rng)
 
         sampler = phyclone.smc.samplers.ConditionalSMCSampler(
             tree,
@@ -44,7 +48,7 @@ class ParticleGibbsTreeSampler(object):
     def _sample_tree_from_swarm(self, swarm):
         """ Given an SMC swarm sample a tree
         """
-        particle_idx = phyclone.math_utils.discrete_rvs(swarm.weights)
+        particle_idx = phyclone.math_utils.discrete_rvs(swarm.weights, self._rng)
 
         particle = swarm.particles[particle_idx]
 
@@ -62,7 +66,8 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
             if label != -1:
                 nodes.append(label)
 
-        subtree_root_child = random.choice(nodes)
+        # subtree_root_child = random.choice(nodes)
+        subtree_root_child = self._rng.choice(nodes)
 
         subtree_root = tree.get_parent(subtree_root_child)
 

@@ -8,7 +8,7 @@ from phyclone.math_utils import exp_normalize
 from phyclone.tree import Tree
 
 
-def get_exact_posterior(data, tree_dist, alpha=1.0):
+def get_exact_posterior(data, tree_dist, memo_logs, alpha=1.0):
     grid_size = data[0].grid_size
 
     log_p = {}
@@ -21,7 +21,7 @@ def get_exact_posterior(data, tree_dist, alpha=1.0):
     for num_nodes in forests:
         for parent_idxs in get_oriented_forests(num_nodes):
             for clusters in forests[num_nodes]:
-                t = get_fscrp_tree(alpha, grid_size, clusters, parent_idxs)
+                t = get_fscrp_tree(alpha, grid_size, clusters, parent_idxs, memo_logs)
 
                 log_p[get_clades(t)] = float(tree_dist.log_p_one(t))
 
@@ -33,14 +33,14 @@ def get_exact_posterior(data, tree_dist, alpha=1.0):
     return log_p
 
 
-def get_fscrp_tree(alpha, grid_size, clusters, parent_pointers):
+def get_fscrp_tree(alpha, grid_size, clusters, parent_pointers, memo_logs):
     data = defaultdict(list)
 
     for node, node_data in enumerate(clusters):
         for data_point in node_data:
             data[node].append(data_point)
 
-    tree = Tree(grid_size)
+    tree = Tree(grid_size, memo_logs)
 
     for child, parent in enumerate(parent_pointers, -1):
         parent -= 1

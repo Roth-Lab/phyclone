@@ -4,11 +4,14 @@ Created on 2012-02-08
 @author: Andrew Roth
 """
 import Bio.Phylo
+from io import StringIO
 import gzip
 import numpy as np
 import pandas as pd
 import pickle
-import random
+from numba import set_num_threads
+from dataclasses import dataclass
+import os
 
 from phyclone.concentration import GammaPriorConcentrationSampler
 from phyclone.map import get_map_node_ccfs
@@ -19,12 +22,16 @@ from phyclone.smc.samplers import SMCSampler
 from phyclone.smc.utils import RootPermutationDistribution
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer
+from phyclone.tree_utils import create_cache_info_file
+from phyclone.consensus import get_consensus_tree
 
 import phyclone.data.pyclone
 import phyclone.math_utils
+from phyclone.math_utils import discrete_rvs, exp_normalize
 
 
-def write_map_results(in_file, out_table_file, out_tree_file):
+def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None):
+    set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
@@ -32,13 +39,13 @@ def write_map_results(in_file, out_table_file, out_tree_file):
 
     map_val = float("-inf")
 
+    data = results["data"]
+
     for i, x in enumerate(results["trace"]):
         if x["log_p"] > map_val:
             map_iter = i
 
             map_val = x["log_p"]
-
-    data = results["data"]
 
     tree = Tree.from_dict(data, results["trace"][map_iter]["tree"])
 
@@ -46,12 +53,69 @@ def write_map_results(in_file, out_table_file, out_tree_file):
 
     table = get_clone_table(data, results["samples"], tree, clusters=clusters)
 
+    _create_results_output_files(out_log_probs_file, out_table_file, out_tree_file, results, table, tree)
+
+
+def write_topology_report(in_file, out_file):
+    set_num_threads(1)
+
+    with gzip.GzipFile(in_file, "rb") as fh:
+        results = pickle.load(fh)
+
+    topologies = []
+
+    data = results["data"]
+
+    for i, x in enumerate(results["trace"]):
+        count_topology(topologies, x, i, data)
+
+    df = _create_topology_dataframe(topologies)
+    df.to_csv(out_file, index=False, sep="\t")
+
+
+def count_topology(topologies, x, i, data):
+    found = False
+    x_top = Tree.from_dict(data, x['tree'])
+    for topology in topologies:
+        top = topology['topology']
+        if top == x_top:
+            topology['count'] += 1
+            curr_log_p = x['log_p']
+            if curr_log_p > topology['log_p_max']:
+                topology['log_p_max'] = curr_log_p
+                topology['iter'] = i
+            found = True
+            break
+    if not found:
+        topologies.append({'topology': x_top, 'count': 1, 'log_p_max': x['log_p'], 'iter': i})
+
+
+def _create_results_output_files(out_log_probs_file, out_table_file, out_tree_file, results, table, tree):
     table.to_csv(out_table_file, index=False, sep="\t")
-
     Bio.Phylo.write(get_bp_tree_from_graph(tree.graph), out_tree_file, "newick", plain=True)
+    if out_log_probs_file:
+        log_probs_table = pd.DataFrame(results["trace"], columns=['iter', 'time', 'log_p'])
+        log_probs_table.to_csv(out_log_probs_file, index=False, sep="\t")
 
 
-def write_consensus_results(in_file, out_table_file, out_tree_file):
+def _create_topology_dataframe(topologies):
+
+    for topology in topologies:
+        tmp_str_io = StringIO()
+        tree = topology['topology']
+        Bio.Phylo.write(get_bp_tree_from_graph(tree.graph), tmp_str_io, "newick", plain=True)
+        as_str = tmp_str_io.getvalue().rstrip()
+        topology['topology'] = as_str
+
+    df = pd.DataFrame(topologies)
+    return df
+
+
+def write_consensus_results(in_file, out_table_file, out_tree_file,
+                            out_log_probs_file=None,
+                            consensus_threshold=0.5,
+                            weighted_consensus=True):
+    set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
@@ -59,7 +123,12 @@ def write_consensus_results(in_file, out_table_file, out_tree_file):
 
     trees = [Tree.from_dict(data, x["tree"]) for x in results["trace"]]
 
-    graph = phyclone.consensus.get_consensus_tree(trees, data=data)
+    probs = np.array([x["log_p"] for x in results["trace"]])
+
+    probs, norm = exp_normalize(probs)
+
+    graph = get_consensus_tree(trees, data=data, threshold=consensus_threshold,
+                               weighted=weighted_consensus, log_p_list=probs)
 
     tree = get_tree_from_consensus_graph(data, graph)
 
@@ -69,9 +138,7 @@ def write_consensus_results(in_file, out_table_file, out_tree_file):
 
     table = pd.DataFrame(table)
 
-    table.to_csv(out_table_file, index=False, sep="\t")
-
-    Bio.Phylo.write(get_bp_tree_from_graph(tree.graph), out_tree_file, "newick", plain=True)
+    _create_results_output_files(out_log_probs_file, out_table_file, out_tree_file, results, table, tree)
 
 
 def get_clades(tree, source=None):
@@ -229,112 +296,77 @@ def run(
         resample_threshold=0.5,
         seed=None,
         subtree_update_prob=0,
-        thin=1):
+        thin=1,
+        num_threads=1,
+        mitochondrial=False):
+    rng = instantiate_and_seed_RNG(seed)
 
-    if seed is not None:
-        np.random.seed(seed)
-
-        random.seed(seed)
+    set_num_threads(num_threads)
 
     data, samples = phyclone.data.pyclone.load_data(
-        in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob, precision=precision
+        in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
+        precision=precision, mitochondrial=mitochondrial
     )
 
     tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
 
-    if outlier_prob > 0:
-        outlier_proposal_prob = 0.1
+    kernel = setup_kernel(outlier_prob, proposal, rng, tree_dist)
 
-    else:
-        outlier_proposal_prob = 0
+    samplers = setup_samplers(kernel,
+                              num_particles,
+                              outlier_prob,
+                              resample_threshold,
+                              rng,
+                              tree_dist)
 
-    if proposal == "bootstrap":
-        kernel_cls = BootstrapKernel
-
-    elif proposal == "fully-adapted":
-        kernel_cls = FullyAdaptedKernel
-
-    elif proposal == "semi-adapted":
-        kernel_cls = SemiAdaptedKernel
-
-    kernel = kernel_cls(tree_dist, outlier_proposal_prob=outlier_proposal_prob)
-
-    dp_sampler = DataPointSampler(tree_dist, outliers=(outlier_prob > 0))
-
-    prg_sampler = PruneRegraphSampler(tree_dist)
-
-    conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
-
-    burnin_sampler = UnconditionalSMCSampler(
-        kernel, num_particles=num_particles, resample_threshold=resample_threshold
-    )
-
-    tree_sampler = ParticleGibbsTreeSampler(
-        kernel, num_particles=20, resample_threshold=0.5
-    )
-
-    subtree_sampler = ParticleGibbsSubtreeSampler(
-        kernel, num_particles=20, resample_threshold=0.5
-    )
-
-    tree = Tree.get_single_node_tree(data)
+    tree = Tree.get_single_node_tree(data, kernel.memo_logs)
 
     timer = Timer()
 
     # =========================================================================
     # Burnin
     # =========================================================================
-    if burnin > 0:
-        print("#" * 100)
-        print("Burnin")
-        print("#" * 100)
-
-        i = 0
-
-        while (i < burnin) and (timer.elapsed < max_time):
-            with timer:
-                if i % print_freq == 0:
-                    print_stats(i, tree, tree_dist)
-
-                tree = burnin_sampler.sample_tree(tree)
-
-                for _ in range(num_samples_data_point):
-                    tree = dp_sampler.sample_tree(tree)
-
-                for _ in range(num_samples_prune_regraph):
-                    tree = prg_sampler.sample_tree(tree)
-
-                tree.relabel_nodes()
-
-                i += 1
+    tree = _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regraph, print_freq, samplers, timer,
+                       tree, tree_dist)
 
     # =========================================================================
     # Main sampler
     # =========================================================================
-    print()
-    print("#" * 100)
-    print("Post-burnin")
-    print("#" * 100)
-    print()
 
-    trace = []
+    trace = setup_trace(timer, tree, tree_dist)
 
-    trace.append({
-        "iter": 0,
-        "time": timer.elapsed,
-        "alpha": tree_dist.prior.alpha,
-        "log_p": tree_dist.log_p_one(tree),
-        "tree": tree.to_dict()
-    })
+    results = _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
+                                num_samples_prune_regraph, print_freq, rng, samplers, samples, subtree_update_prob,
+                                thin, timer, trace, tree, tree_dist)
 
-    i = 0
+    _create_main_run_output(cluster_file, out_file, results)
 
-    while True:
+
+def _create_main_run_output(cluster_file, out_file, results):
+    if cluster_file is not None:
+        results["clusters"] = pd.read_csv(cluster_file, sep="\t")[["mutation_id", "cluster_id"]].drop_duplicates()
+    with gzip.GzipFile(out_file, mode="wb") as fh:
+        pickle.dump(results, fh)
+
+    cache_txt_file = os.path.join(os.path.dirname(out_file), 'cache_info.txt')
+    create_cache_info_file(cache_txt_file)
+
+
+def _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
+                      num_samples_prune_regraph, print_freq, rng, samplers, samples, subtree_update_prob, thin, timer,
+                      trace, tree, tree_dist):
+    dp_sampler = samplers.dp_sampler
+    prg_sampler = samplers.prg_sampler
+    subtree_sampler = samplers.subtree_sampler
+    tree_sampler = samplers.tree_sampler
+    conc_sampler = samplers.conc_sampler
+
+    for i in range(num_iters):
         with timer:
             if i % print_freq == 0:
                 print_stats(i, tree, tree_dist)
 
-            if random.random() < subtree_update_prob:
+            if rng.random() < subtree_update_prob:
                 tree = subtree_sampler.sample_tree(tree)
 
             else:
@@ -359,8 +391,6 @@ def run(
 
                 tree_dist.prior.alpha = conc_sampler.sample(tree_dist.prior.alpha, len(tree.nodes), sum(node_sizes))
 
-            i += 1
-
             if i % thin == 0:
                 trace.append({
                     "iter": i,
@@ -370,21 +400,59 @@ def run(
                     "tree": tree.to_dict()
                 })
 
-            if (i >= num_iters) or (timer.elapsed >= max_time):
+            if timer.elapsed >= max_time:
                 break
-
     results = {"data": data, "samples": samples, "trace": trace}
-
-    if cluster_file is not None:
-        results["clusters"] = pd.read_csv(cluster_file, sep="\t")[["mutation_id", "cluster_id"]].drop_duplicates()
-
-    with gzip.GzipFile(out_file, mode="wb") as fh:
-        pickle.dump(results, fh)
+    return results
 
 
-def print_stats(iter_id, tree, tree_dist):
-    print(iter_id, tree_dist.prior.alpha, tree_dist.log_p_one(tree),
-          len(tree.nodes), len(tree.outliers), len(tree.roots))
+def setup_trace(timer, tree, tree_dist):
+    trace = []
+    trace.append({
+        "iter": 0,
+        "time": timer.elapsed,
+        "alpha": tree_dist.prior.alpha,
+        "log_p": tree_dist.log_p_one(tree),
+        "tree": tree.to_dict()
+    })
+    return trace
+
+
+def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regraph, print_freq, samplers, timer, tree,
+                tree_dist):
+    burnin_sampler = samplers.burnin_sampler
+    dp_sampler = samplers.dp_sampler
+    prg_sampler = samplers.prg_sampler
+    if burnin > 0:
+        print("#" * 100)
+        print("Burnin")
+        print("#" * 100)
+
+        for i in range(burnin):
+            with timer:
+                if i % print_freq == 0:
+                    print_stats(i, tree, tree_dist)
+
+                tree = burnin_sampler.sample_tree(tree)
+
+                for _ in range(num_samples_data_point):
+                    tree = dp_sampler.sample_tree(tree)
+
+                for _ in range(num_samples_prune_regraph):
+                    tree = prg_sampler.sample_tree(tree)
+
+                tree.relabel_nodes()
+
+                if timer.elapsed > max_time:
+                    break
+
+    print()
+    print("#" * 100)
+    print("Post-burnin")
+    print("#" * 100)
+    print()
+
+    return tree
 
 
 class UnconditionalSMCSampler(object):
@@ -396,8 +464,10 @@ class UnconditionalSMCSampler(object):
 
         self.resample_threshold = resample_threshold
 
+        self._rng = kernel.rng
+
     def sample_tree(self, tree):
-        data_sigma = RootPermutationDistribution.sample(tree)
+        data_sigma = RootPermutationDistribution.sample(tree, self._rng)
 
         smc_sampler = SMCSampler(
             data_sigma, self.kernel, num_particles=self.num_particles, resample_threshold=self.resample_threshold
@@ -405,6 +475,69 @@ class UnconditionalSMCSampler(object):
 
         swarm = smc_sampler.sample()
 
-        idx = phyclone.math_utils.discrete_rvs(swarm.weights)
+        idx = discrete_rvs(swarm.weights, self._rng)
 
         return swarm.particles[idx].tree
+
+
+@dataclass
+class SamplersHolder:
+    dp_sampler: DataPointSampler
+    prg_sampler: PruneRegraphSampler
+    conc_sampler: GammaPriorConcentrationSampler
+    burnin_sampler: UnconditionalSMCSampler
+    tree_sampler: ParticleGibbsTreeSampler
+    subtree_sampler: ParticleGibbsSubtreeSampler
+
+
+def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist):
+    dp_sampler = DataPointSampler(tree_dist, rng, outliers=(outlier_prob > 0))
+    prg_sampler = PruneRegraphSampler(tree_dist, rng)
+    conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
+    burn_in_particles = int(max(1, np.rint(num_particles / 2)))
+    burnin_sampler = UnconditionalSMCSampler(
+        kernel, num_particles=burn_in_particles, resample_threshold=resample_threshold
+    )
+    tree_sampler = ParticleGibbsTreeSampler(
+        kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
+    )
+    subtree_sampler = ParticleGibbsSubtreeSampler(
+        kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
+    )
+    return SamplersHolder(dp_sampler,
+                          prg_sampler,
+                          conc_sampler,
+                          burnin_sampler,
+                          tree_sampler,
+                          subtree_sampler)
+
+
+def setup_kernel(outlier_prob, proposal, rng, tree_dist):
+    if outlier_prob > 0:
+        outlier_proposal_prob = 0.1
+    else:
+        outlier_proposal_prob = 0
+    kernel_cls = FullyAdaptedKernel
+    if proposal == "bootstrap":
+        kernel_cls = BootstrapKernel
+    elif proposal == "fully-adapted":
+        kernel_cls = FullyAdaptedKernel
+    elif proposal == "semi-adapted":
+        kernel_cls = SemiAdaptedKernel
+    memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
+    kernel = kernel_cls(tree_dist, memo_logs, rng, outlier_proposal_prob=outlier_proposal_prob)
+    return kernel
+
+
+def instantiate_and_seed_RNG(seed):
+    if seed is not None:
+        rng = np.random.default_rng(seed)
+    else:
+        rng = np.random.default_rng()
+    return rng
+
+
+def print_stats(iter_id, tree, tree_dist):
+    string_template = 'iter: {}, alpha: {}, log_p: {}, num_nodes: {}, num_outliers: {}, num_roots: {}'
+    print(string_template.format(iter_id, round(tree_dist.prior.alpha, 3), round(tree_dist.log_p_one(tree), 3),
+          len(tree.nodes), len(tree.outliers), len(tree.roots)))

@@ -1,5 +1,5 @@
 import numpy as np
-import random
+# import random
 
 from phyclone.math_utils import log_binomial_coefficient, log_normalize
 from phyclone.smc.kernels.base import Kernel, ProposalDistribution
@@ -57,12 +57,13 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     def sample(self):
         """ Sample a new tree from the proposal distribution.
         """
-        u = random.random()
+        # u = random.random()
+        u = self._rng.random()
         
         if self._empty_tree():
             # First particle
             if self.parent_particle is None:
-                tree = Tree(self.data_point.grid_size)
+                tree = Tree(self.data_point.grid_size, self.memo_logs)
             
             else:
                 tree = self.parent_particle.tree.copy()
@@ -117,7 +118,8 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         q = q / sum(q)
 
-        idx = np.random.multinomial(1, q).argmax()
+        # idx = np.random.multinomial(1, q).argmax()
+        idx = self._rng.multinomial(1, q).argmax()
 
         tree = list(self._log_p.keys())[idx]
         
@@ -126,9 +128,11 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     def _propose_new_node(self):
         num_roots = len(self.parent_particle.tree.roots)
 
-        num_children = random.randint(0, num_roots)
+        # num_children = random.randint(0, num_roots)
+        num_children = self._rng.integers(0, num_roots+1)
 
-        children = random.sample(self.parent_particle.tree.roots, num_children)
+        # children = random.sample(self.parent_particle.tree.roots, num_children)
+        children = self._rng.choice(self.parent_particle.tree.roots, num_children, replace=False)
 
         tree = self.parent_particle.tree.copy()
 
@@ -146,8 +150,8 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
 class SemiAdaptedKernel(Kernel):
 
-    def __init__(self, tree_prior_dist, outlier_proposal_prob=0.0, perm_dist=None):
-        super().__init__(tree_prior_dist, perm_dist=perm_dist)
+    def __init__(self, tree_prior_dist, memo_logs, rng, outlier_proposal_prob=0.0, perm_dist=None):
+        super().__init__(tree_prior_dist, memo_logs, rng, perm_dist=perm_dist)
 
         self.outlier_proposal_prob = outlier_proposal_prob
 

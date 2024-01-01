@@ -6,20 +6,24 @@ import pandas as pd
 
 import phyclone.data.base
 import phyclone.math_utils
+from phyclone.exceptions import MajorCopyNumberError
 
 
-def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400):
-    pyclone_data, samples = load_pyclone_data(file_name)
+def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400,
+              mitochondrial=False):
+    pyclone_data, samples = load_pyclone_data(file_name, mitochondrial)
 
     if cluster_file is None:
         data = []
 
         for idx, (mut, val) in enumerate(pyclone_data.items()):
+            out_probs = compute_outlier_prob(outlier_prob, 1)
             data_point = phyclone.data.base.DataPoint(
                 idx,
                 val.to_likelihood_grid(density, grid_size, precision=precision),
                 name=mut,
-                outlier_prob=outlier_prob
+                outlier_prob=out_probs[0],
+                outlier_prob_not=out_probs[1]
             )
 
             data.append(data_point)
@@ -27,11 +31,17 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
     else:
         cluster_df = pd.read_csv(cluster_file, sep="\t")
 
-        cluster_df = cluster_df[["mutation_id", "cluster_id"]].drop_duplicates()
+        if 'outlier_prob' not in cluster_df.columns:
+            print('Cluster level outlier probability column not found. Setting values to {p}'.format(p=outlier_prob))
+            cluster_df.loc[:, 'outlier_prob'] = outlier_prob
+
+        cluster_df = cluster_df[["mutation_id", "cluster_id", "outlier_prob"]].drop_duplicates()
         
         cluster_sizes = cluster_df["cluster_id"].value_counts().to_dict()
 
         clusters = cluster_df.set_index("mutation_id")["cluster_id"].to_dict()
+
+        cluster_outlier_probs = cluster_df.set_index("cluster_id")["outlier_prob"].to_dict()
         
         print("Using input clustering with {} clusters".format(cluster_df["cluster_id"].nunique()))
 
@@ -44,12 +54,15 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
 
         for idx, cluster_id in enumerate(sorted(raw_data.keys())):
             val = np.sum(np.array(raw_data[cluster_id]), axis=0)
+            cluster_outlier_prob = cluster_outlier_probs[cluster_id]
+            out_probs = compute_outlier_prob(cluster_outlier_prob, cluster_sizes[cluster_id])
 
             data_point = phyclone.data.base.DataPoint(
                 idx,
                 val,
                 name="{}".format(cluster_id),
-                outlier_prob=outlier_prob ** cluster_sizes[cluster_id]
+                outlier_prob=out_probs[0],
+                outlier_prob_not=out_probs[1]
             )
 
             data.append(data_point)
@@ -57,8 +70,22 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
     return data, samples
 
 
-def load_pyclone_data(file_name):
-    df = pd.read_csv(file_name, sep='\t')
+def compute_outlier_prob(outlier_prob, cluster_size):
+    if outlier_prob == 0:
+        return outlier_prob, np.log(1.0)
+    else:
+        res = np.log(outlier_prob) * cluster_size
+        res_not = np.log1p(-outlier_prob) * cluster_size
+        return res, res_not
+
+
+def load_pyclone_data(file_name, mitochondrial):
+    df = pd.read_table(file_name)
+
+    if len(df.columns) == 1:
+        df = pd.read_csv(file_name)
+
+    set_mitochondrial_copy_numbers(df, mitochondrial)
 
     df['sample_id'] = df['sample_id'].astype(str)
 
@@ -69,7 +96,11 @@ def load_pyclone_data(file_name):
 
     mutations = sorted(df['mutation_id'].unique())
 
-    print('Samples: {}'.format(' '.join(samples)))
+    if len(samples) > 10:
+        print('Num Samples: {}'.format(len(samples)))
+        print('Samples: {}...'.format(' '.join(samples[:4])))
+    else:
+        print('Samples: {}'.format(' '.join(samples)))
 
     print('Num mutations: {}'.format(len(mutations)))
 
@@ -113,6 +144,17 @@ def load_pyclone_data(file_name):
     return data, samples
 
 
+def set_mitochondrial_copy_numbers(df, mitochondrial):
+    if mitochondrial:
+        print('Data is marked as mitochondrial, setting copy number columns to haploid settings.')
+        if 'major_cn' not in df.columns:
+            df['major_cn'] = 1
+        if 'minor_cn' not in df.columns:
+            df['minor_cn'] = 0
+        if 'normal_cn' not in df.columns:
+            df['normal_cn'] = 1
+
+
 def get_major_cn_prior(major_cn, minor_cn, normal_cn, error_rate=1e-3):
     total_cn = major_cn + minor_cn
 
@@ -121,6 +163,9 @@ def get_major_cn_prior(major_cn, minor_cn, normal_cn, error_rate=1e-3):
     mu = []
 
     log_pi = []
+
+    if major_cn < minor_cn:
+        raise MajorCopyNumberError(major_cn, minor_cn)
 
     # Consider all possible mutational genotypes consistent with mutation before CN change
     for x in range(1, major_cn + 1):
@@ -172,14 +217,6 @@ class DataPoint(object):
 
         log_ll = np.zeros(shape)
 
-        # for s_idx, data_point in enumerate(self.sample_data_points):
-        #     for i, ccf in enumerate(self.get_ccf_grid(grid_size)):
-        #         if density == 'beta-binomial':
-        #             log_ll[s_idx, i] = log_pyclone_beta_binomial_pdf(data_point, ccf, precision)
-        #
-        #         elif density == 'binomial':
-        #             log_ll[s_idx, i] = log_pyclone_binomial_pdf(data_point, ccf)
-
         sample_data_points = self.sample_data_points
         ccf_grid = self.get_ccf_grid(grid_size)
 
@@ -188,7 +225,7 @@ class DataPoint(object):
         return log_ll
 
 
-@numba.jit(nopython=True)
+@numba.jit(cache=True, nopython=True)
 def _compute_liklihood_grid(ccf_grid, density, log_ll, precision, sample_data_points):
     for s_idx, data_point in enumerate(sample_data_points):
         for i, ccf in enumerate(ccf_grid):

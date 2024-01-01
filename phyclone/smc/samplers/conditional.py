@@ -23,7 +23,7 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
         node_map = {}
 
-        new_tree = Tree(tree.grid_size)
+        new_tree = Tree(tree.grid_size, tree.memo_logs)
 
         for data_point in self.data_points:
             new_tree = new_tree.copy()
@@ -83,7 +83,8 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
             log_uniform_weight = -np.log(self.num_particles)
 
-            multiplicities = np.random.multinomial(self.num_particles - 1, self.swarm.weights)
+            # multiplicities = np.random.multinomial(self.num_particles - 1, self.swarm.weights)
+            multiplicities = self._rng.multinomial(self.num_particles - 1, self.swarm.weights)
 
             assert not np.isneginf(self.constrained_path[self.iteration + 1].log_w)
 

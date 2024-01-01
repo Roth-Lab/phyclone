@@ -11,44 +11,55 @@ from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.tests.exact_posterior import get_exact_posterior
 
 import phyclone.tests.simulate as simulate
+from math import inf
+from phyclone.math_utils import simple_log_factorial
+from numpy import full, random
 
 
 class BaseTest(object):
 
-    class BaseTest(unittest.TestCase): 
+    class BaseTest(unittest.TestCase):
+
+        def __init__(self, methodName: str = ...):
+            super().__init__(methodName)
+            # self.factorial_arr = None
+            #
+            # self.memo_logs = None
+
+            self._rng = random.default_rng(12345)
     
         def test_single_data_point_1d(self):
-            node_data = [simulate.simulate_binomial_data(0, 100, 1.0), ]
+            node_data = [simulate.simulate_binomial_data(0, 100, 1.0, self._rng), ]
     
             self._run_exact_posterior_test(node_data, burnin=100, num_iters=100)
     
         def test_single_data_point_2d(self):
-            node_data = [simulate.simulate_binomial_data(0, 100, [1.0, 1.0]), ]
+            node_data = [simulate.simulate_binomial_data(0, 100, [1.0, 1.0], self._rng), ]
     
             self._run_exact_posterior_test(node_data, burnin=100, num_iters=100)
     
         def test_four_data_point_1d_non_informative(self):
             node_data = [
-                simulate.simulate_binomial_data(0, 0, 1.0),
-                simulate.simulate_binomial_data(1, 0, 1.0),
-                simulate.simulate_binomial_data(2, 0, 1.0),
-                simulate.simulate_binomial_data(3, 0, 1.0),
+                simulate.simulate_binomial_data(0, 0, 1.0, self._rng),
+                simulate.simulate_binomial_data(1, 0, 1.0, self._rng),
+                simulate.simulate_binomial_data(2, 0, 1.0, self._rng),
+                simulate.simulate_binomial_data(3, 0, 1.0, self._rng),
             ]
     
             self._run_exact_posterior_test(node_data, burnin=100, num_iters=2000)
     
         def test_two_data_point_1d_two_cluster(self):
             node_data = [
-                simulate.simulate_binomial_data(0, 10, 1.0),
-                simulate.simulate_binomial_data(1, 10, 0.5)
+                simulate.simulate_binomial_data(0, 10, 1.0, self._rng),
+                simulate.simulate_binomial_data(1, 10, 0.5, self._rng)
             ]
     
             self._run_exact_posterior_test(node_data, burnin=100, num_iters=1000)
     
         def test_two_data_point_2d_two_cluster(self):
             node_data = [
-                simulate.simulate_binomial_data(0, 100, [1.0, 1.0]),
-                simulate.simulate_binomial_data(1, 100, [0.5, 0.7])
+                simulate.simulate_binomial_data(0, 100, [1.0, 1.0], self._rng),
+                simulate.simulate_binomial_data(1, 100, [0.5, 0.7], self._rng)
             ]
     
             self._run_exact_posterior_test(node_data, burnin=100, num_iters=1000)
@@ -57,15 +68,25 @@ class BaseTest(object):
             perm_dist = RootPermutationDistribution()
             
             self.tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
+
+            factorial_arr = full(6, -inf)
+            simple_log_factorial(5, factorial_arr)
+
+            memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
+
+            self.factorial_arr = factorial_arr
+
+            self.memo_logs = memo_logs
             
-            kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=0, perm_dist=perm_dist)
+            kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=0, perm_dist=perm_dist,
+                                memo_logs=memo_logs, rng=self._rng)
             
-            return ParticleGibbsSubtreeSampler(kernel)
+            return ParticleGibbsSubtreeSampler(kernel, self._rng)
     
         def _run_exact_posterior_test(self, data, burnin=100, num_iters=1000):
             pred_probs = self._run_sampler(data, burnin=int(self.run_scale * burnin), num_iters=int(self.run_scale * num_iters))
     
-            true_probs = get_exact_posterior(data, self.tree_dist)
+            true_probs = get_exact_posterior(data, self.tree_dist, memo_logs=self.memo_logs)
     
             self._test_posterior(pred_probs, true_probs)
     
@@ -73,7 +94,7 @@ class BaseTest(object):
     
             test_counts = Counter()
     
-            tree = Tree.get_single_node_tree(data)
+            tree = Tree.get_single_node_tree(data, self.memo_logs)
     
             for i in range(-burnin, num_iters):
                 if i % 10 == 0:

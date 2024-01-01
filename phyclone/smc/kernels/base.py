@@ -15,29 +15,39 @@ class Particle(object):
 class Kernel(object):
     """ Abstract class representing an SMC kernel targeting the marginal FS-CRP distribution.
 
-    Sub-classes should implement the get_proposal_distribution method.
+    Subclasses should implement the get_proposal_distribution method.
     """
+
+    @property
+    def rng(self):
+        return self._rng
 
     def get_proposal_distribution(self, data_point, parent_particle):
         """ Get proposal distribution given the current data point and parent particle.
         """
         raise NotImplementedError
 
-    def __init__(self, tree_dist, perm_dist=None):
+    def __init__(self, tree_dist, memo_logs, rng, perm_dist=None):
         """
         Parameters
         ----------
         tree_dist: TreeJointDistribution
             Joint distribution of tree
-        outlier_proposal_prob: float
-            Probability of proposing an outlier.
+        # outlier_proposal_prob: float
+        #     Probability of proposing an outlier.
         perm_dist: PermutationDistribution
             The permutation distribution used in a particle Gibbs sampler to reorder data points. Set to None if single
             pass SMC is being performed.
         """
         self.tree_dist = tree_dist
 
+        # self.factorial_arr = factorial_arr
+
         self.perm_dist = perm_dist
+
+        self.memo_logs = memo_logs
+
+        self._rng = rng
 
     def create_particle(self, data_point, log_q, parent_particle, tree):
         """  Create a new particle from a parent particle.
@@ -87,6 +97,12 @@ class ProposalDistribution(object):
         self.kernel = kernel
 
         self.parent_particle = parent_particle
+
+        # self.factorial_arr = factorial_arr
+
+        self.memo_logs = kernel.memo_logs
+
+        self._rng = kernel.rng
 
     def _empty_tree(self):
         """ Tree has no nodes

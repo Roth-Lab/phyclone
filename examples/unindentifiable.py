@@ -11,8 +11,13 @@ from phyclone.smc.kernels import FullyAdaptedKernel
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 
 from toy_data import load_test_data
+from phyclone.math_utils import simple_log_factorial
+from math import inf
 
 data, true_tree = load_test_data(cluster_size=2, single_sample=True)
+
+factorial_arr = np.full(len(data)+1, -inf)
+simple_log_factorial(len(data), factorial_arr)
 
 tree = Tree.get_single_node_tree(data)
 
