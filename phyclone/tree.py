@@ -379,6 +379,9 @@ class Tree(object):
     def get_data(self, node):
         return list(self._data[node])
 
+    def get_data_len(self, node):
+        return len(self._data[node])
+
     def get_subtree(self, subtree_root):
         if subtree_root == "root":
             return self.copy()
@@ -407,6 +410,14 @@ class Tree(object):
             data.extend(self.get_data(desc))
 
         return data
+
+    def get_subtree_data_len(self, node):
+        data_len = self.get_data_len(node)
+
+        for desc in self.get_descendants(node):
+            data_len += self.get_data_len(desc)
+
+        return data_len
 
     def relabel_nodes(self):
         node_map = {}

@@ -7,7 +7,7 @@ import numpy as np
 # import random
 
 from phyclone.math_utils import log_factorial, log_binomial_coefficient, log_multinomial_coefficient
-from copy import deepcopy
+# from copy import deepcopy
 
 
 class RootPermutationDistribution(object):
@@ -24,7 +24,8 @@ class RootPermutationDistribution(object):
             for node in roots:
                 count += RootPermutationDistribution.log_count(tree, source=node)
 
-                subtree_sizes.append(len(tree.get_subtree_data(node)))
+                # subtree_sizes.append(len(tree.get_subtree_data(node)))
+                subtree_sizes.append(tree.get_subtree_data_len(node))
 
             # Bridge shuffle root nodes
             count += log_multinomial_coefficient(subtree_sizes)
@@ -46,13 +47,15 @@ class RootPermutationDistribution(object):
             for child in children:
                 count += RootPermutationDistribution.log_count(tree, source=child)
 
-                subtree_sizes.append(len(tree.get_subtree_data(child)))
+                # subtree_sizes.append(len(tree.get_subtree_data(child)))
+                subtree_sizes.append(tree.get_subtree_data_len(child))
 
             # Bridge shuffle
             count += log_multinomial_coefficient(subtree_sizes)
 
             # Permute the source data
-            count += log_factorial(len(tree.get_data(source)))
+            # count += log_factorial(len(tree.get_data(source)))
+            count += log_factorial(tree.get_data_len(source))
 
         return count
 
