@@ -97,7 +97,7 @@ class TreeJointDistribution(object):
 
 class Tree(object):
 
-    def __init__(self, grid_size, memo_logs):
+    def __init__(self, grid_size):
         self.grid_size = grid_size
 
         self._data = defaultdict(list)
@@ -106,15 +106,16 @@ class Tree(object):
 
         self._graph = nx.DiGraph()
 
-        self._log_p_comp_memo = memo_logs["log_p"]
-
-        self._set_log_p_memo()
+        # self._log_p_comp_memo = memo_logs["log_p"]
+        #
+        # self._set_log_p_memo()
+        # self._zeros_array = np.zeros(self.grid_size, order='C')
 
         self.outlier_log_p = 0.0
 
         self._add_node("root")
 
-        self.memo_logs = memo_logs
+        # self.memo_logs = memo_logs
 
     def __hash__(self):
         return hash((get_clades(self), frozenset(self.outliers)))
@@ -126,16 +127,16 @@ class Tree(object):
 
         return self_key == other_key
 
-    def _set_log_p_memo(self):
-        tmp_hash = "log_p"
-        tmp_hash_2 = "zeros"
-        if tmp_hash not in self._log_p_comp_memo:
-            self._log_p_comp_memo[tmp_hash] = np.ascontiguousarray(np.ones(self.grid_size) * self._log_prior)
-        if tmp_hash_2 not in self._log_p_comp_memo:
-            self._log_p_comp_memo[tmp_hash_2] = np.zeros(self.grid_size, order='C')
+    # def _set_log_p_memo(self):
+    #     tmp_hash = "log_p"
+    #     tmp_hash_2 = "zeros"
+    #     if tmp_hash not in self._log_p_comp_memo:
+    #         self._log_p_comp_memo[tmp_hash] = np.ascontiguousarray(np.ones(self.grid_size) * self._log_prior)
+    #     if tmp_hash_2 not in self._log_p_comp_memo:
+    #         self._log_p_comp_memo[tmp_hash_2] = np.zeros(self.grid_size, order='C')
 
     @staticmethod
-    def get_single_node_tree(data, memo_logs):
+    def get_single_node_tree(data):
         """ Load a tree with all data points assigned single node.
 
         Parameters
@@ -143,7 +144,7 @@ class Tree(object):
         data: list
             Data points.
         """
-        tree = Tree(data[0].grid_size, memo_logs)
+        tree = Tree(data[0].grid_size)
 
         node = tree.create_root_node([])
 
@@ -213,11 +214,11 @@ class Tree(object):
         return list(self._graph.successors("root"))
 
     @staticmethod
-    def from_dict(data, tree_dict, memo_logs=None):
-        if memo_logs is None:
-            memo_logs = {"log_p": {}}
+    def from_dict(data, tree_dict):
+        # if memo_logs is None:
+        #     memo_logs = {"log_p": {}}
 
-        new = Tree(data[0].grid_size, memo_logs)
+        new = Tree(data[0].grid_size)
 
         new._graph = nx.DiGraph(tree_dict["graph"])
 
@@ -342,9 +343,9 @@ class Tree(object):
 
         new._data = defaultdict(list)
 
-        new.memo_logs = self.memo_logs
-
-        new._log_p_comp_memo = self.memo_logs["log_p"]
+        # new.memo_logs = self.memo_logs
+        #
+        # new._log_p_comp_memo = self.memo_logs["log_p"]
 
         new.outlier_log_p = self.outlier_log_p
 
@@ -359,7 +360,6 @@ class Tree(object):
             new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"].copy()
             new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
             new._graph.nodes[node]['outlier_log_p'] = self._graph.nodes[node]['outlier_log_p']
-
 
         return new
 
@@ -383,7 +383,7 @@ class Tree(object):
         if subtree_root == "root":
             return self.copy()
 
-        new = Tree(self.grid_size, self.memo_logs)
+        new = Tree(self.grid_size)
 
         subtree_graph = nx.dfs_tree(self._graph, subtree_root)
 
@@ -454,7 +454,7 @@ class Tree(object):
 
     def remove_subtree(self, subtree):
         if subtree == self:
-            self.__init__(self.grid_size, self.memo_logs)
+            self.__init__(self.grid_size)
 
         else:
             assert len(subtree.roots) == 1
@@ -506,13 +506,20 @@ class Tree(object):
     def _update_node(self, node):
         child_log_r_values = [self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)]
 
+        log_p = self._graph.nodes[node]["log_p"]
+
         if len(child_log_r_values) == 0:
             # log_s = np.zeros(self.grid_size, order='C')
-            log_s = self._log_p_comp_memo["zeros"]
+            # log_s = self._log_p_comp_memo["zeros"]
+            # log_s = self._zeros_array
+            # log_s = 0.0
+            if "log_R" in self._graph.nodes[node]:
+                np.copyto(self._graph.nodes[node]["log_R"], log_p)
+            else:
+                self._graph.nodes[node]["log_R"] = log_p.copy()
+            return
         else:
             log_s = compute_log_S(child_log_r_values)
-
-        log_p = self._graph.nodes[node]["log_p"]
 
         if "log_R" in self._graph.nodes[node]:
             self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order='C', out=self._graph.nodes[node]["log_R"])

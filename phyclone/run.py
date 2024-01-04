@@ -99,7 +99,6 @@ def _create_results_output_files(out_log_probs_file, out_table_file, out_tree_fi
 
 
 def _create_topology_dataframe(topologies):
-
     for topology in topologies:
         tmp_str_io = StringIO()
         tree = topology['topology']
@@ -319,7 +318,7 @@ def run(
                               rng,
                               tree_dist)
 
-    tree = Tree.get_single_node_tree(data, kernel.memo_logs)
+    tree = Tree.get_single_node_tree(data)
 
     timer = Timer()
 
@@ -524,8 +523,7 @@ def setup_kernel(outlier_prob, proposal, rng, tree_dist):
         kernel_cls = FullyAdaptedKernel
     elif proposal == "semi-adapted":
         kernel_cls = SemiAdaptedKernel
-    memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
-    kernel = kernel_cls(tree_dist, memo_logs, rng, outlier_proposal_prob=outlier_proposal_prob)
+    kernel = kernel_cls(tree_dist, rng, outlier_proposal_prob=outlier_proposal_prob)
     return kernel
 
 
@@ -540,4 +538,4 @@ def instantiate_and_seed_RNG(seed):
 def print_stats(iter_id, tree, tree_dist):
     string_template = 'iter: {}, alpha: {}, log_p: {}, num_nodes: {}, num_outliers: {}, num_roots: {}'
     print(string_template.format(iter_id, round(tree_dist.prior.alpha, 3), round(tree_dist.log_p_one(tree), 3),
-          len(tree.nodes), len(tree.outliers), len(tree.roots)))
+                                 len(tree.nodes), len(tree.outliers), len(tree.roots)))

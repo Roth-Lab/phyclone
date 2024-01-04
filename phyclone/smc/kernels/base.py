@@ -27,7 +27,7 @@ class Kernel(object):
         """
         raise NotImplementedError
 
-    def __init__(self, tree_dist, memo_logs, rng, perm_dist=None):
+    def __init__(self, tree_dist, rng, perm_dist=None):
         """
         Parameters
         ----------
@@ -45,7 +45,7 @@ class Kernel(object):
 
         self.perm_dist = perm_dist
 
-        self.memo_logs = memo_logs
+        # self.memo_logs = memo_logs
 
         self._rng = rng
 
@@ -100,7 +100,7 @@ class ProposalDistribution(object):
 
         # self.factorial_arr = factorial_arr
 
-        self.memo_logs = kernel.memo_logs
+        # self.memo_logs = kernel.memo_logs
 
         self._rng = kernel.rng
 

@@ -40,7 +40,7 @@ def get_fscrp_tree(alpha, grid_size, clusters, parent_pointers, memo_logs):
         for data_point in node_data:
             data[node].append(data_point)
 
-    tree = Tree(grid_size, memo_logs)
+    tree = Tree(grid_size)
 
     for child, parent in enumerate(parent_pointers, -1):
         parent -= 1

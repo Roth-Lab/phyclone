@@ -63,7 +63,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         if self._empty_tree():
             # First particle
             if self.parent_particle is None:
-                tree = Tree(self.data_point.grid_size, self.memo_logs)
+                tree = Tree(self.data_point.grid_size)
             
             else:
                 tree = self.parent_particle.tree.copy()
@@ -150,8 +150,8 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
 class SemiAdaptedKernel(Kernel):
 
-    def __init__(self, tree_prior_dist, memo_logs, rng, outlier_proposal_prob=0.0, perm_dist=None):
-        super().__init__(tree_prior_dist, memo_logs, rng, perm_dist=perm_dist)
+    def __init__(self, tree_prior_dist, rng, outlier_proposal_prob=0.0, perm_dist=None):
+        super().__init__(tree_prior_dist, rng, perm_dist=perm_dist)
 
         self.outlier_proposal_prob = outlier_proposal_prob
 

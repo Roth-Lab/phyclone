@@ -91,14 +91,10 @@ class BaseTest(object):
             factorial_arr = full(6, -inf)
             simple_log_factorial(5, factorial_arr)
 
-            memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
-
             kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=0, perm_dist=perm_dist,
-                                memo_logs=memo_logs, rng=self._rng)
+                                rng=self._rng)
 
             self.factorial_arr = factorial_arr
-
-            self.memo_logs = memo_logs
 
             return ParticleGibbsTreeSampler(kernel, self._rng)
 
@@ -113,7 +109,7 @@ class BaseTest(object):
 
             test_counts = Counter()
 
-            tree = Tree.get_single_node_tree(data, self.memo_logs)
+            tree = Tree.get_single_node_tree(data)
 
             for i in range(-burnin, num_iters):
                 if i % 10 == 0:

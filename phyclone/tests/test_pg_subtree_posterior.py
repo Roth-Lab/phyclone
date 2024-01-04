@@ -94,7 +94,7 @@ class BaseTest(object):
     
             test_counts = Counter()
     
-            tree = Tree.get_single_node_tree(data, self.memo_logs)
+            tree = Tree.get_single_node_tree(data)
     
             for i in range(-burnin, num_iters):
                 if i % 10 == 0:
