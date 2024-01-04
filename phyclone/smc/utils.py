@@ -6,7 +6,8 @@ Created on 9 Aug 2017
 import numpy as np
 # import random
 
-from phyclone.math_utils import log_factorial, log_binomial_coefficient, log_multinomial_coefficient
+from phyclone.math_utils import (log_factorial, log_binomial_coefficient, log_multinomial_coefficient,
+                                 cached_log_factorial)
 # from copy import deepcopy
 
 
@@ -55,7 +56,8 @@ class RootPermutationDistribution(object):
 
             # Permute the source data
             # count += log_factorial(len(tree.get_data(source)))
-            count += log_factorial(tree.get_data_len(source))
+            # count += log_factorial(tree.get_data_len(source))
+            count += cached_log_factorial(tree.get_data_len(source))
 
         return count
 

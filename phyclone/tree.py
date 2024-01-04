@@ -4,7 +4,7 @@ import networkx as nx
 import numpy as np
 
 from phyclone.consensus import get_clades
-from phyclone.math_utils import log_sum_exp, log_factorial
+from phyclone.math_utils import log_sum_exp, log_factorial, cached_log_factorial
 
 from phyclone.tree_utils import add_to_log_p, subtract_from_log_p, compute_log_S
 
@@ -30,7 +30,8 @@ class FSCRPDistribution(object):
 
             num_data_points = len(node_data)
 
-            log_p += log_factorial(num_data_points - 1)
+            # log_p += log_factorial(num_data_points - 1)
+            log_p += cached_log_factorial(num_data_points - 1)
 
         # Uniform prior on toplogies
         log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
@@ -348,6 +349,8 @@ class Tree(object):
         # new._log_p_comp_memo = self.memo_logs["log_p"]
 
         new.outlier_log_p = self.outlier_log_p
+
+        # new._zeros_array = np.zeros(self.grid_size, order='C')
 
         for node in self._data:
             new._data[node] = list(self._data[node])

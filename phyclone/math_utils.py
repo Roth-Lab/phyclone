@@ -6,7 +6,8 @@ Created on 8 Dec 2016
 import math
 import numba
 import numpy as np
-import random
+# import random
+from functools import lru_cache
 
 
 # def bernoulli_rvs(p=0.5):
@@ -108,6 +109,11 @@ def log_beta(a, b):
 @numba.jit(cache=True, nopython=True)
 def log_factorial(x):
     return log_gamma(x + 1)
+
+
+@lru_cache(maxsize=None)
+def cached_log_factorial(x):
+    return log_factorial(x)
 
 
 @numba.jit(cache=True, nopython=True)
