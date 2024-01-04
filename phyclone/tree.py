@@ -253,7 +253,8 @@ class Tree(object):
             self._data[node].append(data_point)
             # self._graph.nodes[node]["log_R"] = add_to_log_R(self._graph.nodes[node]["log_R"], data_point.value)
             self._graph.nodes[node]["log_R"] += data_point.value
-            self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
+            self._graph.nodes[node]["log_p"] += data_point.value
+            # self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
 
             if data_point.outlier_prob != 0:
                 self.outlier_log_p += data_point.outlier_prob_not
@@ -356,8 +357,9 @@ class Tree(object):
 
         for node in new._graph:
             new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"].copy()
-            new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"]
+            new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
             new._graph.nodes[node]['outlier_log_p'] = self._graph.nodes[node]['outlier_log_p']
+
 
         return new
 
@@ -391,7 +393,7 @@ class Tree(object):
 
         for node in new.nodes:
             new._data[node] = list(self._data[node])
-            new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"]
+            new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
             new._graph.nodes[node]['outlier_log_p'] = self._graph.nodes[node]['outlier_log_p']
 
         new.update()
@@ -434,7 +436,8 @@ class Tree(object):
 
         if node != -1:
             self._data[node].remove(data_point)
-            self._graph.nodes[node]["log_p"] = subtract_from_log_p(self._graph.nodes[node]["log_p"], data_point.value)
+            self._graph.nodes[node]["log_p"] -= data_point.value
+            # self._graph.nodes[node]["log_p"] = subtract_from_log_p(self._graph.nodes[node]["log_p"], data_point.value)
             # self._graph.nodes[node]["log_R"] -= data_point.value
             if data_point.outlier_prob != 0:
                 self.outlier_log_p -= data_point.outlier_prob_not
@@ -473,7 +476,8 @@ class Tree(object):
     def _add_node(self, node):
         self._graph.add_node(node)
 
-        self._graph.nodes[node]["log_p"] = self._log_p_comp_memo["log_p"]
+        # self._graph.nodes[node]["log_p"] = self._log_p_comp_memo["log_p"]
+        self._graph.nodes[node]["log_p"] = np.ascontiguousarray(np.ones(self.grid_size) * self._log_prior)
         self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size, order='C')
         self._graph.nodes[node]['outlier_log_p'] = 0.0
         # self._graph.nodes[node]["log_R"] = self._log_p_comp_memo["zeros"]
