@@ -117,7 +117,9 @@ class PruneRegraphSampler(object):
 
             trees.append(new_tree)
 
-        log_p = np.array([self.tree_dist.log_p(x) for x in trees])
+        # log_p = np.array([self.tree_dist.log_p(x) for x in trees])
+        iterable = (self.tree_dist.log_p(x) for x in trees)
+        log_p = np.fromiter(iterable, dtype='float64', count=len(trees))
 
         p, _ = exp_normalize(log_p)
 

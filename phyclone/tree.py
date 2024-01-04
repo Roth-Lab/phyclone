@@ -257,6 +257,7 @@ class Tree(object):
 
             if data_point.outlier_prob != 0:
                 self.outlier_log_p += data_point.outlier_prob_not
+                self._graph.nodes[node]['outlier_log_p'] += data_point.outlier_prob_not
 
             if update_path:
                 self._update_path_to_root(self.get_parent(node))
@@ -279,6 +280,7 @@ class Tree(object):
             node_map[old_node] = new_node
 
             self._data[new_node] = subtree._data[old_node]
+            self.outlier_log_p += subtree._graph.nodes[old_node]['outlier_log_p']
 
         nx.relabel_nodes(subtree._graph, node_map, copy=False)
 
@@ -355,6 +357,7 @@ class Tree(object):
         for node in new._graph:
             new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"].copy()
             new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"]
+            new._graph.nodes[node]['outlier_log_p'] = self._graph.nodes[node]['outlier_log_p']
 
         return new
 
@@ -389,6 +392,7 @@ class Tree(object):
         for node in new.nodes:
             new._data[node] = list(self._data[node])
             new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"]
+            new._graph.nodes[node]['outlier_log_p'] = self._graph.nodes[node]['outlier_log_p']
 
         new.update()
 
@@ -432,7 +436,9 @@ class Tree(object):
             self._data[node].remove(data_point)
             self._graph.nodes[node]["log_p"] = subtract_from_log_p(self._graph.nodes[node]["log_p"], data_point.value)
             # self._graph.nodes[node]["log_R"] -= data_point.value
-            self.outlier_log_p -= data_point.outlier_prob_not
+            if data_point.outlier_prob != 0:
+                self.outlier_log_p -= data_point.outlier_prob_not
+                self._graph.nodes[node]['outlier_log_p'] -= data_point.outlier_prob_not
 
             self._update_path_to_root(node)
         else:
@@ -440,7 +446,8 @@ class Tree(object):
 
     def remove_data_point_from_outliers(self, data_point):
         self._data[-1].remove(data_point)
-        self.outlier_log_p -= data_point.outlier_prob
+        if data_point.outlier_prob != 0:
+            self.outlier_log_p -= data_point.outlier_prob
 
     def remove_subtree(self, subtree):
         if subtree == self:
@@ -454,6 +461,7 @@ class Tree(object):
             self._graph.remove_nodes_from(subtree.nodes)
 
             for node in subtree.nodes:
+                self.outlier_log_p -= subtree._graph.nodes[node]['outlier_log_p']
                 del self._data[node]
 
             self._update_path_to_root(parent)
@@ -467,6 +475,7 @@ class Tree(object):
 
         self._graph.nodes[node]["log_p"] = self._log_p_comp_memo["log_p"]
         self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size, order='C')
+        self._graph.nodes[node]['outlier_log_p'] = 0.0
         # self._graph.nodes[node]["log_R"] = self._log_p_comp_memo["zeros"]
 
     def _update_path_to_root(self, source):
