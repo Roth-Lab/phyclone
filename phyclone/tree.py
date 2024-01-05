@@ -4,7 +4,7 @@ import networkx as nx
 import numpy as np
 
 from phyclone.consensus import get_clades
-from phyclone.math_utils import log_sum_exp, log_factorial, cached_log_factorial
+from phyclone.math_utils import log_sum_exp, log_factorial  # , cached_log_factorial
 
 from phyclone.tree_utils import add_to_log_p, subtract_from_log_p, compute_log_S
 
@@ -30,8 +30,8 @@ class FSCRPDistribution(object):
 
             num_data_points = len(node_data)
 
-            # log_p += log_factorial(num_data_points - 1)
-            log_p += cached_log_factorial(num_data_points - 1)
+            log_p += log_factorial(num_data_points - 1)
+            # log_p += cached_log_factorial(num_data_points - 1)
 
         # Uniform prior on toplogies
         log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
@@ -247,7 +247,7 @@ class Tree(object):
         }
 
     def add_data_point_to_node(self, data_point, node, update_path=True):
-        assert data_point.idx not in self.labels.keys()
+        assert data_point.idx not in self.labels
 
         # self._data[node].append(data_point)
 
@@ -255,8 +255,8 @@ class Tree(object):
             self._data[node].append(data_point)
             # self._graph.nodes[node]["log_R"] = add_to_log_R(self._graph.nodes[node]["log_R"], data_point.value)
             self._graph.nodes[node]["log_R"] += data_point.value
-            self._graph.nodes[node]["log_p"] += data_point.value
-            # self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
+            # self._graph.nodes[node]["log_p"] += data_point.value
+            self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
 
             if data_point.outlier_prob != 0:
                 self.outlier_log_p += data_point.outlier_prob_not
@@ -361,7 +361,7 @@ class Tree(object):
 
         for node in new._graph:
             new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"].copy()
-            new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
+            new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"]
             new._graph.nodes[node]['outlier_log_p'] = self._graph.nodes[node]['outlier_log_p']
 
         return new
@@ -399,7 +399,7 @@ class Tree(object):
 
         for node in new.nodes:
             new._data[node] = list(self._data[node])
-            new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
+            new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"]
             new._graph.nodes[node]['outlier_log_p'] = self._graph.nodes[node]['outlier_log_p']
 
         new.update()
@@ -450,8 +450,8 @@ class Tree(object):
 
         if node != -1:
             self._data[node].remove(data_point)
-            self._graph.nodes[node]["log_p"] -= data_point.value
-            # self._graph.nodes[node]["log_p"] = subtract_from_log_p(self._graph.nodes[node]["log_p"], data_point.value)
+            # self._graph.nodes[node]["log_p"] -= data_point.value
+            self._graph.nodes[node]["log_p"] = subtract_from_log_p(self._graph.nodes[node]["log_p"], data_point.value)
             # self._graph.nodes[node]["log_R"] -= data_point.value
             if data_point.outlier_prob != 0:
                 self.outlier_log_p -= data_point.outlier_prob_not
