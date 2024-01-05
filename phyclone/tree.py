@@ -61,8 +61,10 @@ class TreeJointDistribution(object):
         # log_p_check = tree.outlier_log_p + self.prior.log_p(tree)
 
         if len(tree.roots) > 0:
-            for i in range(tree.grid_size[0]):
-                log_p += log_sum_exp(tree.data_log_likelihood[i, :])
+            # for i in range(tree.grid_size[0]):
+            #     log_p += log_sum_exp(tree.data_log_likelihood[i, :])
+            # log_p += sum([log_sum_exp(tree.data_log_likelihood[i, :]) for i in range(tree.grid_size[0])])
+            log_p += sum(log_sum_exp(tree.data_log_likelihood[i, :]) for i in range(tree.grid_size[0]))
 
         for data_point in tree.outliers:
             log_p += data_point.outlier_marginal_prob
@@ -87,8 +89,9 @@ class TreeJointDistribution(object):
         #                 log_p += data_point.outlier_prob_not
 
         if len(tree.roots) > 0:
-            for i in range(tree.grid_size[0]):
-                log_p += tree.data_log_likelihood[i, -1]
+            # for i in range(tree.grid_size[0]):
+            #     log_p += tree.data_log_likelihood[i, -1]
+            log_p += sum(tree.data_log_likelihood[i, -1] for i in range(tree.grid_size[0]))
 
         for data_point in tree.outliers:
             log_p += data_point.outlier_marginal_prob
