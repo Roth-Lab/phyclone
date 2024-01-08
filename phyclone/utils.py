@@ -1,4 +1,3 @@
-import numba
 import numpy as np
 import time
 from functools import lru_cache, wraps
@@ -66,6 +65,9 @@ class NumpyArrayListHasher:
     def __eq__(self, __value: object) -> bool:
         return __value.h == self.h
 
+    def clear_inputs(self):
+        self.values = None
+
 
 def list_of_np_cache(*args, **kwargs):
     def decorator(function):
@@ -77,6 +79,7 @@ def list_of_np_cache(*args, **kwargs):
         @lru_cache(*args, **kwargs)
         def cached_wrapper(hashable_set, *args, **kwargs):
             array = np.array(hashable_set.values, order='C')
+            hashable_set.clear_inputs()
             return function(array, *args, **kwargs)
 
         # copy lru_cache attributes over too
@@ -100,6 +103,10 @@ class NumpyTwoArraysHasher:
     def __eq__(self, __value: object) -> bool:
         return __value.h == self.h
 
+    def clear_inputs(self):
+        self.input_1 = None
+        self.input_2 = None
+
 
 def two_np_arr_cache(*args, **kwargs):
     def decorator(function):
@@ -112,6 +119,7 @@ def two_np_arr_cache(*args, **kwargs):
         def cached_wrapper(hashable_obj, *args, **kwargs):
             arr_1 = hashable_obj.input_1
             arr_2 = hashable_obj.input_2
+            hashable_obj.clear_inputs()
             return function(arr_1, arr_2, *args, **kwargs)
 
         # copy lru_cache attributes over too
