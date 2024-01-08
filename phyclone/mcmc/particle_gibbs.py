@@ -3,7 +3,7 @@
 import phyclone.math_utils
 import phyclone.smc.samplers
 import phyclone.smc.swarm
-import phyclone.smc.utils
+from phyclone.smc.utils import RootPermutationDistribution
 
 # import numpy as np
 
@@ -31,9 +31,9 @@ class ParticleGibbsTreeSampler(object):
     def sample_swarm(self, tree):
         """ Sample a new SMC swarm
         """
-        perm_dist = phyclone.smc.utils.RootPermutationDistribution()
+        # perm_dist = phyclone.smc.utils.RootPermutationDistribution()
 
-        data_sigma = perm_dist.sample(tree, self._rng)
+        data_sigma = RootPermutationDistribution.sample(tree, self._rng)
 
         sampler = phyclone.smc.samplers.ConditionalSMCSampler(
             tree,

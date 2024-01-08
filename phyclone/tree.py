@@ -110,16 +110,9 @@ class Tree(object):
 
         self._graph = nx.DiGraph()
 
-        # self._log_p_comp_memo = memo_logs["log_p"]
-        #
-        # self._set_log_p_memo()
-        # self._zeros_array = np.zeros(self.grid_size, order='C')
-
         self.outlier_log_p = 0.0
 
         self._add_node("root")
-
-        # self.memo_logs = memo_logs
 
     def __hash__(self):
         return hash((get_clades(self), frozenset(self.outliers)))
@@ -131,13 +124,6 @@ class Tree(object):
 
         return self_key == other_key
 
-    # def _set_log_p_memo(self):
-    #     tmp_hash = "log_p"
-    #     tmp_hash_2 = "zeros"
-    #     if tmp_hash not in self._log_p_comp_memo:
-    #         self._log_p_comp_memo[tmp_hash] = np.ascontiguousarray(np.ones(self.grid_size) * self._log_prior)
-    #     if tmp_hash_2 not in self._log_p_comp_memo:
-    #         self._log_p_comp_memo[tmp_hash_2] = np.zeros(self.grid_size, order='C')
 
     @staticmethod
     def get_single_node_tree(data):
@@ -219,8 +205,6 @@ class Tree(object):
 
     @staticmethod
     def from_dict(data, tree_dict):
-        # if memo_logs is None:
-        #     memo_logs = {"log_p": {}}
 
         new = Tree(data[0].grid_size)
 
@@ -233,11 +217,6 @@ class Tree(object):
 
         for idx, node in tree_dict["labels"].items():
             new.add_data_point_to_node(data[idx], node, False)
-            # new._data[node].append(data[idx])
-            #
-            # if node != -1:
-            #     new._graph.nodes[node]["log_p"] = add_to_log_p(new._graph.nodes[node]["log_p"], data[idx].value)
-            #     new._graph.nodes[node]["log_R"] = add_to_log_R(new._graph.nodes[node]["log_R"], data[idx].value)
 
         new.update()
 
@@ -252,13 +231,9 @@ class Tree(object):
     def add_data_point_to_node(self, data_point, node, update_path=True):
         assert data_point.idx not in self.labels
 
-        # self._data[node].append(data_point)
-
         if node != -1:
             self._data[node].append(data_point)
-            # self._graph.nodes[node]["log_R"] = add_to_log_R(self._graph.nodes[node]["log_R"], data_point.value)
             self._graph.nodes[node]["log_R"] += data_point.value
-            # self._graph.nodes[node]["log_p"] += data_point.value
             self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
 
             if data_point.outlier_prob != 0:
@@ -322,9 +297,6 @@ class Tree(object):
 
         for data_point in data:
             self.add_data_point_to_node(data_point, node, False)
-            # self._data[node].append(data_point)
-            #
-            # self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
 
         self._graph.add_edge("root", node)
 
@@ -347,13 +319,7 @@ class Tree(object):
 
         new._data = defaultdict(list)
 
-        # new.memo_logs = self.memo_logs
-        #
-        # new._log_p_comp_memo = self.memo_logs["log_p"]
-
         new.outlier_log_p = self.outlier_log_p
-
-        # new._zeros_array = np.zeros(self.grid_size, order='C')
 
         for node in self._data:
             new._data[node] = list(self._data[node])
@@ -404,6 +370,7 @@ class Tree(object):
             new._data[node] = list(self._data[node])
             new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"]
             new._graph.nodes[node]['outlier_log_p'] = self._graph.nodes[node]['outlier_log_p']
+            new.outlier_log_p += self._graph.nodes[node]['outlier_log_p']
 
         new.update()
 
@@ -449,13 +416,11 @@ class Tree(object):
         self._graph = nx.relabel_nodes(self._graph, node_map)
 
     def remove_data_point_from_node(self, data_point, node):
-        # self._data[node].remove(data_point)
 
         if node != -1:
             self._data[node].remove(data_point)
-            # self._graph.nodes[node]["log_p"] -= data_point.value
             self._graph.nodes[node]["log_p"] = subtract_from_log_p(self._graph.nodes[node]["log_p"], data_point.value)
-            # self._graph.nodes[node]["log_R"] -= data_point.value
+
             if data_point.outlier_prob != 0:
                 self.outlier_log_p -= data_point.outlier_prob_not
                 self._graph.nodes[node]['outlier_log_p'] -= data_point.outlier_prob_not
@@ -493,11 +458,9 @@ class Tree(object):
     def _add_node(self, node):
         self._graph.add_node(node)
 
-        # self._graph.nodes[node]["log_p"] = self._log_p_comp_memo["log_p"]
         self._graph.nodes[node]["log_p"] = np.ascontiguousarray(np.ones(self.grid_size) * self._log_prior)
         self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size, order='C')
         self._graph.nodes[node]['outlier_log_p'] = 0.0
-        # self._graph.nodes[node]["log_R"] = self._log_p_comp_memo["zeros"]
 
     def _update_path_to_root(self, source):
         """ Update recursion values for all nodes on the path between the source node and root inclusive.
@@ -526,10 +489,6 @@ class Tree(object):
         log_p = self._graph.nodes[node]["log_p"]
 
         if len(child_log_r_values) == 0:
-            # log_s = np.zeros(self.grid_size, order='C')
-            # log_s = self._log_p_comp_memo["zeros"]
-            # log_s = self._zeros_array
-            # log_s = 0.0
             if "log_R" in self._graph.nodes[node]:
                 np.copyto(self._graph.nodes[node]["log_R"], log_p)
             else:
@@ -542,5 +501,3 @@ class Tree(object):
             self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order='C', out=self._graph.nodes[node]["log_R"])
         else:
             self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order='C')
-
-        # self._graph.nodes[node]["log_R"] = compute_log_R(log_p, log_s)
