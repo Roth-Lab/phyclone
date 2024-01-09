@@ -3,12 +3,8 @@ import unittest
 import numpy as np
 
 from phyclone.data.base import DataPoint
-from phyclone.tree import FSCRPDistribution, Tree
+from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.math_utils import log_factorial
-
-# from math import inf
-# from phyclone.math_utils import simple_log_factorial
-# from numpy import full
 
 
 class Test(unittest.TestCase):
@@ -16,14 +12,11 @@ class Test(unittest.TestCase):
     def setUp(self):
         grid_size = (1, 10)
 
-        # factorial_arr = full(8, -inf)
-        # simple_log_factorial(7, factorial_arr)
-        #
-        # memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
-
         self.tree = Tree(grid_size)
-        
+
         self.tree_dist = FSCRPDistribution(1.0)
+
+        self.tree_joint_dist = TreeJointDistribution(self.tree_dist)
 
     def test_create_root_node(self):
         node = self.tree.create_root_node([])
@@ -35,7 +28,7 @@ class Test(unittest.TestCase):
         self.assertListEqual(self.tree.roots, [0])
 
     def test_simple_log_p(self):
-        self.assertEqual(self.tree.log_p_one, 0)
+        self.assertEqual(self.tree_joint_dist.log_p_one(self.tree), 0)
 
     def test_one_data_point_sigma(self):
         data_point = self._create_data_point(0)
@@ -56,7 +49,7 @@ class Test(unittest.TestCase):
         self.tree.add_data_point_to_node(data[0], node)
 
         self.tree.add_data_point_to_node(data[1], node)
-        
+
         self.tree.add_data_point_to_node(data[2], node)
 
         self.assertEqual(self.tree_dist.log_p(self.tree), log_factorial(2))

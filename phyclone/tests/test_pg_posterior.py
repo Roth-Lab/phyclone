@@ -101,7 +101,7 @@ class BaseTest(object):
         def _run_exact_posterior_test(self, data, burnin=100, num_iters=1000):
             pred_probs = self._run_sampler(data, burnin=burnin * self.run_scale, num_iters=num_iters * self.run_scale)
 
-            true_probs = get_exact_posterior(data, self.tree_dist, self.memo_logs)
+            true_probs = get_exact_posterior(data, self.tree_dist)
 
             self._test_posterior(pred_probs, true_probs)
 

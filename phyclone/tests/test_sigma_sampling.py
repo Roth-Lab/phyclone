@@ -12,17 +12,10 @@ from phyclone.smc.utils import interleave_lists, RootPermutationDistribution
 from phyclone.tree import Tree
 
 
-# from math import inf
-# from phyclone.math_utils import simple_log_factorial
-# from numpy import full
-
-
 class Test(unittest.TestCase):
 
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
-        # self.factorial_arr = None
-        # self.memo_logs = None
         self._rng = np.random.default_rng(12345)
 
     def test_interleave(self):
@@ -48,8 +41,6 @@ class Test(unittest.TestCase):
     def test_sample_sigma_tree(self):
         grid_size = (1, 10)
 
-        # fact_arr = self.get_factorial_arr()
-
         tree = Tree(grid_size)
 
         node_1 = tree.create_root_node(children=[], data=[])
@@ -73,8 +64,6 @@ class Test(unittest.TestCase):
 
     def test_sample_sigma_chain(self):
         grid_size = (1, 10)
-
-        # fact_arr = self.get_factorial_arr()
 
         tree = Tree(grid_size)
 
@@ -102,8 +91,6 @@ class Test(unittest.TestCase):
     def test_sample_two_roots(self):
         grid_size = (1, 10)
 
-        # fact_arr = self.get_factorial_arr()
-
         tree = Tree(grid_size)
 
         node_2 = tree.create_root_node(children=[], data=[])
@@ -128,19 +115,9 @@ class Test(unittest.TestCase):
 
         sigma = RootPermutationDistribution.sample(tree, self._rng)
 
-        self.assertGreater(min([x.idx for x in sigma[:20]]), 19)
-
-    # def get_factorial_arr(self):
-    #     if self.factorial_arr:
-    #         return self.factorial_arr
-    #     factorial_arr = full(51, -inf)
-    #     simple_log_factorial(50, factorial_arr)
-    #     self.factorial_arr = factorial_arr
-    #     return self.factorial_arr
-    #
-    # def get_memo_logs(self):
-    #     self.memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
-    #     return self.memo_logs
+        # self.assertGreater(min([x.idx for x in sigma[:20]]), 19)
+        self.assertGreater(min([x.idx for x in sigma[:10]]), 19)
+        self.assertLess(max([x.idx for x in sigma[30:]]), 20)
 
 
 if __name__ == "__main__":
