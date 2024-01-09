@@ -2,7 +2,7 @@ import itertools
 import numpy as np
 
 from phyclone.math_utils import log_normalize, discrete_rvs
-from phyclone.smc.kernels.base import Kernel, ProposalDistribution, Particle
+from phyclone.smc.kernels.base import Kernel, ProposalDistribution, Particle, TreeHolder
 from phyclone.tree import Tree
 
 
@@ -33,7 +33,8 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
     def log_p(self, tree):
         """ Get the log probability of the tree.
         """
-        tree_particle = Particle(0, self.parent_particle, tree, self._data, self.tree_dist, self.perm_dist)
+        # tree_particle = Particle(0, self.parent_particle, tree, self._data, self.tree_dist, self.perm_dist)
+        tree_particle = TreeHolder(tree, self._data, self.tree_dist)
         return self._log_p[tree_particle]
         # return self._log_p[tree]
 
@@ -88,7 +89,9 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
             tree.add_data_point_to_node(self.data_point, node)
 
-            tree_particle = Particle(0, self.parent_particle, tree, self._data, self.tree_dist, self.perm_dist)
+            # tree_particle = Particle(0, self.parent_particle, tree, self._data, self.tree_dist, self.perm_dist)
+
+            tree_particle = TreeHolder(tree, self._data, self.tree_dist)
 
             trees.append(tree_particle)
             # trees.append(tree)
@@ -106,8 +109,9 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
             tree.create_root_node(children=[], data=[self.data_point])
             
             # trees.append(tree)
-            tree_particle = Particle(0, self.parent_particle, tree,
-                                     self._data, self.tree_dist, self.perm_dist)
+            # tree_particle = Particle(0, self.parent_particle, tree,
+            #                          self._data, self.tree_dist, self.perm_dist)
+            tree_particle = TreeHolder(tree, self._data, self.tree_dist)
 
             trees.append(tree_particle)
         
@@ -123,8 +127,9 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
                     tree.create_root_node(children=children, data=[self.data_point])
                     
                     # trees.append(tree)
-                    tree_particle = Particle(0, self.parent_particle, tree,
-                                             self._data, self.tree_dist, self.perm_dist)
+                    # tree_particle = Particle(0, self.parent_particle, tree,
+                    #                          self._data, self.tree_dist, self.perm_dist)
+                    tree_particle = TreeHolder(tree, self._data, self.tree_dist)
 
                     trees.append(tree_particle)
         
@@ -142,8 +147,9 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
         tree.add_data_point_to_outliers(self.data_point)
 
-        tree_particle = Particle(0, self.parent_particle, tree,
-                                 self._data, self.tree_dist, self.perm_dist)
+        # tree_particle = Particle(0, self.parent_particle, tree,
+        #                          self._data, self.tree_dist, self.perm_dist)
+        tree_particle = TreeHolder(tree, self._data, self.tree_dist)
 
         # return [tree]
         return [tree_particle]
