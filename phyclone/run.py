@@ -26,7 +26,7 @@ from phyclone.tree_utils import create_cache_info_file
 from phyclone.consensus import get_consensus_tree
 
 import phyclone.data.pyclone
-import phyclone.math_utils
+# import phyclone.math_utils
 from phyclone.math_utils import discrete_rvs, exp_normalize
 
 
@@ -367,7 +367,6 @@ def _run_main_sampler(concentration_update, data, max_time, num_iters, num_sampl
 
             if rng.random() < subtree_update_prob:
                 tree = subtree_sampler.sample_tree(tree)
-
             else:
                 tree = tree_sampler.sample_tree(tree)
 
@@ -380,24 +379,10 @@ def _run_main_sampler(concentration_update, data, max_time, num_iters, num_sampl
             tree.relabel_nodes()
 
             if concentration_update:
-                node_sizes = []
-
-                for node, node_data in tree.node_data.items():
-                    if node == -1:
-                        continue
-
-                    node_sizes.append(len(node_data))
-
-                tree_dist.prior.alpha = conc_sampler.sample(tree_dist.prior.alpha, len(tree.nodes), sum(node_sizes))
+                update_concentration_value(conc_sampler, tree, tree_dist)
 
             if i % thin == 0:
-                trace.append({
-                    "iter": i,
-                    "time": timer.elapsed,
-                    "alpha": tree_dist.prior.alpha,
-                    "log_p": tree_dist.log_p_one(tree),
-                    "tree": tree.to_dict()
-                })
+                append_to_trace(i, timer, trace, tree, tree_dist)
 
             if timer.elapsed >= max_time:
                 break
@@ -405,15 +390,37 @@ def _run_main_sampler(concentration_update, data, max_time, num_iters, num_sampl
     return results
 
 
-def setup_trace(timer, tree, tree_dist):
-    trace = []
+def append_to_trace(i, timer, trace, tree, tree_dist):
     trace.append({
-        "iter": 0,
+        "iter": i,
         "time": timer.elapsed,
         "alpha": tree_dist.prior.alpha,
         "log_p": tree_dist.log_p_one(tree),
         "tree": tree.to_dict()
     })
+
+
+def update_concentration_value(conc_sampler, tree, tree_dist):
+    node_sizes = []
+    for node, node_data in tree.node_data.items():
+        if node == -1:
+            continue
+
+        node_sizes.append(len(node_data))
+
+    tree_dist.prior.alpha = conc_sampler.sample(tree_dist.prior.alpha, len(tree.nodes), sum(node_sizes))
+
+
+def setup_trace(timer, tree, tree_dist):
+    trace = []
+    # trace.append({
+    #     "iter": 0,
+    #     "time": timer.elapsed,
+    #     "alpha": tree_dist.prior.alpha,
+    #     "log_p": tree_dist.log_p_one(tree),
+    #     "tree": tree.to_dict()
+    # })
+    append_to_trace(0, timer, trace, tree, tree_dist)
     return trace
 
 
