@@ -23,6 +23,18 @@ class Particle(object):
 
         self.tree = tree
 
+        self._hash_val = 0
+
+    def __hash__(self):
+        return self._hash_val
+
+    def __eq__(self, other):
+        self_key = self._tree
+
+        other_key = other._tree
+
+        return self_key == other_key
+
     def copy(self):
         return Particle(self.log_w, self.parent_particle, self.tree, self.data, self._tree_dist, self._perm_dist)
         # TODO: re-write this? building tree unnecessarily here
@@ -44,6 +56,7 @@ class Particle(object):
             self.log_pdf = self._perm_dist.log_pdf(tree)
         self.log_p_one = self._tree_dist.log_p_one(tree)
         self.tree_roots = tree.roots
+        self._hash_val = hash(tree)
         self._tree = tree.to_dict()
 
 
@@ -57,7 +70,7 @@ class Kernel(object):
     def rng(self):
         return self._rng
 
-    def get_proposal_distribution(self, data_point, parent_particle):
+    def get_proposal_distribution(self, data_point, parent_particle, data=None):
         """ Get proposal distribution given the current data point and parent particle.
         """
         raise NotImplementedError
@@ -117,32 +130,10 @@ class Kernel(object):
 
         return Particle(log_w, parent_particle, tree, data, self.tree_dist, self.perm_dist)
 
-    def create_dumb_particle(self, log_q, parent_particle, tree):
-        """  Create a new particle from a parent particle.
-        """
-        if self.perm_dist is None:
-            if parent_particle is None:
-                log_w = self._get_log_p(tree) - log_q
-
-            else:
-                log_w = self._get_log_p(tree) - self._get_log_p(parent_particle.tree) - log_q
-
-        else:
-            if parent_particle is None:
-                log_w = self._get_log_p(tree) + self.perm_dist.log_pdf(tree) - log_q
-
-            else:
-                parent_tree = parent_particle.tree
-                log_w = self._get_log_p(tree) - self._get_log_p(parent_tree) + \
-                    self.perm_dist.log_pdf(tree) - self.perm_dist.log_pdf(parent_tree) - \
-                    log_q
-
-        return DumbParticle(log_w, parent_particle, tree)
-
     def propose_particle(self, data_point, parent_particle, data):
         """ Propose a particle for t given a particle from t - 1 and a data point.
         """
-        proposal_dist = self.get_proposal_distribution(data_point, parent_particle)
+        proposal_dist = self.get_proposal_distribution(data_point, parent_particle, data)
 
         tree = proposal_dist.sample()
 

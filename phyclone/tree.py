@@ -214,7 +214,8 @@ class Tree(object):
             new._add_node(node)
 
         for idx, node in tree_dict["labels"].items():
-            new.add_data_point_to_node(data[idx], node, False)
+            # new.add_data_point_to_node(data[idx], node, False)
+            new._add_data_point_to_node_builder(data[idx], node, False)
 
         new.update()
 
@@ -233,6 +234,24 @@ class Tree(object):
             self._data[node].append(data_point)
             self._graph.nodes[node]["log_R"] += data_point.value
             self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
+
+            if data_point.outlier_prob != 0:
+                self.outlier_log_p += data_point.outlier_prob_not
+                self._graph.nodes[node]['outlier_log_p'] += data_point.outlier_prob_not
+
+            if update_path:
+                self._update_path_to_root(self.get_parent(node))
+        else:
+            self.add_data_point_to_outliers(data_point)
+
+    def _add_data_point_to_node_builder(self, data_point, node, update_path=True):
+        assert data_point.idx not in self.labels
+
+        if node != -1:
+            self._data[node].append(data_point)
+            self._graph.nodes[node]["log_R"] += data_point.value
+            self._graph.nodes[node]["log_p"] += data_point.value
+            # self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
 
             if data_point.outlier_prob != 0:
                 self.outlier_log_p += data_point.outlier_prob_not

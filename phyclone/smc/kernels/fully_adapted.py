@@ -2,7 +2,7 @@ import itertools
 import numpy as np
 
 from phyclone.math_utils import log_normalize, discrete_rvs
-from phyclone.smc.kernels.base import Kernel, ProposalDistribution
+from phyclone.smc.kernels.base import Kernel, ProposalDistribution, Particle
 from phyclone.tree import Tree
 
 
@@ -12,10 +12,16 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
     Considers all possible proposals and weight according to log probability.
     """
 
-    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, prnt_tree=None):
+    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, prnt_tree=None, data=None):
         super().__init__(data_point, kernel, parent_particle)
         
         self.outlier_proposal_prob = outlier_proposal_prob
+
+        self.tree_dist = self.kernel.tree_dist
+
+        self.perm_dist = self.kernel.perm_dist
+
+        self._data = data
         
         self._init_dist(prnt_tree)
 
@@ -27,7 +33,9 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
     def log_p(self, tree):
         """ Get the log probability of the tree.
         """
-        return self._log_p[tree]
+        tree_particle = Particle(0, self.parent_particle, tree, self._data, self.tree_dist, self.perm_dist)
+        return self._log_p[tree_particle]
+        # return self._log_p[tree]
 
     def sample(self):
         """ Sample a new tree from the proposal distribution.
@@ -38,7 +46,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
         tree = list(self._log_p.keys())[idx]
 
-        return tree
+        return tree.tree
 
     def _init_dist(self, prnt_tree):
         self._log_p = {}
@@ -56,7 +64,8 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         if self.outlier_proposal_prob > 0:
             trees.extend(self._get_outlier_tree())
         
-        log_q = np.array([self.kernel.tree_dist.log_p(x) for x in trees])
+        # log_q = np.array([self.kernel.tree_dist.log_p(x) for x in trees])
+        log_q = np.array([x.log_p for x in trees])
 
         log_q = log_normalize(log_q)
 
@@ -79,7 +88,10 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
             tree.add_data_point_to_node(self.data_point, node)
 
-            trees.append(tree)
+            tree_particle = Particle(0, self.parent_particle, tree, self._data, self.tree_dist, self.perm_dist)
+
+            trees.append(tree_particle)
+            # trees.append(tree)
 
         return trees
 
@@ -93,7 +105,11 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
             
             tree.create_root_node(children=[], data=[self.data_point])
             
-            trees.append(tree)
+            # trees.append(tree)
+            tree_particle = Particle(0, self.parent_particle, tree,
+                                     self._data, self.tree_dist, self.perm_dist)
+
+            trees.append(tree_particle)
         
         else:
             # num_roots = len(self.parent_particle.tree.roots)
@@ -106,7 +122,11 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
                     
                     tree.create_root_node(children=children, data=[self.data_point])
                     
-                    trees.append(tree)
+                    # trees.append(tree)
+                    tree_particle = Particle(0, self.parent_particle, tree,
+                                             self._data, self.tree_dist, self.perm_dist)
+
+                    trees.append(tree_particle)
         
         return trees
 
@@ -122,7 +142,11 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
         tree.add_data_point_to_outliers(self.data_point)
 
-        return [tree]
+        tree_particle = Particle(0, self.parent_particle, tree,
+                                 self._data, self.tree_dist, self.perm_dist)
+
+        # return [tree]
+        return [tree_particle]
 
 
 class FullyAdaptedKernel(Kernel):
@@ -132,11 +156,12 @@ class FullyAdaptedKernel(Kernel):
 
         self.outlier_proposal_prob = outlier_proposal_prob
 
-    def get_proposal_distribution(self, data_point, parent_particle, prnt_tree=None):
+    def get_proposal_distribution(self, data_point, parent_particle, data=None, prnt_tree=None):
         return FullyAdaptedProposalDistribution(
             data_point,
             self,
             parent_particle,
             outlier_proposal_prob=self.outlier_proposal_prob,
-            prnt_tree=prnt_tree
+            prnt_tree=prnt_tree,
+            data=data
         )

@@ -43,6 +43,8 @@ class ParticleGibbsTreeSampler(object):
             resample_threshold=self.resample_threshold
         )
 
+        print('Out of swarm build')
+
         return sampler.sample()
 
     def _sample_tree_from_swarm(self, swarm):
