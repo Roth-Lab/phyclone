@@ -1,30 +1,29 @@
 from sklearn.metrics import homogeneity_completeness_v_measure
 
 from phyclone.concentration import GammaPriorConcentrationSampler
-from phyclone.mcmc.metropolis_hastings import PruneRegraphSampler
+from phyclone.mcmc.gibbs_mh import PruneRegraphSampler
 from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler
 from phyclone.smc.kernels import SemiAdaptedKernel
-from phyclone.tree import FSCRPDistribution, Tree
+from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 
 from toy_data import load_test_data
-from phyclone.math_utils import simple_log_factorial
-from math import inf
-import numpy as np
+from phyclone.run import instantiate_and_seed_RNG
 
-data, true_tree = load_test_data(cluster_size=5)
+rng = instantiate_and_seed_RNG(0)
 
-factorial_arr = np.full(len(data)+1, -inf)
-simple_log_factorial(len(data), factorial_arr)
+tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
+
+data, true_tree = load_test_data(rng, cluster_size=5)
 
 tree = Tree.get_single_node_tree(data)
 
-conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
+conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng)
 
-mh_sampler = PruneRegraphSampler()
+mh_sampler = PruneRegraphSampler(tree_dist, rng)
 
-kernel = SemiAdaptedKernel(FSCRPDistribution(1.0))
+kernel = SemiAdaptedKernel(tree_dist, rng)
 
-pg_sampler = ParticleGibbsTreeSampler(kernel)
+pg_sampler = ParticleGibbsTreeSampler(kernel, rng)
 
 for i in range(1000):
     tree = pg_sampler.sample_tree(tree)
@@ -36,4 +35,4 @@ for i in range(1000):
         true_labels = [true_tree.labels[x] for x in sorted(true_tree.labels)]
         print(i)
         print(homogeneity_completeness_v_measure(true_labels, pred_labels), len(tree.nodes))
-        print(tree.log_p)
+        print(tree_dist.log_p(tree))

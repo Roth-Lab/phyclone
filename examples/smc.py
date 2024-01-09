@@ -17,13 +17,15 @@ from phyclone.tree import FSCRPDistribution, TreeJointDistribution
 from toy_data import load_test_data
 from phyclone.math_utils import simple_log_factorial
 from math import inf
+from phyclone.run import instantiate_and_seed_RNG
 
 
-def main():
-    data_points, true_tree = load_test_data(cluster_size=2, depth=int(1e5), outlier_size=1, shuffle=False)
+def main(seed=None):
+    rng = instantiate_and_seed_RNG(seed)
+    data_points, true_tree = load_test_data(rng, cluster_size=2, depth=int(1e5), outlier_size=1, shuffle=False)
 
     print("Good ordering")
-    sampler, pred_tree = sample(data_points)
+    sampler, pred_tree = sample(data_points, rng)
     print_stats(pred_tree, true_tree, sampler)
 
     print()
@@ -31,17 +33,17 @@ def main():
     print()
 
     print("Bad ordering")
-    sampler, pred_tree = sample(data_points[::-1])
+    sampler, pred_tree = sample(data_points[::-1], rng)
     print_stats(pred_tree, true_tree, sampler)
 
 
-def sample(data_points):
+def sample(data_points, rng):
     tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
 
     factorial_arr = np.full(len(data_points) + 1, -inf)
     simple_log_factorial(len(data_points), factorial_arr)
 
-    kernel = FullyAdaptedKernel(tree_dist, outlier_proposal_prob=0.1)
+    kernel = FullyAdaptedKernel(tree_dist, rng=rng, outlier_proposal_prob=0.1)
     
     smc_sampler = SMCSampler(
         data_points,
@@ -52,7 +54,7 @@ def sample(data_points):
     
     swarm = smc_sampler.sample()
 
-    idx = discrete_rvs(swarm.weights)
+    idx = discrete_rvs(swarm.weights, rng)
 
     particle = swarm.particles[idx]
 
@@ -78,4 +80,4 @@ def print_stats(pred_tree, true_tree, sampler):
 
 
 if __name__ == "__main__":
-    main()
+    main(0)

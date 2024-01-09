@@ -18,9 +18,10 @@ from phyclone.smc.utils import RootPermutationDistribution
 import phyclone.mcmc.gibbs_mh as mh
 
 from phyclone.map import get_map_node_ccfs
+from phyclone.run import instantiate_and_seed_RNG
 
 
-def main():
+def main(seed=None):
     outlier_prob = 0
     subtree_prob = 0.5
     kernel_type = "fully-adapted"
@@ -29,6 +30,8 @@ def main():
 #     cluster_file = "data/mixing_small_clusters.tsv"
 #     cluster_file = "data/mixing_clusters.tsv"
     cluster_file = None
+
+    rng = instantiate_and_seed_RNG(seed)
 
     true_labels = load_true_labels(file_name)
     
@@ -43,13 +46,13 @@ def main():
         outlier_prob=outlier_prob
     )
 
-    conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
+    conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng)
 
     tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
     
-    mh_sampler_1 = mh.PruneRegraphSampler(tree_dist)
+    mh_sampler_1 = mh.PruneRegraphSampler(tree_dist, rng)
 
-    mh_sampler_2 = mh.DataPointSampler(tree_dist, outliers=(outlier_prob > 0))
+    mh_sampler_2 = mh.DataPointSampler(tree_dist, rng, outliers=(outlier_prob > 0))
     
     if kernel_type == "bootstrap":
         kernel_cls = BootstrapKernel
@@ -69,16 +72,16 @@ def main():
     else:
         outlier_proposal_prob = 0
 
-    kernel = kernel_cls(tree_dist, outlier_proposal_prob=outlier_proposal_prob)
+    kernel = kernel_cls(tree_dist, rng=rng, outlier_proposal_prob=outlier_proposal_prob)
 
-    tree = init_tree(data, kernel=None, mcmc_samplers=[mh_sampler_1, mh_sampler_2])
+    tree = init_tree(data, rng, kernel=None, mcmc_samplers=[mh_sampler_1, mh_sampler_2])
     
     subtree_sampler = ParticleGibbsSubtreeSampler(
-        kernel, num_particles=20, resample_threshold=0.5
+        kernel, num_particles=20, resample_threshold=0.5, rng=rng
     )        
 
     tree_sampler = ParticleGibbsTreeSampler(
-        kernel, num_particles=20, resample_threshold=0.5
+        kernel, num_particles=20, resample_threshold=0.5, rng=rng
     )
 
     print("Starting sampling")
@@ -151,21 +154,21 @@ def main():
     print()
 
 
-def init_tree(data, kernel=None, mcmc_samplers=[]):
-    tree = Tree.get_single_node_tree(data)
+def init_tree(data, rng, kernel=None, mcmc_samplers=[]):
+    tree = Tree.get_single_node_tree(data[0])
     
     if kernel is None:
         return tree
 
     for i in range(1):
         print(i)
-        data_sigma = RootPermutationDistribution.sample(tree)
+        data_sigma = RootPermutationDistribution.sample(tree, rng)
 
         smc_sampler = SMCSampler(data_sigma, kernel, num_particles=20, resample_threshold=0.5)
 
         swarm = smc_sampler.sample()
 
-        idx = discrete_rvs(swarm.weights)
+        idx = discrete_rvs(swarm.weights, rng)
 
         tree = swarm.particles[idx].tree
 
@@ -205,4 +208,4 @@ def load_true_tree():
 
 
 if __name__ == "__main__":
-    main()
+    main(12345)

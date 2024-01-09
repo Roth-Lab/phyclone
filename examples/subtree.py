@@ -23,7 +23,7 @@ def main():
     subtree = True
     kernel_type = "fully-adapted"
     
-    data, true_tree = load_test_data(cluster_size=5, depth=int(5e1), outlier_size=1, single_sample=False)
+    data, true_tree = load_test_data(rng, cluster_size=5, depth=int(5e1), outlier_size=1, single_sample=False)
 
     conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
 

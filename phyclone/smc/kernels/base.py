@@ -41,11 +41,7 @@ class Kernel(object):
         """
         self.tree_dist = tree_dist
 
-        # self.factorial_arr = factorial_arr
-
         self.perm_dist = perm_dist
-
-        # self.memo_logs = memo_logs
 
         self._rng = rng
 
@@ -97,10 +93,6 @@ class ProposalDistribution(object):
         self.kernel = kernel
 
         self.parent_particle = parent_particle
-
-        # self.factorial_arr = factorial_arr
-
-        # self.memo_logs = kernel.memo_logs
 
         self._rng = kernel.rng
 
