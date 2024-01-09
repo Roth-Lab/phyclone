@@ -25,6 +25,8 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
         new_tree = Tree(tree.grid_size)
 
+        parent_tree = None
+
         for data_point in self.data_points:
             new_tree = new_tree.copy()
 
@@ -50,15 +52,18 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
             parent_particle = constrained_path[-1]
 
-            proposal_dist = self.kernel.get_proposal_distribution(data_point, parent_particle)
+            proposal_dist = self.kernel.get_proposal_distribution(data_point, parent_particle, parent_tree)
 
             log_q = proposal_dist.log_p(new_tree)
 
-            particle = self.kernel.create_particle(data_point, log_q, parent_particle, new_tree)
+            particle = self.kernel.create_particle(data_point, log_q, parent_particle, new_tree, self.data_points)
 
             constrained_path.append(particle)
 
-        assert nx.is_isomorphic(tree.graph, particle.tree.graph)
+            parent_tree = new_tree
+
+        # assert nx.is_isomorphic(tree.graph, particle.tree.graph)
+        assert nx.is_isomorphic(tree.graph, new_tree.graph)
 
         return constrained_path
 

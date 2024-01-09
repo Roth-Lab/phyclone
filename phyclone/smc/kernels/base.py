@@ -1,15 +1,50 @@
-class Particle(object):
-    __slots__ = 'log_w', 'parent_particle', 'tree'
+from phyclone.tree import Tree
 
-    def __init__(self, log_w, parent_particle, tree):
+
+class Particle(object):
+    # __slots__ = 'log_w', 'parent_particle', 'tree', 'data', '_tree'
+
+    def __init__(self, log_w, parent_particle, tree, data, tree_dist, perm_dist):
         self.log_w = log_w
 
         self.parent_particle = parent_particle
 
+        self.data = data
+
+        self._tree_dist = tree_dist
+
+        self._perm_dist = perm_dist
+
+        self.log_p = 0
+
+        self.log_pdf = 0
+
+        self.log_p_one = 0
+
         self.tree = tree
 
     def copy(self):
-        return Particle(self.log_w, self.parent_particle, self.tree.copy())
+        return Particle(self.log_w, self.parent_particle, self.tree, self.data, self._tree_dist, self._perm_dist)
+        # TODO: re-write this? building tree unnecessarily here
+
+    @property
+    def tree(self):
+        return self._tree
+
+    @tree.getter
+    def tree(self):
+        return Tree.from_dict(self.data, self._tree)
+
+    @tree.setter
+    def tree(self, tree):
+        self.log_p = self._tree_dist.log_p(tree)
+        if self._perm_dist is None:
+            self.log_pdf = 0.0
+        else:
+            self.log_pdf = self._perm_dist.log_pdf(tree)
+        self.log_p_one = self._tree_dist.log_p_one(tree)
+        self.tree_roots = tree.roots
+        self._tree = tree.to_dict()
 
 
 class Kernel(object):
@@ -45,7 +80,44 @@ class Kernel(object):
 
         self._rng = rng
 
-    def create_particle(self, data_point, log_q, parent_particle, tree):
+    def create_particle(self, data_point, log_q, parent_particle, tree, data):
+        """  Create a new particle from a parent particle.
+        """
+        # if self.perm_dist is None:
+        #     if parent_particle is None:
+        #         log_w = self._get_log_p(tree) - log_q
+        #
+        #     else:
+        #         log_w = self._get_log_p(tree) - self._get_log_p(parent_particle.tree) - log_q
+        #
+        # else:
+        #     if parent_particle is None:
+        #         log_w = self._get_log_p(tree) + self.perm_dist.log_pdf(tree) - log_q
+        #
+        #     else:
+        #         parent_tree = parent_particle.tree
+        #         log_w = self._get_log_p(tree) - self._get_log_p(parent_tree) + \
+        #             self.perm_dist.log_pdf(tree) - self.perm_dist.log_pdf(parent_tree) - \
+        #             log_q
+        if self.perm_dist is None:
+            if parent_particle is None:
+                log_w = self._get_log_p(tree) - log_q
+
+            else:
+                log_w = self._get_log_p(tree) - parent_particle.log_p - log_q
+
+        else:
+            if parent_particle is None:
+                log_w = self._get_log_p(tree) + self.perm_dist.log_pdf(tree) - log_q
+
+            else:
+                log_w = self._get_log_p(tree) - parent_particle.log_p + \
+                    self.perm_dist.log_pdf(tree) - parent_particle.log_pdf - \
+                    log_q
+
+        return Particle(log_w, parent_particle, tree, data, self.tree_dist, self.perm_dist)
+
+    def create_dumb_particle(self, log_q, parent_particle, tree):
         """  Create a new particle from a parent particle.
         """
         if self.perm_dist is None:
@@ -60,13 +132,14 @@ class Kernel(object):
                 log_w = self._get_log_p(tree) + self.perm_dist.log_pdf(tree) - log_q
 
             else:
-                log_w = self._get_log_p(tree) - self._get_log_p(parent_particle.tree) + \
-                    self.perm_dist.log_pdf(tree) - self.perm_dist.log_pdf(parent_particle.tree) - \
+                parent_tree = parent_particle.tree
+                log_w = self._get_log_p(tree) - self._get_log_p(parent_tree) + \
+                    self.perm_dist.log_pdf(tree) - self.perm_dist.log_pdf(parent_tree) - \
                     log_q
 
-        return Particle(log_w, parent_particle, tree)
+        return DumbParticle(log_w, parent_particle, tree)
 
-    def propose_particle(self, data_point, parent_particle):
+    def propose_particle(self, data_point, parent_particle, data):
         """ Propose a particle for t given a particle from t - 1 and a data point.
         """
         proposal_dist = self.get_proposal_distribution(data_point, parent_particle)
@@ -75,7 +148,7 @@ class Kernel(object):
 
         log_q = proposal_dist.log_p(tree)
 
-        return self.create_particle(data_point, log_q, parent_particle, tree)
+        return self.create_particle(data_point, log_q, parent_particle, tree, data)
 
     def _get_log_p(self, tree):
         """ Compute joint distribution.
