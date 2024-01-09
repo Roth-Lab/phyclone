@@ -12,13 +12,10 @@ from phyclone.mcmc.gibbs_mh import DataPointSampler, PruneRegraphSampler
 from phyclone.mcmc.particle_gibbs import ParticleGibbsSubtreeSampler, ParticleGibbsTreeSampler
 from phyclone.process_trace import _create_main_run_output
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
-from phyclone.smc.samplers import SMCSampler
-from phyclone.smc.utils import RootPermutationDistribution
+from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer
-
 from phyclone.data.pyclone import load_data
-from phyclone.math_utils import discrete_rvs
 
 
 def run(
@@ -79,18 +76,21 @@ def run(
     # Main sampler
     # =========================================================================
 
-    trace = setup_trace(timer, tree, tree_dist)
+    # trace = setup_trace(timer, tree, tree_dist)
 
     results = _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
                                 num_samples_prune_regraph, print_freq, rng, samplers, samples, subtree_update_prob,
-                                thin, timer, trace, tree, tree_dist)
+                                thin, timer, tree, tree_dist)
 
     _create_main_run_output(cluster_file, out_file, results)
 
 
 def _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
                       num_samples_prune_regraph, print_freq, rng, samplers, samples, subtree_update_prob, thin, timer,
-                      trace, tree, tree_dist):
+                      tree, tree_dist):
+
+    trace = setup_trace(timer, tree, tree_dist)
+
     dp_sampler = samplers.dp_sampler
     prg_sampler = samplers.prg_sampler
     subtree_sampler = samplers.subtree_sampler
@@ -189,31 +189,6 @@ def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regr
     print()
 
     return tree
-
-
-class UnconditionalSMCSampler(object):
-
-    def __init__(self, kernel, num_particles=20, resample_threshold=0.5):
-        self.kernel = kernel
-
-        self.num_particles = num_particles
-
-        self.resample_threshold = resample_threshold
-
-        self._rng = kernel.rng
-
-    def sample_tree(self, tree):
-        data_sigma = RootPermutationDistribution.sample(tree, self._rng)
-
-        smc_sampler = SMCSampler(
-            data_sigma, self.kernel, num_particles=self.num_particles, resample_threshold=self.resample_threshold
-        )
-
-        swarm = smc_sampler.sample()
-
-        idx = discrete_rvs(swarm.weights, self._rng)
-
-        return swarm.particles[idx].tree
 
 
 @dataclass
