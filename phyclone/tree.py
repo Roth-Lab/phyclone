@@ -4,7 +4,7 @@ import networkx as nx
 import numpy as np
 
 from phyclone.consensus import get_clades
-from phyclone.math_utils import log_sum_exp, log_factorial  # , cached_log_factorial
+from phyclone.math_utils import log_sum_exp, log_factorial
 
 from phyclone.tree_utils import add_to_log_p, subtract_from_log_p, compute_log_S
 
@@ -31,7 +31,6 @@ class FSCRPDistribution(object):
             num_data_points = len(node_data)
 
             log_p += log_factorial(num_data_points - 1)
-            # log_p += cached_log_factorial(num_data_points - 1)
 
         # Uniform prior on toplogies
         log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
@@ -123,7 +122,6 @@ class Tree(object):
         other_key = (get_clades(other), frozenset(other.outliers))
 
         return self_key == other_key
-
 
     @staticmethod
     def get_single_node_tree(data):
@@ -416,16 +414,19 @@ class Tree(object):
         self._graph = nx.relabel_nodes(self._graph, node_map)
 
     def remove_data_point_from_node(self, data_point, node):
+        assert data_point.idx in self.labels
 
         if node != -1:
             self._data[node].remove(data_point)
+            self._graph.nodes[node]["log_R"] -= data_point.value
             self._graph.nodes[node]["log_p"] = subtract_from_log_p(self._graph.nodes[node]["log_p"], data_point.value)
 
             if data_point.outlier_prob != 0:
                 self.outlier_log_p -= data_point.outlier_prob_not
                 self._graph.nodes[node]['outlier_log_p'] -= data_point.outlier_prob_not
 
-            self._update_path_to_root(node)
+            # self._update_path_to_root(node)
+            self._update_path_to_root(self.get_parent(node))
         else:
             self.remove_data_point_from_outliers(data_point)
 
