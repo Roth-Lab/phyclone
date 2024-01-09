@@ -1,6 +1,7 @@
 import click
 
-import phyclone.run
+from phyclone.process_trace import write_map_results, write_consensus_results, write_topology_report
+from phyclone.run import run as run_prog
 
 
 @click.command(
@@ -43,7 +44,7 @@ import phyclone.run
 def consensus(**kwargs):
     """ Build consensus results.
     """
-    phyclone.run.write_consensus_results(**kwargs)
+    write_consensus_results(**kwargs)
 
 
 @click.command(
@@ -73,7 +74,7 @@ def consensus(**kwargs):
 def map(**kwargs):
     """ Build MAP results.
     """
-    phyclone.run.write_map_results(**kwargs)
+    write_map_results(**kwargs)
 
 
 # =========================================================================
@@ -97,7 +98,7 @@ def map(**kwargs):
 def topology_report(**kwargs):
     """ Build topology report.
     """
-    phyclone.run.write_topology_report(**kwargs)
+    write_topology_report(**kwargs)
 
 
 # =========================================================================
@@ -275,7 +276,7 @@ def topology_report(**kwargs):
 def run(**kwargs):
     """ Run a new PhyClone analysis.
     """
-    phyclone.run.run(**kwargs)
+    run_prog(**kwargs)
 
 
 # =========================================================================
