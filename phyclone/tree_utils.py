@@ -64,28 +64,8 @@ def _comp_log_d_split(child_log_R_values):
     if num_children == 1:
         return child_log_R_values[0]
 
-    # log_D = child_log_R_values[0].copy()
-    # num_dims = log_D.shape[0]
-    # num_children = child_log_R_values.shape[0]
-    #
-    # _comp_log_d_internals(child_log_R_values, log_D, num_children, num_dims)
     log_D = _comp_log_d_internals(child_log_R_values, num_children)
     return log_D
-
-
-# @numba.jit(cache=True, nopython=True, parallel=True)
-# def _comp_log_d_internals(child_log_R_values, log_D, num_children, num_dims):
-#     for j in range(1, num_children):
-#         child_log_R = child_log_R_values[j]
-#         for i in numba.prange(num_dims):
-#             log_D[i, :] = conv_log(child_log_R[i, :], log_D[i, :])
-
-# @numba.jit(cache=True, nopython=True)
-# def _comp_log_d_internals(child_log_R_values, log_D, num_children, num_dims):
-#     for j in range(1, num_children):
-#         child_log_R = child_log_R_values[j]
-#         for i in range(num_dims):
-#             log_D[i, :] = conv_log(child_log_R[i, :], log_D[i, :])
 
 
 # @numba.jit(cache=True, nopython=True)
@@ -180,14 +160,9 @@ def create_cache_info_file(out_file):
                                                                             _cache_ratio(
                                                                                 _convolve_two_children.cache_info())),
               file=f)
-        # print('compute_log_R cache info: {}, hit ratio: {}'.format(compute_log_R.cache_info(),
-        #                                                            _cache_ratio(compute_log_R.cache_info())), file=f)
-        # print('add_to_log_R cache info: {}, hit ratio: {}'.format(add_to_log_R.cache_info(),
-        #                                                           _cache_ratio(add_to_log_R.cache_info())), file=f)
 
 
-def clear_function_caches(clear_all=False):
+def clear_function_caches():
     compute_log_S.cache_clear()
-    if clear_all:
-        add_to_log_p.cache_clear()
-        subtract_from_log_p.cache_clear()
+    add_to_log_p.cache_clear()
+    subtract_from_log_p.cache_clear()
