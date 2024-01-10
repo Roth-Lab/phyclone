@@ -137,7 +137,8 @@ class Tree(object):
         node = tree.create_root_node([])
 
         for data_point in data:
-            tree.add_data_point_to_node(data_point, node)
+            # tree.add_data_point_to_node(data_point, node)
+            tree._add_data_point_to_node_builder(data_point, node)
 
         return tree
 
@@ -232,8 +233,11 @@ class Tree(object):
 
         if node != -1:
             self._data[node].append(data_point)
-            self._graph.nodes[node]["log_R"] += data_point.value
-            self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
+            self._graph.nodes[node]["log_R"] = np.add(data_point.value, self._graph.nodes[node]["log_R"], order='C')
+            self._graph.nodes[node]["log_p"] = np.add(data_point.value, self._graph.nodes[node]["log_p"], order='C')
+            # self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
+            # self._graph.nodes[node]["log_R"] += data_point.value
+            # self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
 
             if data_point.outlier_prob != 0:
                 self.outlier_log_p += data_point.outlier_prob_not
@@ -313,7 +317,8 @@ class Tree(object):
         self._add_node(node)
 
         for data_point in data:
-            self.add_data_point_to_node(data_point, node, False)
+            # self.add_data_point_to_node(data_point, node, False)
+            self._add_data_point_to_node_builder(data_point, node, False)
 
         self._graph.add_edge("root", node)
 
@@ -346,7 +351,7 @@ class Tree(object):
         new._graph = self._graph.copy()
 
         for node in new._graph:
-            new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"].copy()
+            new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"]
             new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"]
             new._graph.nodes[node]['outlier_log_p'] = self._graph.nodes[node]['outlier_log_p']
 
@@ -437,8 +442,12 @@ class Tree(object):
 
         if node != -1:
             self._data[node].remove(data_point)
-            self._graph.nodes[node]["log_R"] -= data_point.value
-            self._graph.nodes[node]["log_p"] = subtract_from_log_p(self._graph.nodes[node]["log_p"], data_point.value)
+            self._graph.nodes[node]["log_R"] = np.subtract(self._graph.nodes[node]["log_R"],
+                                                           data_point.value, order='C')
+            self._graph.nodes[node]["log_p"] = np.subtract(self._graph.nodes[node]["log_p"],
+                                                           data_point.value, order='C')
+            # self._graph.nodes[node]["log_R"] -= data_point.value
+            # self._graph.nodes[node]["log_p"] = subtract_from_log_p(self._graph.nodes[node]["log_p"], data_point.value)
 
             if data_point.outlier_prob != 0:
                 self.outlier_log_p -= data_point.outlier_prob_not
@@ -509,15 +518,28 @@ class Tree(object):
         log_p = self._graph.nodes[node]["log_p"]
 
         if len(child_log_r_values) == 0:
-            if "log_R" in self._graph.nodes[node]:
-                np.copyto(self._graph.nodes[node]["log_R"], log_p)
-            else:
-                self._graph.nodes[node]["log_R"] = log_p.copy()
+            self._graph.nodes[node]["log_R"] = log_p.copy()
             return
         else:
             log_s = compute_log_S(child_log_r_values)
 
-        if "log_R" in self._graph.nodes[node]:
-            self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order='C', out=self._graph.nodes[node]["log_R"])
-        else:
-            self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order='C')
+        self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order='C')
+
+        # if "log_R" in self._graph.nodes[node]:
+        #     self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order='C', out=self._graph.nodes[node]["log_R"])
+        # else:
+        #     self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order='C')
+
+        # if len(child_log_r_values) == 0:
+        #     if "log_R" in self._graph.nodes[node]:
+        #         np.copyto(self._graph.nodes[node]["log_R"], log_p)
+        #     else:
+        #         self._graph.nodes[node]["log_R"] = log_p.copy()
+        #     return
+        # else:
+        #     log_s = compute_log_S(child_log_r_values)
+        #
+        # if "log_R" in self._graph.nodes[node]:
+        #     self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order='C', out=self._graph.nodes[node]["log_R"])
+        # else:
+        #     self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order='C')
