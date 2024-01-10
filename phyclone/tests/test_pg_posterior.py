@@ -88,13 +88,8 @@ class BaseTest(object):
 
             self.tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
 
-            factorial_arr = full(6, -inf)
-            simple_log_factorial(5, factorial_arr)
-
             kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=0, perm_dist=perm_dist,
                                 rng=self._rng)
-
-            self.factorial_arr = factorial_arr
 
             return ParticleGibbsTreeSampler(kernel, self._rng)
 

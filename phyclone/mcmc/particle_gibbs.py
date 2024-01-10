@@ -43,8 +43,6 @@ class ParticleGibbsTreeSampler(object):
             resample_threshold=self.resample_threshold
         )
 
-        # print('Out of swarm build')
-
         return sampler.sample()
 
     def _sample_tree_from_swarm(self, swarm):
@@ -100,7 +98,9 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
         for p, w in zip(swarm.particles, swarm.unnormalized_log_weights):
             subtree = p.tree
 
-            w -= self.kernel.tree_dist.log_p_one(subtree)
+            # w -= self.kernel.tree_dist.log_p_one(subtree)
+
+            w -= p.log_p_one
 
             new_tree = tree.copy()
 
@@ -111,9 +111,13 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
 
             new_tree.update()
 
-            w += self.kernel.tree_dist.log_p_one(new_tree)
-
             p.tree = new_tree
+
+            p.data = new_tree.data
+
+            # w += self.kernel.tree_dist.log_p_one(new_tree)
+
+            w += p.log_p_one
 
             new_swarm.add_particle(w, p)
 

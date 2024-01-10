@@ -157,23 +157,27 @@ class Kernel(object):
         #         log_w = self._get_log_p(tree) - self._get_log_p(parent_tree) + \
         #             self.perm_dist.log_pdf(tree) - self.perm_dist.log_pdf(parent_tree) - \
         #             log_q
+        particle = Particle(0, parent_particle, tree, data, self.tree_dist, self.perm_dist)
+
         if self.perm_dist is None:
             if parent_particle is None:
-                log_w = self._get_log_p(tree) - log_q
+                log_w = particle.log_p - log_q
 
             else:
-                log_w = self._get_log_p(tree) - parent_particle.log_p - log_q
+                log_w = particle.log_p - parent_particle.log_p - log_q
 
         else:
             if parent_particle is None:
-                log_w = self._get_log_p(tree) + self.perm_dist.log_pdf(tree) - log_q
+                log_w = particle.log_p + particle.log_pdf - log_q
 
             else:
-                log_w = self._get_log_p(tree) - parent_particle.log_p + \
-                    self.perm_dist.log_pdf(tree) - parent_particle.log_pdf - \
+                log_w = particle.log_p - parent_particle.log_p + \
+                    particle.log_pdf - parent_particle.log_pdf - \
                     log_q
 
-        return Particle(log_w, parent_particle, tree, data, self.tree_dist, self.perm_dist)
+        particle.log_w = log_w
+        return particle
+        # return Particle(log_w, parent_particle, tree, data, self.tree_dist, self.perm_dist)
 
     def propose_particle(self, data_point, parent_particle, data):
         """ Propose a particle for t given a particle from t - 1 and a data point.

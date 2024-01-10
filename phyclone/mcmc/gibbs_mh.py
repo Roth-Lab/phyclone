@@ -20,22 +20,28 @@ class DataPointSampler(object):
         self._rng = rng
 
     def sample_tree(self, tree):
-            data_idxs = list(tree.labels.keys())
-            
-            # random.shuffle(data_idxs)
+        tree_labels = tree.labels
+        data_idxs = list(tree_labels.keys())
 
-            self._rng.shuffle(data_idxs)
-            
-            for data_idx in data_idxs:
-                if len(tree.node_data[tree.labels[data_idx]]) > 1:
-                    tree = self._sample_tree(data_idx, tree)
-    
-            return tree 
-        
-    def _sample_tree(self, data_idx, tree):
+        # random.shuffle(data_idxs)
+
+        self._rng.shuffle(data_idxs)
+
+        for data_idx in data_idxs:
+            # if len(tree.node_data[tree.labels[data_idx]]) > 1:
+            old_node = tree_labels[data_idx]
+            if tree.get_data_len(old_node) > 1:
+                tree = self._sample_tree(data_idx, tree, old_node)
+                tree_labels = tree.labels
+
+        return tree
+
+    def _sample_tree(self, data_idx, tree, old_node):
         data_point = tree.data[data_idx]
+
+        assert data_point.idx == data_idx
         
-        old_node = tree.labels[data_idx]
+        # old_node = tree.labels[data_idx]
         
         new_trees = []
         
@@ -107,17 +113,25 @@ class PruneRegraphSampler(object):
         remaining_nodes.append(None)
 
         for parent in remaining_nodes:
-            new_tree = tree.copy()
+            new_tree_2 = new_tree.copy()
 
-            subtree = new_tree.get_subtree(subtree_root)
+            new_tree_2.add_subtree(subtree, parent=parent)
 
-            new_tree.remove_subtree(subtree)
+            # new_tree_2.update()
 
-            new_tree.add_subtree(subtree, parent=parent)
+            trees.append(new_tree_2)
 
-            new_tree.update()
-
-            trees.append(new_tree)
+            # new_tree = tree.copy()
+            #
+            # subtree = new_tree.get_subtree(subtree_root)
+            #
+            # new_tree.remove_subtree(subtree)
+            #
+            # new_tree.add_subtree(subtree, parent=parent)
+            #
+            # new_tree.update()
+            #
+            # trees.append(new_tree)
 
         # log_p = np.array([self.tree_dist.log_p(x) for x in trees])
         iterable = (self.tree_dist.log_p(x) for x in trees)
