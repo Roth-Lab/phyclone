@@ -91,6 +91,7 @@ class Particle(object):
     @tree.getter
     def tree(self):
         return Tree.from_dict(self.data, self._tree)
+        # return self._tree.copy()
 
     @tree.setter
     def tree(self, tree):
@@ -101,8 +102,9 @@ class Particle(object):
             self.log_pdf = self._perm_dist.log_pdf(tree)
         self.log_p_one = self._tree_dist.log_p_one(tree)
         self.tree_roots = tree.roots
-        # self._hash_val = hash(tree)
+        self._hash_val = hash(tree)
         self._tree = tree.to_dict()
+        # self._tree = tree
 
 
 class Kernel(object):
@@ -212,7 +214,8 @@ class ProposalDistribution(object):
     def _empty_tree(self):
         """ Tree has no nodes
         """
-        return (self.parent_particle is None) or (len(self.parent_particle.tree.roots) == 0)
+        # return (self.parent_particle is None) or (len(self.parent_particle.tree.roots) == 0)
+        return (self.parent_particle is None) or (len(self.parent_particle.tree_roots) == 0)
 
     def log_p(self, state):
         """ Get the log probability of proposing a tree.

@@ -25,10 +25,10 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         
         self._init_dist(prnt_tree)
 
-    def _empty_tree(self):
-        """ Tree has no nodes
-        """
-        return (self.parent_particle is None) or (len(self.parent_particle.tree_roots) == 0)
+    # def _empty_tree(self):
+    #     """ Tree has no nodes
+    #     """
+    #     return (self.parent_particle is None) or (len(self.parent_particle.tree_roots) == 0)
 
     def log_p(self, tree):
         """ Get the log probability of the tree.

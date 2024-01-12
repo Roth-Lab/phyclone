@@ -62,6 +62,8 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
             parent_tree = new_tree
 
+            # print('Constrained path build for dp {}, iter {}'.format(data_point.idx, len(constrained_path)-1))
+
         # assert nx.is_isomorphic(tree.graph, particle.tree.graph)
         assert nx.is_isomorphic(tree.graph, new_tree.graph)
 

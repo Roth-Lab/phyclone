@@ -171,11 +171,17 @@ def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regr
 
                 tree = burnin_sampler.sample_tree(tree)
 
+                # print('out of burn-in uncond sampler')
+
                 for _ in range(num_samples_data_point):
                     tree = dp_sampler.sample_tree(tree)
 
+                # print('out of burn-in DP sampler')
+
                 for _ in range(num_samples_prune_regraph):
                     tree = prg_sampler.sample_tree(tree)
+
+                # print('out of burn-in PRG sampler')
 
                 tree.relabel_nodes()
 
