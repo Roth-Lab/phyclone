@@ -11,10 +11,6 @@ from phyclone.smc.utils import RootPermutationDistribution
 
 import phyclone.tests.simulate as simulate
 
-from math import inf
-from phyclone.math_utils import simple_log_factorial
-from numpy import full
-
 import numpy as np
 from numba import set_num_threads
 

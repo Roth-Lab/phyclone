@@ -20,10 +20,7 @@ class FSCRPDistribution(object):
         log_p = 0
 
         # CRP prior
-        # num_nodes = len(tree.nodes)
-        # num_nodes_c = tree.get_number_of_nodes()
-        #
-        # assert num_nodes_c == num_nodes
+
         num_nodes = tree.get_number_of_nodes()
 
         log_p += num_nodes * np.log(self.alpha)
@@ -31,27 +28,6 @@ class FSCRPDistribution(object):
         log_p += tree.log_p_factorial
 
         log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
-
-        # log_p += num_nodes * np.log(self.alpha)
-        # log_p_check = log_p
-        #
-        # for node, node_data in tree.node_data.items():
-        #     if node == -1:
-        #         continue
-        #
-        #     num_data_points = len(node_data)
-        #
-        #     log_p += log_factorial(num_data_points - 1)
-        #
-        # log_p_check += tree.log_p_factorial
-        #
-        # # Uniform prior on toplogies
-        # # log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
-        # last_val = (num_nodes - 1) * np.log(num_nodes + 1)
-        # log_p -= last_val
-        # log_p_check -= last_val
-        #
-        # assert np.allclose(log_p, log_p_check) and np.allclose(log_p_check, log_p)
 
         return log_p
 
@@ -66,22 +42,8 @@ class TreeJointDistribution(object):
         """
         log_p = self.prior.log_p(tree) + tree.outlier_log_p
 
-        # Outlier prior
-        # for node, node_data in tree.node_data.items():
-        #     for data_point in node_data:
-        #         if data_point.outlier_prob != 0:
-        #             if node == -1:
-        #                 log_p += data_point.outlier_prob
-        #             else:
-        #                 log_p += data_point.outlier_prob_not
-
-        # log_p_check = tree.outlier_log_p + self.prior.log_p(tree)
-
         if len(tree.roots) > 0:
-            # for i in range(tree.grid_size[0]):
-            #     log_p += log_sum_exp(tree.data_log_likelihood[i, :])
-            log_p += sum([log_sum_exp(tree.data_log_likelihood[i, :]) for i in range(tree.grid_size[0])])
-            # log_p += sum(log_sum_exp(tree.data_log_likelihood[i, :]) for i in range(tree.grid_size[0]))
+            log_p += sum(log_sum_exp(tree.data_log_likelihood[i, :]) for i in range(tree.grid_size[0]))
 
         for data_point in tree.outliers:
             log_p += data_point.outlier_marginal_prob
@@ -94,22 +56,8 @@ class TreeJointDistribution(object):
 
         log_p = self.prior.log_p(tree) + tree.outlier_log_p
 
-        # log_p = self.prior.log_p(tree)
-        #
-        # # Outlier prior
-        # for node, node_data in tree.node_data.items():
-        #     for data_point in node_data:
-        #         if data_point.outlier_prob != 0:
-        #             if node == -1:
-        #                 log_p += data_point.outlier_prob
-        #             else:
-        #                 log_p += data_point.outlier_prob_not
-
         if len(tree.roots) > 0:
-            # for i in range(tree.grid_size[0]):
-            #     log_p += tree.data_log_likelihood[i, -1]
-            # log_p += sum(tree.data_log_likelihood[i, -1] for i in range(tree.grid_size[0]))
-            log_p += sum([tree.data_log_likelihood[i, -1] for i in range(tree.grid_size[0])])
+            log_p += sum(tree.data_log_likelihood[i, -1] for i in range(tree.grid_size[0]))
 
         for data_point in tree.outliers:
             log_p += data_point.outlier_marginal_prob
@@ -158,7 +106,6 @@ class Tree(object):
         node = tree.create_root_node([])
 
         for data_point in data:
-            # tree.add_data_point_to_node(data_point, node)
             tree._add_data_point_to_node_builder(data_point, node)
 
         return tree
@@ -206,9 +153,8 @@ class Tree(object):
 
         return result
 
-    # @property
     def get_number_of_nodes(self):
-        return self._graph.number_of_nodes() - 1  # Minus one to accoutn for 'root'
+        return self._graph.number_of_nodes() - 1  # Minus one to account for 'root'
 
     @property
     def node_data(self):
@@ -240,7 +186,6 @@ class Tree(object):
             new._add_node(node)
 
         for idx, node in tree_dict["labels"].items():
-            # new.add_data_point_to_node(data[idx], node, False)
             new._add_data_point_to_node_builder(data[idx], node, False)
 
         new.update()
@@ -259,28 +204,10 @@ class Tree(object):
         if node != -1:
 
             self._data[node].append(data_point)
-            new_len = len(self._data[node])
-            old_len = new_len - 1
-
-            if old_len == 0:
-                old_val = 0.0
-                new_val = 0.0
-            else:
-                # old_val = log_factorial(old_len - 1)
-                # new_val = log_factorial(len(self._data[node])-1)
-                # old_val = cached_log_factorial(old_len - 1)
-                old_val = self._graph.nodes[node]['factorial_log_p']
-                new_val = cached_log_factorial(new_len-1)
-
-            self.log_p_factorial -= old_val
-            self.log_p_factorial += new_val
-            self._graph.nodes[node]['factorial_log_p'] = new_val
+            self._update_log_factorials_after_adding(node)
 
             self._graph.nodes[node]["log_R"] = np.add(data_point.value, self._graph.nodes[node]["log_R"], order='C')
             self._graph.nodes[node]["log_p"] = np.add(data_point.value, self._graph.nodes[node]["log_p"], order='C')
-            # self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
-            # self._graph.nodes[node]["log_R"] += data_point.value
-            # self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
 
             if data_point.outlier_prob != 0:
                 self.outlier_log_p += data_point.outlier_prob_not
@@ -291,34 +218,28 @@ class Tree(object):
         else:
             self.add_data_point_to_outliers(data_point)
 
+    def _update_log_factorials_after_adding(self, node):
+        new_len = len(self._data[node])
+        old_len = new_len - 1
+        if old_len == 0:
+            old_val = 0.0
+            new_val = 0.0
+        else:
+            old_val = self._graph.nodes[node]['factorial_log_p']
+            new_val = cached_log_factorial(new_len - 1)
+        self.log_p_factorial -= old_val
+        self.log_p_factorial += new_val
+        self._graph.nodes[node]['factorial_log_p'] = new_val
+
     def _add_data_point_to_node_builder(self, data_point, node, update_path=True):
         assert data_point.idx not in self.labels
 
         if node != -1:
             self._data[node].append(data_point)
-            new_len = len(self._data[node])
-            old_len = new_len - 1
+            self._update_log_factorials_after_adding(node)
 
-            if old_len == 0:
-                old_val = 0.0
-                new_val = 0.0
-                # new_val = log_factorial(len(self._data[node])-1)
-            else:
-                # old_val = cached_log_factorial(old_len - 1)
-                old_val = self._graph.nodes[node]['factorial_log_p']
-                new_val = cached_log_factorial(new_len - 1)
-                # old_val = log_factorial(old_len - 1)
-                # new_val = log_factorial(new_len - 1)
-                # new_val = log_factorial(len(self._data[node])-1)
-
-            self.log_p_factorial -= old_val
-            self.log_p_factorial += new_val
-            self._graph.nodes[node]['factorial_log_p'] = new_val
-
-            # self._data[node].append(data_point)
             self._graph.nodes[node]["log_R"] += data_point.value
             self._graph.nodes[node]["log_p"] += data_point.value
-            # self._graph.nodes[node]["log_p"] = add_to_log_p(self._graph.nodes[node]["log_p"], data_point.value)
 
             if data_point.outlier_prob != 0:
                 self.outlier_log_p += data_point.outlier_prob_not
@@ -347,24 +268,22 @@ class Tree(object):
             self._data[new_node] = subtree._data[old_node]
             self.outlier_log_p += subtree._graph.nodes[old_node]['outlier_log_p']
 
-            # new_val = log_factorial(len(self._data[new_node])-1)
-            # new_val = cached_log_factorial(len(self._data[new_node]) - 1)
-            # self.log_p_factorial += new_val
-
         nx.relabel_nodes(subtree._graph, node_map, copy=False)
 
         self._graph = nx.compose(self._graph, subtree.graph)
 
-        # Connect subtree
+        parent = self._connect_subtree(parent, subtree)
+
+        self._update_path_to_root(parent)
+
+    def _connect_subtree(self, parent, subtree):
         if parent is None:
             parent = "root"
-
         for node in subtree.roots:
             self._graph.add_edge(parent, node)
             self._graph.nodes[node]['factorial_log_p'] = subtree._graph.nodes[node]['factorial_log_p']
             self.log_p_factorial += self._graph.nodes[node]['factorial_log_p']
-
-        self._update_path_to_root(parent)
+        return parent
 
     def create_root_node(self, children=None, data=None):
         """ Create a new root node in the forest.
@@ -386,7 +305,6 @@ class Tree(object):
         self._add_node(node)
 
         for data_point in data:
-            # self.add_data_point_to_node(data_point, node, False)
             self._add_data_point_to_node_builder(data_point, node, False)
 
         self._graph.add_edge("root", node)
@@ -467,9 +385,6 @@ class Tree(object):
             new._graph.nodes[node]['factorial_log_p'] = self._graph.nodes[node]['factorial_log_p']
             new.outlier_log_p += self._graph.nodes[node]['outlier_log_p']
 
-            # new_val = log_factorial(len(self._data[node])-1)
-            # new_val = cached_log_factorial(len(self._data[node]) - 1) #TODO: HERE
-            # new.log_p_factorial += new_val
             new._graph.nodes[node]['factorial_log_p'] = self._graph.nodes[node]['factorial_log_p']
             new.log_p_factorial += self._graph.nodes[node]['factorial_log_p']
 
@@ -521,27 +436,8 @@ class Tree(object):
 
         if node != -1:
             self._data[node].remove(data_point)
-            new_len = len(self._data[node])
-            old_len = new_len + 1
+            self._update_log_factorials_after_removing(node)
 
-            if new_len == 0:
-                new_val = 0.0
-                # old_val = log_factorial(old_len-1)
-                # old_val = cached_log_factorial(old_len - 1)
-                old_val = self._graph.nodes[node]['factorial_log_p']
-            else:
-                # old_val = cached_log_factorial(old_len - 1)
-                # new_val = cached_log_factorial(new_len-1)
-                # old_val = log_factorial(old_len - 1)
-                # new_val = log_factorial(new_len-1)
-                old_val = self._graph.nodes[node]['factorial_log_p']
-                new_val = cached_log_factorial(new_len-1)
-
-            self.log_p_factorial -= old_val
-            self.log_p_factorial += new_val
-            self._graph.nodes[node]['factorial_log_p'] = new_val
-
-            # self._data[node].remove(data_point)
             self._graph.nodes[node]["log_R"] = np.subtract(self._graph.nodes[node]["log_R"],
                                                            data_point.value, order='C')
             self._graph.nodes[node]["log_p"] = np.subtract(self._graph.nodes[node]["log_p"],
@@ -553,10 +449,21 @@ class Tree(object):
                 self.outlier_log_p -= data_point.outlier_prob_not
                 self._graph.nodes[node]['outlier_log_p'] -= data_point.outlier_prob_not
 
-            # self._update_path_to_root(node)
             self._update_path_to_root(self.get_parent(node))
         else:
             self.remove_data_point_from_outliers(data_point)
+
+    def _update_log_factorials_after_removing(self, node):
+        new_len = len(self._data[node])
+        if new_len == 0:
+            new_val = 0.0
+            old_val = self._graph.nodes[node]['factorial_log_p']
+        else:
+            old_val = self._graph.nodes[node]['factorial_log_p']
+            new_val = cached_log_factorial(new_len - 1)
+        self.log_p_factorial -= old_val
+        self.log_p_factorial += new_val
+        self._graph.nodes[node]['factorial_log_p'] = new_val
 
     def remove_data_point_from_outliers(self, data_point):
         self._data[-1].remove(data_point)
@@ -576,8 +483,6 @@ class Tree(object):
 
             for node in subtree.nodes:
                 self.outlier_log_p -= subtree._graph.nodes[node]['outlier_log_p']
-                # new_val = log_factorial(len(self._data[node])-1)
-                # new_val = cached_log_factorial(len(self._data[node]) - 1)
                 new_val = subtree._graph.nodes[node]['factorial_log_p']
                 self.log_p_factorial -= new_val
                 del self._data[node]
