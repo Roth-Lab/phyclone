@@ -26,9 +26,6 @@ class BaseTest(object):
 
         def __init__(self, method_name: str = ...):
             super().__init__(method_name)
-            self.factorial_arr = None
-
-            self.memo_logs = None
 
             self._rng = np.random.default_rng(12345)
 
