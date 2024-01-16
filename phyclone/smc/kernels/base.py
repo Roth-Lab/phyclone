@@ -1,12 +1,13 @@
 from phyclone.tree import Tree
+from collections import deque
 
 
 class TreeHolder(object):
     # __slots__ = 'log_w', 'parent_particle', 'tree', 'data', '_tree'
 
-    def __init__(self, tree, data, tree_dist):
+    def __init__(self, tree, tree_dist):
 
-        self.data = data
+        # self.data = data
 
         self._tree_dist = tree_dist
 
@@ -27,7 +28,7 @@ class TreeHolder(object):
         return self_key == other_key
 
     def copy(self):
-        return TreeHolder(self.tree, self.data, self._tree_dist)
+        return TreeHolder(self.tree, self._tree_dist)
         # TODO: re-write this? building tree unnecessarily here
 
     @property
@@ -42,6 +43,7 @@ class TreeHolder(object):
     def tree(self, tree):
         self.log_p = self._tree_dist.log_p(tree)
         # self.tree_roots = tree.roots
+        self.data = tree.data
         self._hash_val = hash(tree)
         self._tree = tree.to_dict()
 
@@ -50,6 +52,8 @@ class Particle(object):
     # __slots__ = 'log_w', 'parent_particle', 'tree', 'data', '_tree'
 
     def __init__(self, log_w, parent_particle, tree, data, tree_dist, perm_dist):
+        self._built_tree = deque(maxlen=1)
+
         self.log_w = log_w
 
         self.parent_particle = parent_particle
@@ -105,6 +109,18 @@ class Particle(object):
         self._hash_val = hash(tree)
         self._tree = tree.to_dict()
         # self._tree = tree
+
+    @property
+    def built_tree(self):
+        return self._built_tree
+
+    @built_tree.setter
+    def built_tree(self, tree):
+        self._built_tree.append(tree)
+
+    @built_tree.getter
+    def built_tree(self):
+        return self._built_tree.pop()
 
 
 class Kernel(object):

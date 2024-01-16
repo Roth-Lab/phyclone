@@ -147,21 +147,6 @@ def _cache_ratio(cache_obj):
     return ratio
 
 
-def create_cache_info_file(out_file):
-    with open(out_file, "w") as f:
-        print('compute_s cache info: {}, hit ratio: {}'.format(compute_log_S.cache_info(),
-                                                               _cache_ratio(compute_log_S.cache_info())), file=f)
-        print('add_to_log_p cache info: {}, hit ratio: {}'.format(add_to_log_p.cache_info(),
-                                                                  _cache_ratio(add_to_log_p.cache_info())), file=f)
-        print('subtract_from_log_p cache info: {}, hit ratio: {}'.format(subtract_from_log_p.cache_info(),
-                                                                         _cache_ratio(
-                                                                             subtract_from_log_p.cache_info())), file=f)
-        print('_convolve_two_children cache info: {}, hit ratio: {}'.format(_convolve_two_children.cache_info(),
-                                                                            _cache_ratio(
-                                                                                _convolve_two_children.cache_info())),
-              file=f)
-
-
 def clear_function_caches():
     compute_log_S.cache_clear()
     add_to_log_p.cache_clear()
