@@ -35,17 +35,17 @@ class TreeHolder(object):
     def tree(self):
         return self._tree
 
-    @tree.getter
-    def tree(self):
-        return Tree.from_dict(self.data, self._tree)
-
     @tree.setter
     def tree(self, tree):
         self.log_p = self._tree_dist.log_p(tree)
         # self.tree_roots = tree.roots
-        self.data = tree.data
+        self._data = tree.data
         self._hash_val = hash(tree)
         self._tree = tree.to_dict()
+
+    @tree.getter
+    def tree(self):
+        return Tree.from_dict(self._data, self._tree)
 
 
 class Particle(object):
@@ -85,8 +85,24 @@ class Particle(object):
         return self_key == other_key
 
     def copy(self):
-        return Particle(self.log_w, self.parent_particle, self.tree, self.data, self._tree_dist, self._perm_dist)
-        # TODO: re-write this? building tree unnecessarily here
+        cls = self.__class__
+
+        new = cls.__new__(cls)
+
+        new._built_tree = deque(maxlen=1)
+        new.log_w = self.log_w
+        new.parent_particle = self.parent_particle
+        new.data = self.data.copy()
+        new._tree_dist = self._tree_dist
+        new._perm_dist = self._perm_dist
+        new.log_p = self.log_p
+        new.log_pdf = self.log_pdf
+        new.log_p_one = self.log_p_one
+        new._hash_val = self._hash_val
+        new.tree_roots = self.tree_roots.copy()
+        new._tree = self._tree.copy()
+        return new
+        # return Particle(self.log_w, self.parent_particle, self.tree, self.data, self._tree_dist, self._perm_dist)
 
     @property
     def tree(self):
@@ -133,7 +149,7 @@ class Kernel(object):
     def rng(self):
         return self._rng
 
-    def get_proposal_distribution(self, data_point, parent_particle, data=None):
+    def get_proposal_distribution(self, data_point, parent_particle, parent_tree=None):
         """ Get proposal distribution given the current data point and parent particle.
         """
         raise NotImplementedError
@@ -200,7 +216,7 @@ class Kernel(object):
     def propose_particle(self, data_point, parent_particle, data):
         """ Propose a particle for t given a particle from t - 1 and a data point.
         """
-        proposal_dist = self.get_proposal_distribution(data_point, parent_particle, data)
+        proposal_dist = self.get_proposal_distribution(data_point, parent_particle)
 
         tree = proposal_dist.sample()
 
@@ -218,7 +234,7 @@ class ProposalDistribution(object):
     """ Abstract class for proposal distribution.
     """
 
-    def __init__(self, data_point, kernel, parent_particle):
+    def __init__(self, data_point, kernel, parent_particle, parent_tree=None):
         self.data_point = data_point
 
         self.kernel = kernel
@@ -227,11 +243,22 @@ class ProposalDistribution(object):
 
         self._rng = kernel.rng
 
+        self._set_parent_tree(parent_tree)
+
     def _empty_tree(self):
         """ Tree has no nodes
         """
         # return (self.parent_particle is None) or (len(self.parent_particle.tree.roots) == 0)
         return (self.parent_particle is None) or (len(self.parent_particle.tree_roots) == 0)
+
+    def _set_parent_tree(self, parent_tree):
+        if self.parent_particle is not None:
+            if parent_tree is not None:
+                self.parent_tree = parent_tree
+            else:
+                self.parent_tree = self.parent_particle.tree
+        else:
+            self.parent_tree = None
 
     def log_p(self, state):
         """ Get the log probability of proposing a tree.

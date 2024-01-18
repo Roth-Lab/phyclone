@@ -12,23 +12,16 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
     Considers all possible proposals and weight according to log probability.
     """
 
-    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, prnt_tree=None, data=None):
-        super().__init__(data_point, kernel, parent_particle)
-        
+    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, parent_tree=None):
+        super().__init__(data_point, kernel, parent_particle, parent_tree)
+
         self.outlier_proposal_prob = outlier_proposal_prob
 
         self.tree_dist = self.kernel.tree_dist
 
         self.perm_dist = self.kernel.perm_dist
 
-        self._data = data
-        
-        self._init_dist(prnt_tree)
-
-    # def _empty_tree(self):
-    #     """ Tree has no nodes
-    #     """
-    #     return (self.parent_particle is None) or (len(self.parent_particle.tree_roots) == 0)
+        self._init_dist()
 
     def log_p(self, tree):
         """ Get the log probability of the tree.
@@ -49,22 +42,16 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
         return tree.tree
 
-    def _init_dist(self, prnt_tree):
+    def _init_dist(self):
         self._log_p = {}
 
-        if self.parent_particle is not None:
-            if prnt_tree is not None:
-                self.parent_tree = prnt_tree
-            else:
-                self.parent_tree = self.parent_particle.tree
-        else:
-            self.parent_tree = None
+        # self._set_parent_tree(prnt_tree)
 
         trees = self._get_existing_node_trees() + self._get_new_node_trees()
-        
+
         if self.outlier_proposal_prob > 0:
             trees.extend(self._get_outlier_tree())
-        
+
         # log_q = np.array([self.kernel.tree_dist.log_p(x) for x in trees])
         log_q = np.array([x.log_p for x in trees])
 
@@ -78,10 +65,10 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         """ Enumerate all trees obtained by adding the data point to an existing node.
         """
         trees = []
-        
+
         if self.parent_particle is None:
             return trees
-        
+
         nodes = self.parent_particle.tree_roots
 
         for node in nodes:
@@ -104,37 +91,37 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         """ Enumerate all trees obtained by adding the data point to a new node.
         """
         trees = []
-        
+
         if self.parent_particle is None:
             tree = Tree(self.data_point.grid_size)
-            
+
             tree.create_root_node(children=[], data=[self.data_point])
-            
+
             # trees.append(tree)
             # tree_particle = Particle(0, self.parent_particle, tree,
             #                          self._data, self.tree_dist, self.perm_dist)
             tree_particle = TreeHolder(tree, self.tree_dist)
 
             trees.append(tree_particle)
-        
+
         else:
             # num_roots = len(self.parent_particle.tree.roots)
             num_roots = len(self.parent_particle.tree_roots)
-    
+
             for r in range(0, num_roots + 1):
                 for children in itertools.combinations(self.parent_particle.tree_roots, r):
                     # tree = self.parent_particle.tree.copy()
                     tree = self.parent_tree.copy()
-                    
+
                     tree.create_root_node(children=children, data=[self.data_point])
-                    
+
                     # trees.append(tree)
                     # tree_particle = Particle(0, self.parent_particle, tree,
                     #                          self._data, self.tree_dist, self.perm_dist)
                     tree_particle = TreeHolder(tree, self.tree_dist)
 
                     trees.append(tree_particle)
-        
+
         return trees
 
     def _get_outlier_tree(self):
@@ -142,7 +129,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         """
         if self.parent_particle is None:
             tree = Tree(self.data_point.grid_size)
-        
+
         else:
             # tree = self.parent_particle.tree.copy()
             tree = self.parent_tree.copy()
@@ -174,9 +161,9 @@ class FullyAdaptedKernel(Kernel):
 
         return self_key == other_key
 
-    def get_proposal_distribution(self, data_point, parent_particle, data=None, prnt_tree=None):
+    def get_proposal_distribution(self, data_point, parent_particle, parent_tree=None):
         if parent_particle is not None:
-            parent_particle.built_tree = prnt_tree
+            parent_particle.built_tree = parent_tree
         return _get_cached_proposal_dist(data_point, self, parent_particle, self.outlier_proposal_prob,
                                          self.tree_dist.prior.alpha)
         # return FullyAdaptedProposalDistribution(
@@ -203,18 +190,18 @@ class FullyAdaptedKernel(Kernel):
 def _get_cached_proposal_dist(data_point, kernel, parent_particle, outlier_proposal_prob, alpha):
     if parent_particle is not None:
         ret = FullyAdaptedProposalDistribution(
-                data_point,
-                kernel,
-                parent_particle,
-                outlier_proposal_prob=outlier_proposal_prob,
-                prnt_tree=parent_particle.built_tree
-            )
+            data_point,
+            kernel,
+            parent_particle,
+            outlier_proposal_prob=outlier_proposal_prob,
+            parent_tree=parent_particle.built_tree
+        )
     else:
         ret = FullyAdaptedProposalDistribution(
             data_point,
             kernel,
             parent_particle,
             outlier_proposal_prob=outlier_proposal_prob,
-            prnt_tree=None
+            parent_tree=None
         )
     return ret
