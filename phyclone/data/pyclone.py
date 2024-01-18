@@ -35,6 +35,9 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
             print('Cluster level outlier probability column not found. Setting values to {p}'.format(p=outlier_prob))
             cluster_df.loc[:, 'outlier_prob'] = outlier_prob
 
+        if outlier_prob == 0:
+            cluster_df.loc[:, 'outlier_prob'] = outlier_prob
+
         cluster_df = cluster_df[["mutation_id", "cluster_id", "outlier_prob"]].drop_duplicates()
         
         cluster_sizes = cluster_df["cluster_id"].value_counts().to_dict()
