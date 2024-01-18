@@ -285,7 +285,7 @@ def create_cache_info_file(out_file):
                                                                             _cache_ratio(
                                                                                 _convolve_two_children.cache_info())),
               file=f)
-        print('_get_new_node_trees_internal cache info: {}, hit ratio: {}'.format(
+        print('_get_cached_proposal_dist cache info: {}, hit ratio: {}'.format(
             _get_cached_proposal_dist.cache_info(),
             _cache_ratio(
                 _get_cached_proposal_dist.cache_info())), file=f)

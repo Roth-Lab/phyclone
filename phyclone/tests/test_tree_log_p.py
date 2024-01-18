@@ -651,12 +651,14 @@ class Test(unittest.TestCase):
 
         dp_3 = self._create_data_point(2, n, c1_p)
         dp_4 = self._create_data_point(3, n, c2_p)
+        dp_5 = self._create_data_point(4, n, c2_p)
+        dp_6 = self._create_data_point(5, n, c2_p)
 
         n_1 = tree.create_root_node(children=[], data=dp_2)
 
         n_2 = tree.create_root_node(children=[n_1, 0], data=[dp_3])
 
-        sub_tree = Tree.get_single_node_tree([dp_4])
+        sub_tree = Tree.get_single_node_tree([dp_4, dp_5, dp_6])
 
         tree.add_subtree(sub_tree, n_1)
 
@@ -678,12 +680,14 @@ class Test(unittest.TestCase):
 
         dp_3 = self._create_data_point(2, n, c1_p)
         dp_4 = self._create_data_point(3, n, c2_p)
+        dp_5 = self._create_data_point(4, n, c2_p)
+        dp_6 = self._create_data_point(5, n, c2_p)
 
         n_1 = tree.create_root_node(children=[], data=dp_2)
 
         n_2 = tree.create_root_node(children=[n_1, 0], data=[dp_3])
 
-        sub_tree = Tree.get_single_node_tree([dp_4])
+        sub_tree = Tree.get_single_node_tree([dp_4, dp_5, dp_6])
 
         tree.add_subtree(sub_tree, n_1)
 
@@ -707,12 +711,14 @@ class Test(unittest.TestCase):
         dp_3 = self._create_data_point(2, n, c1_p)
         dp_4 = self._create_data_point(3, n, c2_p)
         dp_5 = self._create_data_point(4, n, c1_p)
+        dp_6 = self._create_data_point(5, n, c2_p)
+        dp_7 = self._create_data_point(6, n, c2_p)
 
         n_1 = tree.create_root_node(children=[], data=dp_2)
 
         n_2 = tree.create_root_node(children=[n_1, 0], data=[dp_3])
 
-        sub_tree = Tree.get_single_node_tree([dp_4])
+        sub_tree = Tree.get_single_node_tree([dp_4, dp_6, dp_7])
 
         sn_1 = sub_tree.create_root_node(children=[0], data=[dp_5])
 
@@ -737,12 +743,14 @@ class Test(unittest.TestCase):
         dp_3 = self._create_data_point(2, n, c1_p)
         dp_4 = self._create_data_point(3, n, c2_p)
         dp_5 = self._create_data_point(4, n, c1_p)
+        dp_6 = self._create_data_point(5, n, c2_p)
+        dp_7 = self._create_data_point(6, n, c2_p)
 
         n_1 = tree.create_root_node(children=[], data=dp_2)
 
         n_2 = tree.create_root_node(children=[n_1, 0], data=[dp_3])
 
-        sub_tree = Tree.get_single_node_tree([dp_4])
+        sub_tree = Tree.get_single_node_tree([dp_4, dp_6, dp_7])
 
         sn_1 = sub_tree.create_root_node(children=[0], data=[dp_5])
 
@@ -768,12 +776,14 @@ class Test(unittest.TestCase):
         dp_3 = self._create_data_point(2, n, c1_p)
         dp_4 = self._create_data_point(3, n, c2_p)
         dp_5 = self._create_data_point(4, n, c1_p)
+        dp_6 = self._create_data_point(5, n, c2_p)
+        dp_7 = self._create_data_point(6, n, c2_p)
 
         n_1 = tree.create_root_node(children=[], data=dp_2)
 
         n_2 = tree.create_root_node(children=[n_1, 0], data=[dp_3])
 
-        sub_tree = Tree.get_single_node_tree([dp_4])
+        sub_tree = Tree.get_single_node_tree([dp_4, dp_6, dp_7])
 
         sn_1 = sub_tree.create_root_node(children=[0], data=[dp_5])
 
@@ -785,11 +795,13 @@ class Test(unittest.TestCase):
         self._run_asserts(tree)
         self._run_asserts(sub_tree)
 
+        sub_tree = tree.get_subtree(n_1)
+
         tree.remove_subtree(sub_tree)
 
         assert tree != sub_tree
-        assert len(tree.nodes) == 3
-        assert len(sub_tree.nodes) == 2
+        assert len(tree.nodes) == 2
+        assert len(sub_tree.nodes) == 3
         self._run_asserts(tree)
         self._run_asserts(sub_tree)
 
@@ -806,12 +818,14 @@ class Test(unittest.TestCase):
         dp_3 = self._create_data_point(2, n, c1_p)
         dp_4 = self._create_data_point(3, n, c2_p)
         dp_5 = self._create_data_point(4, n, c1_p)
+        dp_6 = self._create_data_point(5, n, c2_p)
+        dp_7 = self._create_data_point(6, n, c2_p)
 
         n_1 = tree.create_root_node(children=[], data=dp_2)
 
         n_2 = tree.create_root_node(children=[n_1, 0], data=[dp_3])
 
-        sub_tree = Tree.get_single_node_tree([dp_4])
+        sub_tree = Tree.get_single_node_tree([dp_4, dp_6, dp_7])
 
         sn_1 = sub_tree.create_root_node(children=[0], data=[dp_5])
 
@@ -823,11 +837,13 @@ class Test(unittest.TestCase):
         self._run_asserts(tree)
         self._run_asserts(sub_tree)
 
+        sub_tree = tree.get_subtree(n_1)
+
         tree.remove_subtree(sub_tree)
 
         assert tree != sub_tree
-        assert len(tree.nodes) == 3
-        assert len(sub_tree.nodes) == 2
+        assert len(tree.nodes) == 2
+        assert len(sub_tree.nodes) == 3
         self._run_asserts(tree)
         self._run_asserts(sub_tree)
 
@@ -844,12 +860,14 @@ class Test(unittest.TestCase):
 
         dp_3 = self._create_data_point(2, n, c1_p)
         dp_4 = self._create_data_point(3, n, c2_p)
+        dp_5 = self._create_data_point(4, n, c2_p)
+        dp_6 = self._create_data_point(5, n, c2_p)
 
         n_1 = tree.create_root_node(children=[], data=dp_2)
 
         n_2 = tree.create_root_node(children=[n_1, 0], data=[dp_3])
 
-        sub_tree = Tree.get_single_node_tree([dp_4])
+        sub_tree = Tree.get_single_node_tree([dp_4, dp_5, dp_6])
 
         tree.add_subtree(sub_tree, n_1)
 
@@ -859,13 +877,15 @@ class Test(unittest.TestCase):
         self._run_asserts(tree)
         self._run_asserts(sub_tree)
 
-        tree.remove_subtree(sub_tree)
+        subtree = tree.get_subtree(n_1)
+
+        tree.remove_subtree(subtree)
 
         assert tree != sub_tree
-        assert len(tree.nodes) == 3
-        assert len(sub_tree.nodes) == 1
+        assert len(tree.nodes) == 2
+        assert len(subtree.nodes) == 2
         self._run_asserts(tree)
-        self._run_asserts(sub_tree)
+        self._run_asserts(subtree)
 
     def test_remove_subtree_not_root_cherry_0pct_outlier_prob(self):
         self.outlier_prob = 0.01
@@ -880,12 +900,14 @@ class Test(unittest.TestCase):
 
         dp_3 = self._create_data_point(2, n, c1_p)
         dp_4 = self._create_data_point(3, n, c2_p)
+        dp_5 = self._create_data_point(4, n, c2_p)
+        dp_6 = self._create_data_point(5, n, c2_p)
 
         n_1 = tree.create_root_node(children=[], data=dp_2)
 
         n_2 = tree.create_root_node(children=[n_1, 0], data=[dp_3])
 
-        sub_tree = Tree.get_single_node_tree([dp_4])
+        sub_tree = Tree.get_single_node_tree([dp_4, dp_5, dp_6])
 
         tree.add_subtree(sub_tree, n_1)
 
@@ -895,11 +917,13 @@ class Test(unittest.TestCase):
         self._run_asserts(tree)
         self._run_asserts(sub_tree)
 
+        sub_tree = tree.get_subtree(n_1)
+
         tree.remove_subtree(sub_tree)
 
         assert tree != sub_tree
-        assert len(tree.nodes) == 3
-        assert len(sub_tree.nodes) == 1
+        assert len(tree.nodes) == 2
+        assert len(sub_tree.nodes) == 2
         self._run_asserts(tree)
         self._run_asserts(sub_tree)
 

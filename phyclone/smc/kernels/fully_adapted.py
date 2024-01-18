@@ -177,7 +177,8 @@ class FullyAdaptedKernel(Kernel):
     def get_proposal_distribution(self, data_point, parent_particle, data=None, prnt_tree=None):
         if parent_particle is not None:
             parent_particle.built_tree = prnt_tree
-        return _get_cached_proposal_dist(data_point, self, parent_particle, self.outlier_proposal_prob)
+        return _get_cached_proposal_dist(data_point, self, parent_particle, self.outlier_proposal_prob,
+                                         self.tree_dist.prior.alpha)
         # return FullyAdaptedProposalDistribution(
         #     data_point,
         #     self,
@@ -199,7 +200,7 @@ class FullyAdaptedKernel(Kernel):
 
 
 @lru_cache(maxsize=1024)
-def _get_cached_proposal_dist(data_point, kernel, parent_particle, outlier_proposal_prob):
+def _get_cached_proposal_dist(data_point, kernel, parent_particle, outlier_proposal_prob, alpha):
     if parent_particle is not None:
         ret = FullyAdaptedProposalDistribution(
                 data_point,

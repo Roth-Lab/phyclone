@@ -274,6 +274,8 @@ class Tree(object):
 
         parent = self._connect_subtree(parent, subtree)
 
+        self.log_p_factorial += subtree.log_p_factorial
+
         self._update_path_to_root(parent)
 
     def _connect_subtree(self, parent, subtree):
@@ -281,8 +283,8 @@ class Tree(object):
             parent = "root"
         for node in subtree.roots:
             self._graph.add_edge(parent, node)
-            self._graph.nodes[node]['factorial_log_p'] = subtree._graph.nodes[node]['factorial_log_p']
-            self.log_p_factorial += self._graph.nodes[node]['factorial_log_p']
+            # self._graph.nodes[node]['factorial_log_p'] = subtree._graph.nodes[node]['factorial_log_p']
+            # self.log_p_factorial += self._graph.nodes[node]['factorial_log_p']
         return parent
 
     def create_root_node(self, children=None, data=None):
