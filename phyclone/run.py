@@ -14,7 +14,7 @@ from phyclone.process_trace import _create_main_run_output
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
 from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
-from phyclone.utils import Timer
+from phyclone.utils import Timer, read_pickle
 from phyclone.data.pyclone import load_data
 
 
@@ -41,9 +41,10 @@ def run(
         subtree_update_prob=0,
         thin=1,
         num_threads=1,
-        mitochondrial=False):
+        mitochondrial=False,
+        rng_pickle=None):
 
-    rng = instantiate_and_seed_RNG(seed)
+    rng = instantiate_and_seed_RNG(seed, rng_pickle)
 
     set_num_threads(num_threads)
 
@@ -245,9 +246,12 @@ def setup_kernel(outlier_prob, proposal, rng, tree_dist):
     return kernel
 
 
-def instantiate_and_seed_RNG(seed):
+def instantiate_and_seed_RNG(seed, rng_pickle):
     if seed is not None:
         rng = np.random.default_rng(seed)
+    elif rng_pickle is not None:
+        loaded = read_pickle(rng_pickle)
+        rng = np.random.default_rng(loaded)
     else:
         rng = np.random.default_rng()
     return rng

@@ -273,6 +273,12 @@ def topology_report(**kwargs):
     type=int,
     help="""Set random seed so results can be reproduced. By default a random seed is chosen."""
 )
+@click.option(
+    "--rng-pickle",
+    default=None,
+    type=click.Path(exists=True, resolve_path=True),
+    help="""Set numpy random generator from pickled instance."""
+)
 def run(**kwargs):
     """ Run a new PhyClone analysis.
     """

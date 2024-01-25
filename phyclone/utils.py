@@ -2,6 +2,20 @@ import numpy as np
 import time
 from functools import lru_cache, wraps
 import xxhash
+import pickle
+
+
+def read_pickle(file):
+    with open(file, 'rb') as f:
+        loaded = pickle.load(f)
+    return loaded
+
+
+def write_pickle(obj, filename):
+    # directory = os.path.dirname(filename)
+    # os.makedirs(directory, exist_ok=True)
+    with open(filename, 'wb') as f:
+        pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 class Timer:
