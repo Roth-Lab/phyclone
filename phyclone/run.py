@@ -212,9 +212,9 @@ def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng,
     dp_sampler = DataPointSampler(tree_dist, rng, outliers=(outlier_prob > 0))
     prg_sampler = PruneRegraphSampler(tree_dist, rng)
     conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
-    burn_in_particles = int(max(1, np.rint(num_particles / 2)))
+    # burn_in_particles = int(max(1, np.rint(num_particles / 2)))
     burnin_sampler = UnconditionalSMCSampler(
-        kernel, num_particles=burn_in_particles, resample_threshold=resample_threshold
+        kernel, num_particles=num_particles, resample_threshold=resample_threshold
     )
     tree_sampler = ParticleGibbsTreeSampler(
         kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
