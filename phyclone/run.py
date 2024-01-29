@@ -14,7 +14,7 @@ from phyclone.process_trace import _create_main_run_output
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
 from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
-from phyclone.utils import Timer, read_pickle
+from phyclone.utils import Timer, read_pickle, save_numpy_rng
 from phyclone.data.pyclone import load_data
 
 
@@ -42,9 +42,13 @@ def run(
         thin=1,
         num_threads=1,
         mitochondrial=False,
-        rng_pickle=None):
+        rng_pickle=None,
+        save_rng=True):
 
     rng = instantiate_and_seed_RNG(seed, rng_pickle)
+
+    if save_rng:
+        save_numpy_rng(out_file, rng)
 
     set_num_threads(num_threads)
 

@@ -279,6 +279,13 @@ def topology_report(**kwargs):
     type=click.Path(exists=True, resolve_path=True),
     help="""Set numpy random generator from pickled instance."""
 )
+@click.option(
+    "--save-rng/--no-save-rng",
+    default=True,
+    show_default=True,
+    help="Whether the numpy RNG BitGenerator should be pickled for reproducibility."
+)
+
 def run(**kwargs):
     """ Run a new PhyClone analysis.
     """

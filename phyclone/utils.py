@@ -3,6 +3,7 @@ import time
 from functools import lru_cache, wraps
 import xxhash
 import pickle
+from os.path import join, dirname
 
 
 def read_pickle(file):
@@ -16,6 +17,12 @@ def write_pickle(obj, filename):
     # os.makedirs(directory, exist_ok=True)
     with open(filename, 'wb') as f:
         pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def save_numpy_rng(out_file, rng):
+    rng_pickle_fn = join(dirname(out_file), 'numpy_bit_generator.pkl')
+    state = rng.bit_generator
+    write_pickle(state, rng_pickle_fn)
 
 
 class Timer:
