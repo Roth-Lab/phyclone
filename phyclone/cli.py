@@ -177,7 +177,7 @@ def topology_report(**kwargs):
     Proposal distribution to use for PG sampling.
     Fully adapted is the most computationally expensive but also likely to lead to the best performance per iteration.
     For large datasets it may be necessary to use one of the other proposals.
-    Default will select between fully-adapted and semi-adapted depending on dataset size.
+    Default will select between fully-adapted and semi-adapted depending on computational expense.
     """
 )
 @click.option(

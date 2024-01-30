@@ -25,7 +25,7 @@ class FlipKernel(Kernel):
 
         num_mutations = data_point.num_mutations
 
-        if num_nodes > 30 and num_samples > 10 and num_mutations >= 1000:
+        if num_nodes >= 10 and num_samples >= 10 and num_mutations >= 1000:
             res = self.semi_adapted_kernel.get_proposal_distribution(data_point, parent_particle, parent_tree)
         else:
             res = self.fully_adapted_kernel.get_proposal_distribution(data_point, parent_particle, parent_tree)
