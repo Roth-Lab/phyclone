@@ -170,14 +170,14 @@ def topology_report(**kwargs):
 )
 @click.option(
     "-p", "--proposal",
-    default="fully-adapted",
-    type=click.Choice(["bootstrap", "fully-adapted", "semi-adapted"]),
+    default="default",
+    type=click.Choice(["bootstrap", "fully-adapted", "semi-adapted", "default"]),
     show_default=True,
     help="""
     Proposal distribution to use for PG sampling.
     Fully adapted is the most computationally expensive but also likely to lead to the best performance per iteration.
     For large datasets it may be necessary to use one of the other proposals.
-    Default is fully-adapted.
+    Default will select between fully-adapted and semi-adapted depending on dataset size.
     """
 )
 @click.option(
@@ -285,7 +285,6 @@ def topology_report(**kwargs):
     show_default=True,
     help="Whether the numpy RNG BitGenerator should be pickled for reproducibility."
 )
-
 def run(**kwargs):
     """ Run a new PhyClone analysis.
     """

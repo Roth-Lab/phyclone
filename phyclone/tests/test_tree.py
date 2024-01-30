@@ -85,7 +85,7 @@ class Test(unittest.TestCase):
         self.assertEqual(self.tree_dist.log_p(self.tree), -np.log(3))
 
     def _create_data_point(self, idx):
-        return DataPoint(idx, np.zeros(self.tree.grid_size))
+        return DataPoint(idx, np.zeros(self.tree.grid_size), depth_est)
 
     def _create_data_points(self, size):
         result = []

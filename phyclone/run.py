@@ -11,7 +11,7 @@ from phyclone.concentration import GammaPriorConcentrationSampler
 from phyclone.mcmc.gibbs_mh import DataPointSampler, PruneRegraphSampler
 from phyclone.mcmc.particle_gibbs import ParticleGibbsSubtreeSampler, ParticleGibbsTreeSampler
 from phyclone.process_trace import _create_main_run_output
-from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
+from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel, FlipKernel
 from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer, read_pickle, save_numpy_rng
@@ -35,7 +35,7 @@ def run(
         outlier_prob=0,
         precision=1.0,
         print_freq=100,
-        proposal="fully-adapted",
+        proposal="default",
         resample_threshold=0.5,
         seed=None,
         subtree_update_prob=0,
@@ -239,7 +239,8 @@ def setup_kernel(outlier_prob, proposal, rng, tree_dist):
         outlier_proposal_prob = 0.1
     else:
         outlier_proposal_prob = 0
-    kernel_cls = FullyAdaptedKernel
+    # kernel_cls = FullyAdaptedKernel
+    kernel_cls = FlipKernel
     if proposal == "bootstrap":
         kernel_cls = BootstrapKernel
     elif proposal == "fully-adapted":

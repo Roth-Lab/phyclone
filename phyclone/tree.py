@@ -176,6 +176,9 @@ class Tree(object):
 
         return result
 
+    def get_number_of_nodes(self):
+        return self._graph.number_of_nodes() - 1
+
     @property
     def node_data(self):
         result = self._data.copy()

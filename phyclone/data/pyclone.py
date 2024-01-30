@@ -11,20 +11,17 @@ from phyclone.exceptions import MajorCopyNumberError
 
 def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400,
               mitochondrial=False):
-    pyclone_data, samples = load_pyclone_data(file_name, mitochondrial)
+    pyclone_data, samples, num_mutations = load_pyclone_data(file_name, mitochondrial)
 
     if cluster_file is None:
         data = []
 
         for idx, (mut, val) in enumerate(pyclone_data.items()):
             out_probs = compute_outlier_prob(outlier_prob, 1)
-            data_point = phyclone.data.base.DataPoint(
-                idx,
-                val.to_likelihood_grid(density, grid_size, precision=precision),
-                name=mut,
-                outlier_prob=out_probs[0],
-                outlier_prob_not=out_probs[1]
-            )
+            data_point = phyclone.data.base.DataPoint(idx,
+                                                      val.to_likelihood_grid(density, grid_size, precision=precision),
+                                                      num_mutations, name=mut, outlier_prob=out_probs[0],
+                                                      outlier_prob_not=out_probs[1])
 
             data.append(data_point)
 
@@ -60,13 +57,8 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
             cluster_outlier_prob = cluster_outlier_probs[cluster_id]
             out_probs = compute_outlier_prob(cluster_outlier_prob, cluster_sizes[cluster_id])
 
-            data_point = phyclone.data.base.DataPoint(
-                idx,
-                val,
-                name="{}".format(cluster_id),
-                outlier_prob=out_probs[0],
-                outlier_prob_not=out_probs[1]
-            )
+            data_point = phyclone.data.base.DataPoint(idx, val, num_mutations, name="{}".format(cluster_id),
+                                                      outlier_prob=out_probs[0], outlier_prob_not=out_probs[1])
 
             data.append(data_point)
 
@@ -97,6 +89,10 @@ def load_pyclone_data(file_name, mitochondrial):
     # Filter for mutations present in all samples
     df = df.groupby(by='mutation_id').filter(lambda x: sorted(x['sample_id'].unique()) == samples)
 
+    #TODO: break the following into a fxn
+
+    depth_est = df['alt_counts'].mean() + df['ref_counts'].mean()
+
     mutations = sorted(df['mutation_id'].unique())
 
     if len(samples) > 10:
@@ -105,7 +101,9 @@ def load_pyclone_data(file_name, mitochondrial):
     else:
         print('Samples: {}'.format(' '.join(samples)))
 
-    print('Num mutations: {}'.format(len(mutations)))
+    num_mutations = len(mutations)
+
+    print('Num mutations: {}'.format(num_mutations))
 
     if 'error_rate' not in df.columns:
         df.loc[:, 'error_rate'] = 1e-3
@@ -144,7 +142,7 @@ def load_pyclone_data(file_name, mitochondrial):
 
         data[name] = DataPoint(samples, sample_data_points)
 
-    return data, samples
+    return data, samples, num_mutations
 
 
 def set_mitochondrial_copy_numbers(df, mitochondrial):

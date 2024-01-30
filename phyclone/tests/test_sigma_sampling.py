@@ -46,17 +46,17 @@ class Test(unittest.TestCase):
         node_1 = tree.create_root_node(children=[], data=[])
 
         for i in range(10, 20):
-            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_1)
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size), depth_est), node_1)
 
         node_2 = tree.create_root_node(children=[], data=[])
 
         for i in range(20, 30):
-            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_2)
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size), depth_est), node_2)
 
         root = tree.create_root_node(children=[node_1, node_2], data=[])
 
         for i in range(10):
-            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), root)
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size), depth_est), root)
 
         sigma = RootPermutationDistribution.sample(tree, self._rng)
 
@@ -70,17 +70,17 @@ class Test(unittest.TestCase):
         node_2 = tree.create_root_node(children=[], data=[])
 
         for i in range(20, 30):
-            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_2)
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size), depth_est), node_2)
 
         node_1 = tree.create_root_node(children=[node_2], data=[])
 
         for i in range(10, 20):
-            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_1)
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size), depth_est), node_1)
 
         root = tree.create_root_node(children=[node_1], data=[])
 
         for i in range(10):
-            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), root)
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size), depth_est), root)
 
         sigma = RootPermutationDistribution.sample(tree, self._rng)
 
@@ -96,22 +96,22 @@ class Test(unittest.TestCase):
         node_2 = tree.create_root_node(children=[], data=[])
 
         for i in range(20, 30):
-            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_2)
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size), depth_est), node_2)
 
         node_0 = tree.create_root_node(children=[node_2], data=[])
 
         for i in range(10):
-            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_0)
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size), depth_est), node_0)
 
         node_3 = tree.create_root_node(children=[], data=[])
 
         for i in range(30, 40):
-            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_3)
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size), depth_est), node_3)
 
         node_1 = tree.create_root_node(children=[node_3], data=[])
 
         for i in range(10, 20):
-            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size)), node_1)
+            tree.add_data_point_to_node(DataPoint(i, np.zeros(grid_size), depth_est), node_1)
 
         sigma = RootPermutationDistribution.sample(tree, self._rng)
 
