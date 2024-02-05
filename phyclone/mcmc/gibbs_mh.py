@@ -63,9 +63,9 @@ class DataPointSampler(object):
             
             new_trees.append(new_tree)
             
-        # log_q = np.array([self.tree_dist.log_p(x) for x in new_trees])
-        iterable = (self.tree_dist.log_p(x) for x in new_trees)
-        log_q = np.fromiter(iterable, dtype='float64', count=len(new_trees))
+        log_q = np.array([self.tree_dist.log_p(x) for x in new_trees])
+        # iterable = (self.tree_dist.log_p(x) for x in new_trees)
+        # log_q = np.fromiter(iterable, dtype='float64', count=len(new_trees))
 
         log_q = phyclone.math_utils.log_normalize(log_q)
         
@@ -113,29 +113,29 @@ class PruneRegraphSampler(object):
         remaining_nodes.append(None)
 
         for parent in remaining_nodes:
-            new_tree_2 = new_tree.copy()
-
-            new_tree_2.add_subtree(subtree, parent=parent)
-
-            # new_tree_2.update()
-
-            trees.append(new_tree_2)
-
-            # new_tree = tree.copy()
+            # new_tree_2 = new_tree.copy()
             #
-            # subtree = new_tree.get_subtree(subtree_root)
+            # new_tree_2.add_subtree(subtree, parent=parent)
             #
-            # new_tree.remove_subtree(subtree)
+            # # new_tree_2.update()
             #
-            # new_tree.add_subtree(subtree, parent=parent)
-            #
-            # new_tree.update()
-            #
-            # trees.append(new_tree)
+            # trees.append(new_tree_2)
 
-        # log_p = np.array([self.tree_dist.log_p(x) for x in trees])
-        iterable = (self.tree_dist.log_p(x) for x in trees)
-        log_p = np.fromiter(iterable, dtype='float64', count=len(trees))
+            new_tree = tree.copy()
+
+            subtree = new_tree.get_subtree(subtree_root)
+
+            new_tree.remove_subtree(subtree)
+
+            new_tree.add_subtree(subtree, parent=parent)
+
+            new_tree.update()
+
+            trees.append(new_tree)
+
+        log_p = np.array([self.tree_dist.log_p(x) for x in trees])
+        # iterable = (self.tree_dist.log_p(x) for x in trees)
+        # log_p = np.fromiter(iterable, dtype='float64', count=len(trees))
 
         p, _ = exp_normalize(log_p)
 
