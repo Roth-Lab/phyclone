@@ -70,13 +70,21 @@ def write_topology_report(in_file, out_file):
         count_parent_child_relationships(curr_tree, data_index_dict, parent_child_arr)
         count_topology(topologies, x, i, curr_tree)
 
-    parent_child_df = _create_parent_child_matrix_df(data_arr, parent_child_arr)
-
-    parent_child_out = os.path.join(os.path.dirname(out_file), 'parent_child_matrix.tsv')
-
     df = _create_topology_dataframe(topologies)
     df.to_csv(out_file, index=False, sep="\t")
-    parent_child_df.to_csv(parent_child_out, index=False, sep="\t")
+
+    _create_parent_child_out_files(data_arr, out_file, parent_child_arr, results)
+
+
+def _create_parent_child_out_files(data_arr, out_file, parent_child_arr, results):
+    parent_child_df = _create_parent_child_matrix_df(data_arr, parent_child_arr)
+    parent_child_counts_out = os.path.join(os.path.dirname(out_file), 'parent_child_matrix_counts.tsv')
+    parent_child_df.to_csv(parent_child_counts_out, index=False, sep="\t")
+    parent_child_out = os.path.join(os.path.dirname(out_file), 'parent_child_matrix.tsv')
+    trace_len = len(results["trace"])
+    parent_child_probs_arr = parent_child_arr / trace_len
+    parent_child_probs_df = _create_parent_child_matrix_df(data_arr, parent_child_probs_arr)
+    parent_child_probs_df.to_csv(parent_child_out, index=False, sep="\t")
 
 
 def _create_parent_child_matrix_df(data_arr, parent_child_arr):
