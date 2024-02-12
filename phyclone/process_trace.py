@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from numba import set_num_threads
+import networkx as nx
 
 from phyclone.consensus import get_consensus_tree
 from phyclone.map import get_map_node_ccfs
@@ -54,16 +55,55 @@ def write_topology_report(in_file, out_file):
 
     data = results["data"]
 
+    data_arr = np.array(list(data))
+
+    data_index_dict = dict(zip(np.arange(len(data_arr)), [data_point.idx for data_point in data_arr]))
+
+    parent_child_arr = np.zeros((len(data_arr), len(data_arr)))
+
+    # clusters = results.get("clusters", None)
+
+    # table = get_clone_table(data, results["samples"], tree, clusters=clusters)
+
     for i, x in enumerate(results["trace"]):
-        count_topology(topologies, x, i, data)
+        curr_tree = Tree.from_dict(data, x['tree'])
+        count_parent_child_relationships(curr_tree, data_index_dict, parent_child_arr)
+        count_topology(topologies, x, i, curr_tree)
+
+    parent_child_df = _create_parent_child_matrix_df(data_arr, parent_child_arr)
+
+    parent_child_out = os.path.join(os.path.dirname(out_file), 'parent_child_matrix.tsv')
 
     df = _create_topology_dataframe(topologies)
     df.to_csv(out_file, index=False, sep="\t")
+    parent_child_df.to_csv(parent_child_out, index=False, sep="\t")
 
 
-def count_topology(topologies, x, i, data):
+def _create_parent_child_matrix_df(data_arr, parent_child_arr):
+    parent_child_df = pd.DataFrame(parent_child_arr,
+                                   columns=[str(data_point.name) for data_point in data_arr],
+                                   index=[str(data_point.name) for data_point in data_arr])
+    parent_child_df = parent_child_df.reset_index()
+    parent_child_df = parent_child_df.rename(columns={"index": "ID"})
+    return parent_child_df
+
+
+def count_parent_child_relationships(curr_tree, data_index_dict, parent_child_arr):
+    curr_graph = curr_tree.graph
+    curr_node_data = curr_tree.node_data
+    for node in nx.dfs_preorder_nodes(curr_graph):
+        dp_in_node = curr_node_data[node]
+        children = list(curr_graph.successors(node))
+        for dp in dp_in_node:
+            for child in children:
+                dp_in_child_node = curr_node_data[child]
+                for child_dp in dp_in_child_node:
+                    parent_child_arr[data_index_dict[dp.idx], data_index_dict[child_dp.idx]] += 1
+
+
+def count_topology(topologies, x, i, x_top):
     found = False
-    x_top = Tree.from_dict(data, x['tree'])
+    # x_top = Tree.from_dict(data, x['tree'])
     for topology in topologies:
         top = topology['topology']
         if top == x_top:
