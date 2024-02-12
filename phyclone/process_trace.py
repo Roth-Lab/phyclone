@@ -61,10 +61,6 @@ def write_topology_report(in_file, out_file):
 
     parent_child_arr = np.zeros((len(data_arr), len(data_arr)))
 
-    # clusters = results.get("clusters", None)
-
-    # table = get_clone_table(data, results["samples"], tree, clusters=clusters)
-
     for i, x in enumerate(results["trace"]):
         curr_tree = Tree.from_dict(data, x['tree'])
         count_parent_child_relationships(curr_tree, data_index_dict, parent_child_arr)
