@@ -91,7 +91,7 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
     # TODO: Check that this targets the correct distribution.
     # Specifically do we need a term for the random choice of node.
     def _correct_weights(self, parent, swarm, tree):
-        """ Correct weights so target is the distribtuion on the full tree
+        """ Correct weights so target is the distribution on the full tree
         """
         new_swarm = phyclone.smc.swarm.ParticleSwarm()
 
@@ -113,7 +113,7 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
 
             p.tree = new_tree
 
-            p.data = new_tree.data
+            # p.data = new_tree.data
 
             # w += self.kernel.tree_dist.log_p_one(new_tree)
 

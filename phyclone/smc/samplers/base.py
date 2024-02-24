@@ -37,7 +37,7 @@ class AbstractSMCSampler(object):
     def _propose_particle(self, parent_particle):
         data_point = self.data_points[self.iteration]
 
-        return self.kernel.propose_particle(data_point, parent_particle, self.data_points)
+        return self.kernel.propose_particle(data_point, parent_particle)
 
     def _get_log_w(self, particle):
         if self.iteration < self.num_iterations - 1:

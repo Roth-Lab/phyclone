@@ -56,7 +56,7 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
             log_q = proposal_dist.log_p(new_tree)
 
-            particle = self.kernel.create_particle(data_point, log_q, parent_particle, new_tree, self.data_points)
+            particle = self.kernel.create_particle(log_q, parent_particle, new_tree)
 
             constrained_path.append(particle)
 
