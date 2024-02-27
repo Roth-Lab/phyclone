@@ -20,9 +20,9 @@ class Test(unittest.TestCase):
         tree = Tree(grid_shape)
 
         data = [
-            DataPoint(0, np.zeros(grid_shape), depth_est),
-            DataPoint(1, np.zeros(grid_shape), depth_est),
-            DataPoint(2, np.zeros(grid_shape), depth_est),
+            DataPoint(0, np.zeros(grid_shape)),
+            DataPoint(1, np.zeros(grid_shape)),
+            DataPoint(2, np.zeros(grid_shape)),
         ]
 
         node = tree.create_root_node([])

@@ -6,7 +6,7 @@ import numpy as np
 class DataPoint(object):
     __slots__ = ('idx', 'value', 'name', 'outlier_prob', 'outlier_marginal_prob', 'outlier_prob_not', 'num_mutations')
 
-    def __init__(self, idx, value, num_mutations, name=None, outlier_prob=0, outlier_prob_not=1):
+    def __init__(self, idx, value, name=None, outlier_prob=0, outlier_prob_not=1):
         self.idx = idx
 
         self.value = value
@@ -24,7 +24,7 @@ class DataPoint(object):
 
         self.outlier_marginal_prob = np.sum(log_sum_exp(self.value + log_prior, axis=1))
 
-        self.num_mutations = num_mutations
+        # self.num_mutations = num_mutations
 
     def __hash__(self):
         return hash(self.name)

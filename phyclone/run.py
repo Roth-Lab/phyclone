@@ -52,13 +52,13 @@ def run(
 
     set_num_threads(num_threads)
 
-    data, samples = load_data(
+    data, samples, num_mutations = load_data(
         in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
         precision=precision, mitochondrial=mitochondrial)
 
     tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
 
-    kernel = setup_kernel(outlier_prob, proposal, rng, tree_dist)
+    kernel = setup_kernel(outlier_prob, proposal, rng, tree_dist, num_mutations)
 
     samplers = setup_samplers(kernel,
                               num_particles,
@@ -234,7 +234,7 @@ def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng,
                           subtree_sampler)
 
 
-def setup_kernel(outlier_prob, proposal, rng, tree_dist):
+def setup_kernel(outlier_prob, proposal, rng, tree_dist, num_mutations):
     if outlier_prob > 0:
         outlier_proposal_prob = 0.1
     else:
@@ -247,7 +247,10 @@ def setup_kernel(outlier_prob, proposal, rng, tree_dist):
         kernel_cls = FullyAdaptedKernel
     elif proposal == "semi-adapted":
         kernel_cls = SemiAdaptedKernel
-    kernel = kernel_cls(tree_dist, rng, outlier_proposal_prob=outlier_proposal_prob)
+    if kernel_cls == FlipKernel:
+        kernel = kernel_cls(tree_dist, rng, num_mutations, outlier_proposal_prob=outlier_proposal_prob)
+    else:
+        kernel = kernel_cls(tree_dist, rng, outlier_proposal_prob=outlier_proposal_prob)
     return kernel
 
 

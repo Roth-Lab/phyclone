@@ -83,7 +83,7 @@ def load_test_data(rng, cluster_size=5, depth=1000, grid_size=101, outlier_size=
                 data_point.append(compute_log_likelihood(x, d))
 
             out_probs = compute_outlier_prob(outlier_prob, n)
-            data.append(DataPoint(idx, np.array(data_point), depth_est, outlier_prob=out_probs[0],
+            data.append(DataPoint(idx, np.array(data_point), outlier_prob=out_probs[0],
                                   outlier_prob_not=out_probs[1]))
 
             if node == 5:

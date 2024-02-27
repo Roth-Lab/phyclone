@@ -20,7 +20,7 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
             out_probs = compute_outlier_prob(outlier_prob, 1)
             data_point = phyclone.data.base.DataPoint(idx,
                                                       val.to_likelihood_grid(density, grid_size, precision=precision),
-                                                      num_mutations, name=mut, outlier_prob=out_probs[0],
+                                                      name=mut, outlier_prob=out_probs[0],
                                                       outlier_prob_not=out_probs[1])
 
             data.append(data_point)
@@ -57,12 +57,12 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
             cluster_outlier_prob = cluster_outlier_probs[cluster_id]
             out_probs = compute_outlier_prob(cluster_outlier_prob, cluster_sizes[cluster_id])
 
-            data_point = phyclone.data.base.DataPoint(idx, val, num_mutations, name="{}".format(cluster_id),
+            data_point = phyclone.data.base.DataPoint(idx, val, name="{}".format(cluster_id),
                                                       outlier_prob=out_probs[0], outlier_prob_not=out_probs[1])
 
             data.append(data_point)
 
-    return data, samples
+    return data, samples, num_mutations
 
 
 def compute_outlier_prob(outlier_prob, cluster_size):
