@@ -4,19 +4,17 @@ import pickle
 from io import StringIO
 
 import Bio.Phylo
+import networkx as nx
 import numpy as np
 import pandas as pd
-
 from numba import set_num_threads
-import networkx as nx
 
 from phyclone.consensus import get_consensus_tree
 from phyclone.map import get_map_node_ccfs
 from phyclone.math_utils import exp_normalize
 from phyclone.smc.kernels.fully_adapted import _get_cached_proposal_dist
-
 from phyclone.tree import Tree
-from phyclone.tree_utils import compute_log_S, _cache_ratio, add_to_log_p, subtract_from_log_p, _convolve_two_children
+from phyclone.tree_utils import compute_log_S, _cache_ratio, _convolve_two_children
 
 
 def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None):
@@ -320,11 +318,6 @@ def create_cache_info_file(out_file):
     with open(out_file, "w") as f:
         print('compute_s cache info: {}, hit ratio: {}'.format(compute_log_S.cache_info(),
                                                                _cache_ratio(compute_log_S.cache_info())), file=f)
-        print('add_to_log_p cache info: {}, hit ratio: {}'.format(add_to_log_p.cache_info(),
-                                                                  _cache_ratio(add_to_log_p.cache_info())), file=f)
-        print('subtract_from_log_p cache info: {}, hit ratio: {}'.format(subtract_from_log_p.cache_info(),
-                                                                         _cache_ratio(
-                                                                             subtract_from_log_p.cache_info())), file=f)
         print('_convolve_two_children cache info: {}, hit ratio: {}'.format(_convolve_two_children.cache_info(),
                                                                             _cache_ratio(
                                                                                 _convolve_two_children.cache_info())),
