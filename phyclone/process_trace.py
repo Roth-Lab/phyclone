@@ -310,8 +310,8 @@ def _create_main_run_output(cluster_file, out_file, results):
     with gzip.GzipFile(out_file, mode="wb") as fh:
         pickle.dump(results, fh)
 
-    cache_txt_file = os.path.join(os.path.dirname(out_file), 'cache_info.txt')
-    create_cache_info_file(cache_txt_file)
+    # cache_txt_file = os.path.join(os.path.dirname(out_file), 'cache_info.txt')
+    # create_cache_info_file(cache_txt_file)
 
 
 def create_cache_info_file(out_file):

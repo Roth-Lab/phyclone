@@ -81,8 +81,6 @@ def run(
     # Main sampler
     # =========================================================================
 
-    # trace = setup_trace(timer, tree, tree_dist)
-
     results = _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
                                 num_samples_prune_regraph, print_freq, rng, samplers, samples, subtree_update_prob,
                                 thin, timer, tree, tree_dist)
@@ -176,17 +174,11 @@ def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regr
 
                 tree = burnin_sampler.sample_tree(tree)
 
-                # print('out of burn-in uncond sampler')
-
                 for _ in range(num_samples_data_point):
                     tree = dp_sampler.sample_tree(tree)
 
-                # print('out of burn-in DP sampler')
-
                 for _ in range(num_samples_prune_regraph):
                     tree = prg_sampler.sample_tree(tree)
-
-                # print('out of burn-in PRG sampler')
 
                 tree.relabel_nodes()
 
@@ -216,7 +208,6 @@ def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng,
     dp_sampler = DataPointSampler(tree_dist, rng, outliers=(outlier_prob > 0))
     prg_sampler = PruneRegraphSampler(tree_dist, rng)
     conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
-    # burn_in_particles = int(max(1, np.rint(num_particles / 2)))
     burnin_sampler = UnconditionalSMCSampler(
         kernel, num_particles=num_particles, resample_threshold=resample_threshold
     )
@@ -239,7 +230,6 @@ def setup_kernel(outlier_prob, proposal, rng, tree_dist, num_mutations):
         outlier_proposal_prob = 0.1
     else:
         outlier_proposal_prob = 0
-    # kernel_cls = FullyAdaptedKernel
     kernel_cls = FlipKernel
     if proposal == "bootstrap":
         kernel_cls = BootstrapKernel
