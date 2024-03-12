@@ -149,5 +149,3 @@ def _cache_ratio(cache_obj):
 
 def clear_function_caches():
     compute_log_S.cache_clear()
-    add_to_log_p.cache_clear()
-    subtract_from_log_p.cache_clear()
