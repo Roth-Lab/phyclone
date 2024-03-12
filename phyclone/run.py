@@ -41,7 +41,6 @@ def run(
         subtree_update_prob=0,
         thin=1,
         num_threads=1,
-        mitochondrial=False,
         rng_pickle=None,
         save_rng=True):
 
@@ -54,7 +53,7 @@ def run(
 
     data, samples, num_mutations = load_data(
         in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
-        precision=precision, mitochondrial=mitochondrial)
+        precision=precision)
 
     tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
 

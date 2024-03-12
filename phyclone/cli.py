@@ -202,12 +202,12 @@ def topology_report(**kwargs):
     show_default=True,
     help="Whether the concentration parameter should be updated during sampling."
 )
-@click.option(
-    "--mitochondrial/--not-mitochondrial",
-    default=False,
-    show_default=True,
-    help="Whether the analysis is mitochondrial or not."
-)
+# @click.option(
+#     "--mitochondrial/--not-mitochondrial",
+#     default=False,
+#     show_default=True,
+#     help="Whether the analysis is mitochondrial or not."
+# )
 @click.option(
     "--concentration-value",
     default=1.0,

@@ -9,9 +9,8 @@ import phyclone.math_utils
 from phyclone.exceptions import MajorCopyNumberError
 
 
-def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400,
-              mitochondrial=False):
-    pyclone_data, samples, num_mutations = load_pyclone_data(file_name, mitochondrial)
+def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400):
+    pyclone_data, samples, num_mutations = load_pyclone_data(file_name)
 
     if cluster_file is None:
         data = []
@@ -74,13 +73,13 @@ def compute_outlier_prob(outlier_prob, cluster_size):
         return res, res_not
 
 
-def load_pyclone_data(file_name, mitochondrial):
+def load_pyclone_data(file_name):
     df = pd.read_table(file_name)
 
     if len(df.columns) == 1:
         df = pd.read_csv(file_name)
 
-    set_mitochondrial_copy_numbers(df, mitochondrial)
+    # set_mitochondrial_copy_numbers(df, mitochondrial)
 
     df['sample_id'] = df['sample_id'].astype(str)
 
@@ -145,15 +144,15 @@ def load_pyclone_data(file_name, mitochondrial):
     return data, samples, num_mutations
 
 
-def set_mitochondrial_copy_numbers(df, mitochondrial):
-    if mitochondrial:
-        print('Data is marked as mitochondrial, setting copy number columns to haploid settings.')
-        if 'major_cn' not in df.columns:
-            df['major_cn'] = 1
-        if 'minor_cn' not in df.columns:
-            df['minor_cn'] = 0
-        if 'normal_cn' not in df.columns:
-            df['normal_cn'] = 1
+# def set_mitochondrial_copy_numbers(df, mitochondrial):
+#     if mitochondrial:
+#         print('Data is marked as mitochondrial, setting copy number columns to haploid settings.')
+#         if 'major_cn' not in df.columns:
+#             df['major_cn'] = 1
+#         if 'minor_cn' not in df.columns:
+#             df['minor_cn'] = 0
+#         if 'normal_cn' not in df.columns:
+#             df['normal_cn'] = 1
 
 
 def get_major_cn_prior(major_cn, minor_cn, normal_cn, error_rate=1e-3):

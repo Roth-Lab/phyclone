@@ -105,7 +105,6 @@ def count_parent_child_relationships(curr_tree, data_index_dict, parent_child_ar
 
 def count_topology(topologies, x, i, x_top):
     found = False
-    # x_top = Tree.from_dict(data, x['tree'])
     for topology in topologies:
         top = topology['topology']
         if top == x_top:
