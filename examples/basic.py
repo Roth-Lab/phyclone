@@ -9,7 +9,7 @@ from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from toy_data import load_test_data
 from phyclone.run import instantiate_and_seed_RNG
 
-rng = instantiate_and_seed_RNG(0)
+rng = instantiate_and_seed_RNG(0, None)
 
 tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
 

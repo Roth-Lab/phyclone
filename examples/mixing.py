@@ -31,7 +31,7 @@ def main(seed=None):
 #     cluster_file = "data/mixing_clusters.tsv"
     cluster_file = None
 
-    rng = instantiate_and_seed_RNG(seed)
+    rng = instantiate_and_seed_RNG(seed, None)
 
     true_labels = load_true_labels(file_name)
     

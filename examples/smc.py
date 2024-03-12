@@ -21,7 +21,7 @@ from phyclone.run import instantiate_and_seed_RNG
 
 
 def main(seed=None):
-    rng = instantiate_and_seed_RNG(seed)
+    rng = instantiate_and_seed_RNG(seed, None)
     data_points, true_tree = load_test_data(rng, cluster_size=2, depth=int(1e5), outlier_size=1, shuffle=False)
 
     print("Good ordering")

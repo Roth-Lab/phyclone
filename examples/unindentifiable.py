@@ -15,7 +15,7 @@ from phyclone.math_utils import simple_log_factorial
 from math import inf
 from phyclone.run import instantiate_and_seed_RNG
 
-rng = instantiate_and_seed_RNG(1234)
+rng = instantiate_and_seed_RNG(1234, None)
 
 data, true_tree = load_test_data(rng, cluster_size=2, single_sample=True)
 

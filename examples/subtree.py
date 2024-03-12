@@ -21,7 +21,7 @@ from phyclone.run import instantiate_and_seed_RNG
 
 
 def main(seed=1234):
-    rng = instantiate_and_seed_RNG(seed)
+    rng = instantiate_and_seed_RNG(seed, None)
     subtree = True
     kernel_type = "fully-adapted"
     
