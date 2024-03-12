@@ -1,5 +1,4 @@
 import numpy as np
-import random
 
 from phyclone.math_utils import log_binomial_coefficient
 from phyclone.smc.kernels.base import Kernel, ProposalDistribution

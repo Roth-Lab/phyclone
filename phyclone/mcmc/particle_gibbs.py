@@ -1,11 +1,7 @@
-# import random
-
 import phyclone.math_utils
 import phyclone.smc.samplers
 import phyclone.smc.swarm
 from phyclone.smc.utils import RootPermutationDistribution
-
-# import numpy as np
 
 
 class ParticleGibbsTreeSampler(object):

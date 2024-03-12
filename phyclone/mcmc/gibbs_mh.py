@@ -1,5 +1,4 @@
 import numpy as np
-# import random
 
 from phyclone.math_utils import exp_normalize, discrete_rvs
 

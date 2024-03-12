@@ -1,7 +1,5 @@
 from collections import defaultdict
-
 import networkx as nx
-import numpy as np
 
 
 def get_consensus_tree(trees, data=None, threshold=0.5, weighted=False, log_p_list=None):
