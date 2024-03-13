@@ -10,8 +10,7 @@ from phyclone.tree_utils import add_to_log_p, subtract_from_log_p, compute_log_S
 
 
 class FSCRPDistribution(object):
-    """ FSCRP prior distribution on trees.
-    """
+    """FSCRP prior distribution on trees."""
 
     def __init__(self, alpha):
         self.alpha = alpha
@@ -38,14 +37,42 @@ class FSCRPDistribution(object):
         return log_p
 
 
-class TreeJointDistribution(object):
+class UniformFSCRPDistribution(object):
+    """FSCRP prior distribution on trees."""
 
+    def __init__(self, alpha):
+        self.alpha = alpha
+
+    def log_p(self, tree):
+        log_p = 0
+
+        # CRP prior
+        num_nodes = len(tree.nodes)
+
+        log_p += num_nodes * np.log(self.alpha)
+
+        for node, node_data in tree.node_data.items():
+            if node == -1:
+                continue
+
+            num_data_points = len(node_data)
+
+            log_p += log_factorial(num_data_points - 1)
+
+        # Uniform prior on toplogies
+        log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
+
+        log_p -= tree.multiplicity
+
+        return log_p
+
+
+class TreeJointDistribution(object):
     def __init__(self, prior):
         self.prior = prior
 
     def log_p(self, tree):
-        """ The log likelihood of the data marginalized over root node parameters.
-        """
+        """The log likelihood of the data marginalized over root node parameters."""
         log_p = self.prior.log_p(tree)
 
         # Outlier prior
@@ -68,8 +95,7 @@ class TreeJointDistribution(object):
         return log_p
 
     def log_p_one(self, tree):
-        """ The log likelihood of the data conditioned on the root having value 1.0 in all dimensions.
-        """
+        """The log likelihood of the data conditioned on the root having value 1.0 in all dimensions."""
         log_p = self.prior.log_p(tree)
 
         # Outlier prior
@@ -93,7 +119,6 @@ class TreeJointDistribution(object):
 
 
 class Tree(object):
-
     def __init__(self, grid_size):
         self.grid_size = grid_size
 
@@ -117,7 +142,7 @@ class Tree(object):
 
     @staticmethod
     def get_single_node_tree(data):
-        """ Load a tree with all data points assigned single node.
+        """Load a tree with all data points assigned single node.
 
         Parameters
         ----------
@@ -154,8 +179,7 @@ class Tree(object):
 
     @property
     def data_log_likelihood(self):
-        """ The log likelihood grid of the data for all values of the root node.
-        """
+        """The log likelihood grid of the data for all values of the root node."""
         return self._graph.nodes["root"]["log_R"]
 
     @property
@@ -165,6 +189,24 @@ class Tree(object):
         for node, node_data in self.node_data.items():
             for data_point in node_data:
                 result[data_point.idx] = node
+
+        return result
+
+    @property
+    def leafs(self):
+        return [x for x in self.nodes if len(self.get_children(x)) == 0]
+
+    @property
+    def multiplicity(self):
+        return self._get_multiplicity("root")
+
+    def _get_multiplicity(self, node):
+        children = self.get_children(node)
+
+        result = log_factorial(len(children))
+
+        for child in children:
+            result += self._get_multiplicity(child)
 
         return result
 
@@ -220,10 +262,7 @@ class Tree(object):
         return new
 
     def to_dict(self):
-        return {
-            "graph": nx.to_dict_of_dicts(self._graph),
-            "labels": self.labels
-        }
+        return {"graph": nx.to_dict_of_dicts(self._graph), "labels": self.labels}
 
     def add_data_point_to_node(self, data_point, node):
         assert data_point.idx not in self.labels.keys()
@@ -241,7 +280,16 @@ class Tree(object):
         self._data[-1].append(data_point)
 
     def add_subtree(self, subtree, parent=None):
-        first_label = max(self.nodes + subtree.nodes + [-1, ]) + 1
+        first_label = (
+            max(
+                self.nodes
+                + subtree.nodes
+                + [
+                    -1,
+                ]
+            )
+            + 1
+        )
 
         node_map = {}
 
@@ -266,7 +314,7 @@ class Tree(object):
         self._update_path_to_root(parent)
 
     def create_root_node(self, children=[], data=[]):
-        """ Create a new root node in the forest.
+        """Create a new root node in the forest.
 
         Parameters
         ----------
@@ -431,12 +479,13 @@ class Tree(object):
     def _add_node(self, node):
         self._graph.add_node(node)
 
-        self._graph.nodes[node]["log_p"] = np.ascontiguousarray(np.ones(self.grid_size) * self._log_prior)
-        self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size, order='C')
+        self._graph.nodes[node]["log_p"] = np.ascontiguousarray(
+            np.ones(self.grid_size) * self._log_prior
+        )
+        self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size, order="C")
 
     def _update_path_to_root(self, source):
-        """ Update recursion values for all nodes on the path between the source node and root inclusive.
-        """
+        """Update recursion values for all nodes on the path between the source node and root inclusive."""
         paths = list(nx.all_simple_paths(self._graph, "root", source))
 
         if len(paths) == 0:
@@ -456,7 +505,9 @@ class Tree(object):
             self._update_node(source)
 
     def _update_node(self, node):
-        child_log_r_values = [self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)]
+        child_log_r_values = [
+            self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)
+        ]
 
         log_p = self._graph.nodes[node]["log_p"]
 
@@ -466,4 +517,4 @@ class Tree(object):
         else:
             log_s = compute_log_S(child_log_r_values)
 
-        self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order='C')
+        self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order="C")
