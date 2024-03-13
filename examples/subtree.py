@@ -12,7 +12,7 @@ from phyclone.smc.samplers import SMCSampler
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.smc.utils import RootPermutationDistribution
-from phyclone.metrics import partition_metric
+from examples.metrics import partition_metric
 
 import phyclone.mcmc.gibbs_mh as mh
 

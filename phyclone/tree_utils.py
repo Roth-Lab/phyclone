@@ -1,7 +1,6 @@
 import numpy as np
 import numba
 from phyclone.utils import two_np_arr_cache, list_of_np_cache
-from math import inf
 
 
 @list_of_np_cache(maxsize=4096)
