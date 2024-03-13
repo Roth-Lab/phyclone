@@ -72,23 +72,18 @@ def _conv_two_children_jit(child_1, child_2, num_dims, res_arr):
 
 @numba.jit(cache=True, nopython=True)
 def lse(log_x):
-    max_exp = np.max(log_x)
-
-    if np.isinf(max_exp):
-        return max_exp
+    inf_check = np.all(np.isinf(log_x))
+    if inf_check:
+        return log_x[0]
 
     x = log_x[np.isfinite(log_x)]
+    ans = x[0]
 
-    max_value = np.max(x)
-    min_value = np.min(x)
-    ans = max_value + np.log1p(np.exp(min_value - max_value))
+    for i in range(1, len(x)):
+        max_value = max(ans, x[i])
+        min_value = min(ans, x[i])
+        ans = max_value + np.log1p(np.exp(min_value - max_value))
 
-    return ans
-
-
-@numba.jit(cache=True, nopython=True)
-def sub_lse(max_value, min_value):
-    ans = max_value + np.log1p(np.exp(min_value - max_value))
     return ans
 
 
@@ -100,21 +95,19 @@ def conv_log(log_x, log_y, ans):
 
     log_y = log_y[::-1]
     n = nx
-    # m = n+1
-
-    # ans = np.zeros(n)
 
     for k in range(1, n + 1):
-        max_val = -inf
-        min_val = inf
+        sub_ans = None
         for j in range(k):
             curr = log_x[j] + log_y[n - (k - j)]
-            if curr > max_val:
-                max_val = curr
-            if curr < min_val:
-                min_val = curr
+            if sub_ans is None:
+                sub_ans = curr
+            else:
+                max_val = max(sub_ans, curr)
+                min_val = min(sub_ans, curr)
+                sub_ans = max_val + np.log1p(np.exp(min_val - max_val))
 
-        ans[k - 1] = max_val + np.log1p(np.exp(min_val - max_val))
+        ans[k - 1] = sub_ans
 
     return ans
 
