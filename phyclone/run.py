@@ -244,7 +244,7 @@ def setup_kernel(outlier_prob, proposal, rng, tree_dist, num_mutations):
 
 
 def instantiate_and_seed_RNG(seed, rng_pickle):
-    if seed is not None:
+    if (seed is not None) and (rng_pickle is None):
         rng = np.random.default_rng(seed)
     elif rng_pickle is not None:
         loaded = read_pickle(rng_pickle)

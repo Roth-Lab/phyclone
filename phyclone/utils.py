@@ -13,8 +13,6 @@ def read_pickle(file):
 
 
 def write_pickle(obj, filename):
-    # directory = os.path.dirname(filename)
-    # os.makedirs(directory, exist_ok=True)
     with open(filename, 'wb') as f:
         pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -103,7 +101,6 @@ def list_of_np_cache(*args, **kwargs):
             hashable_set.clear_inputs()
             return function(array, *args, **kwargs)
 
-        # copy lru_cache attributes over too
         wrapper.cache_info = cached_wrapper.cache_info
         wrapper.cache_clear = cached_wrapper.cache_clear
 
@@ -143,7 +140,6 @@ def two_np_arr_cache(*args, **kwargs):
             hashable_obj.clear_inputs()
             return function(arr_1, arr_2, *args, **kwargs)
 
-        # copy lru_cache attributes over too
         wrapper.cache_info = cached_wrapper.cache_info
         wrapper.cache_clear = cached_wrapper.cache_clear
 

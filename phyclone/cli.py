@@ -10,7 +10,7 @@ from phyclone.run import run as run_prog
 @click.option(
     "-i", "--in-file",
     required=True,
-    type=click.Path(resolve_path=True),
+    type=click.Path(resolve_path=True, exists=True),
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file."""
 )
 @click.option(
@@ -36,7 +36,7 @@ from phyclone.run import run as run_prog
     help="""Consensus threshold to keep an SNV."""
 )
 @click.option(
-    "--weighted-consensus/--no-topology-report",
+    "--weighted-consensus/--non-weighted-consensus",
     default=True,
     show_default=True,
     help="Whether the consensus tree should be computed using weighted trees."
@@ -53,7 +53,7 @@ def consensus(**kwargs):
 @click.option(
     "-i", "--in-file",
     required=True,
-    type=click.Path(resolve_path=True),
+    type=click.Path(resolve_path=True, exists=True),
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file."""
 )
 @click.option(
@@ -87,7 +87,7 @@ def map(**kwargs):
 @click.option(
     "-i", "--in-file",
     required=True,
-    type=click.Path(resolve_path=True),
+    type=click.Path(resolve_path=True, exists=True),
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file."""
 )
 @click.option(
@@ -142,16 +142,16 @@ def topology_report(**kwargs):
     show_default=True,
     help="""Thinning parameter for storing entries in trace. Default is 1."""
 )
-@click.option(
-    "--num-threads",
-    default=1,
-    type=int,
-    help="""Number of parallel threads for sampling. Default is 1."""
-)
+# @click.option(
+#     "--num-threads",
+#     default=1,
+#     type=int,
+#     help="""Number of parallel threads for sampling. Default is 1."""
+# )
 @click.option(
     "-c", "--cluster-file",
     default=None,
-    type=click.Path(resolve_path=True),
+    type=click.Path(resolve_path=True, exists=True),
     help="""Path to file with pre-computed cluster assignments of mutations is located."""
 )
 @click.option(
@@ -164,7 +164,7 @@ def topology_report(**kwargs):
 @click.option(
     "-l", "--outlier-prob",
     default=0,
-    type=float,
+    type=click.FloatRange(0.0, 1.0, clamp=True),
     show_default=True,
     help="""Prior probability data points are outliers and don't fit tree. Default is 0.0"""
 )
@@ -180,14 +180,14 @@ def topology_report(**kwargs):
     Default will select between fully-adapted and semi-adapted depending on computational expense.
     """
 )
-@click.option(
-    "-s",
-    "--subtree-update-prob",
-    default=0.0,
-    type=float,
-    show_default=True,
-    help="""Probability of updating a subtree (instead of whole tree) using PG sampler. Default is 0.0"""
-)
+# @click.option(
+#     "-s",
+#     "--subtree-update-prob",
+#     default=0.0,
+#     type=float,
+#     show_default=True,
+#     help="""Probability of updating a subtree (instead of whole tree) using PG sampler. Default is 0.0"""
+# )
 @click.option(
     "-t",
     "--max-time",
@@ -202,16 +202,10 @@ def topology_report(**kwargs):
     show_default=True,
     help="Whether the concentration parameter should be updated during sampling."
 )
-# @click.option(
-#     "--mitochondrial/--not-mitochondrial",
-#     default=False,
-#     show_default=True,
-#     help="Whether the analysis is mitochondrial or not."
-# )
 @click.option(
     "--concentration-value",
     default=1.0,
-    type=float,
+    type=click.FloatRange(0.0, 1.0, clamp=True),
     show_default=True,
     help="""The (initial) concentration of the Dirichlet process. Higher values will encourage more clusters, 
     lower values have the opposite effect. Default is 1.0."""
@@ -277,7 +271,7 @@ def topology_report(**kwargs):
     "--rng-pickle",
     default=None,
     type=click.Path(exists=True, resolve_path=True),
-    help="""Set numpy random generator from pickled instance."""
+    help="""Set numpy random generator from pickled instance, supersedes seed if also provided."""
 )
 @click.option(
     "--save-rng/--no-save-rng",
