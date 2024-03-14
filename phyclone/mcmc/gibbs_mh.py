@@ -55,7 +55,7 @@ class DataPointSampler(object):
 
             new_trees.append(new_tree)
 
-        log_q = np.array([self.tree_dist.log_p(x) for x in new_trees])
+        log_q = np.array([self.tree_dist.log_p_one(x) for x in new_trees])
 
         log_q = phyclone.math_utils.log_normalize(log_q)
 
