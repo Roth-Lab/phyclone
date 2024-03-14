@@ -42,6 +42,7 @@ if data == "binomial":
 
 elif data == "point_mass":
     ccfs = [5, 10, 15, 20, 100]
+    # ccfs = [30, 70, 100]
 
     data_vals = []
 
@@ -63,7 +64,7 @@ tree = Tree.get_single_node_tree(data)
 
 conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
 
-tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
+# tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
 
 tree_dist = TreeJointDistribution(UniformFSCRPDistribution(1.0))
 
