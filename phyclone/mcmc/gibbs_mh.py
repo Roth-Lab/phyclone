@@ -1,9 +1,5 @@
 import numpy as np
-
-# import random
-
 from phyclone.math_utils import exp_normalize, discrete_rvs
-
 import phyclone.math_utils
 
 
@@ -24,12 +20,9 @@ class DataPointSampler(object):
         tree_labels = tree.labels
         data_idxs = list(tree_labels.keys())
 
-        # random.shuffle(data_idxs)
-
         self._rng.shuffle(data_idxs)
 
         for data_idx in data_idxs:
-            # if len(tree.node_data[tree.labels[data_idx]]) > 1:
             old_node = tree_labels[data_idx]
             if tree.get_data_len(old_node) > 1:
                 tree = self._sample_tree(data_idx, tree, old_node)
@@ -41,8 +34,6 @@ class DataPointSampler(object):
         data_point = tree.data[data_idx]
 
         assert data_point.idx == data_idx
-
-        # old_node = tree.labels[data_idx]
 
         new_trees = []
 
@@ -65,8 +56,6 @@ class DataPointSampler(object):
             new_trees.append(new_tree)
 
         log_q = np.array([self.tree_dist.log_p(x) for x in new_trees])
-        # iterable = (self.tree_dist.log_p(x) for x in new_trees)
-        # log_q = np.fromiter(iterable, dtype='float64', count=len(new_trees))
 
         log_q = phyclone.math_utils.log_normalize(log_q)
 
@@ -74,7 +63,6 @@ class DataPointSampler(object):
 
         q = q / sum(q)
 
-        # tree_idx = np.random.multinomial(1, q).argmax()
         tree_idx = self._rng.multinomial(1, q).argmax()
 
         return new_trees[tree_idx]
@@ -94,25 +82,32 @@ class PruneRegraphSampler(object):
         if len(tree.nodes) <= 1:
             return tree
 
-        new_tree = tree.copy()
-
-        subtree_root = self._rng.choice(new_tree.nodes)
-
-        subtree = new_tree.get_subtree(subtree_root)
-
-        new_tree.remove_subtree(subtree)
-
-        remaining_nodes = new_tree.nodes
+        remaining_nodes, subtree_root = self._get_subtree_and_pruned_tree(tree)
 
         if len(remaining_nodes) == 0:
             return tree
 
-        # TODO: Is this double counting the original tree
-        trees = []
+        trees = self._create_sampled_trees_array(remaining_nodes, subtree_root, tree)
 
+        if self.labeled:
+            log_p = np.array(
+                [np.log(n + 1) + self.tree_dist.log_p_one(x) for n, x in trees]
+            )
+
+        else:
+            log_p = np.array([self.tree_dist.log_p_one(x) for _, x in trees])
+
+        p, _ = exp_normalize(log_p)
+
+        idx = discrete_rvs(p, self._rng)
+
+        return trees[idx][1]
+
+    @staticmethod
+    def _create_sampled_trees_array(remaining_nodes, subtree_root, tree):
+        trees = []
         # Descendant from dummy normal node
         remaining_nodes.append(None)
-
         for parent in remaining_nodes:
             new_tree = tree.copy()
 
@@ -131,17 +126,12 @@ class PruneRegraphSampler(object):
             new_tree.update()
 
             trees.append([nc, new_tree])
+        return trees
 
-        if self.labeled:
-            log_p = np.array(
-                [np.log(n + 1) + self.tree_dist.log_p_one(x) for n, x in trees]
-            )
-
-        else:
-            log_p = np.array([self.tree_dist.log_p_one(x) for _, x in trees])
-
-        p, _ = exp_normalize(log_p)
-
-        idx = discrete_rvs(p, self._rng)
-
-        return trees[idx][1]
+    def _get_subtree_and_pruned_tree(self, tree):
+        new_tree = tree.copy()
+        subtree_root = self._rng.choice(new_tree.nodes)
+        subtree = new_tree.get_subtree(subtree_root)
+        new_tree.remove_subtree(subtree)
+        remaining_nodes = new_tree.nodes
+        return remaining_nodes, subtree_root
