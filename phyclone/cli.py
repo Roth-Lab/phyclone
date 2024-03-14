@@ -180,6 +180,15 @@ def topology_report(**kwargs):
     Default will select between fully-adapted and semi-adapted depending on computational expense.
     """
 )
+@click.option(
+    "--tree-prior",
+    default="uniform",
+    type=click.Choice(["uniform", "original"]),
+    show_default=True,
+    help="""
+    Which implementation of FSCRP prior to use. Default is "uniform".
+    """
+)
 # @click.option(
 #     "-s",
 #     "--subtree-update-prob",

@@ -42,7 +42,8 @@ def run(
         thin=1,
         num_threads=1,
         rng_pickle=None,
-        save_rng=True):
+        save_rng=True,
+        tree_prior="uniform"):
 
     rng = instantiate_and_seed_RNG(seed, rng_pickle)
 
@@ -55,8 +56,12 @@ def run(
         in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
         precision=precision)
 
-    # tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
-    tree_dist = TreeJointDistribution(UniformFSCRPDistribution(concentration_value))
+    if tree_prior == "uniform":
+        prg_labelled = True
+        tree_dist = TreeJointDistribution(UniformFSCRPDistribution(concentration_value))
+    else:
+        prg_labelled = False
+        tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
 
     kernel = setup_kernel(outlier_prob, proposal, rng, tree_dist, num_mutations)
 
@@ -65,7 +70,8 @@ def run(
                               outlier_prob,
                               resample_threshold,
                               rng,
-                              tree_dist)
+                              tree_dist,
+                              prg_labelled)
 
     tree = Tree.get_single_node_tree(data)
 
@@ -204,9 +210,9 @@ class SamplersHolder:
     subtree_sampler: ParticleGibbsSubtreeSampler
 
 
-def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist):
+def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist, labelled):
     dp_sampler = DataPointSampler(tree_dist, rng, outliers=(outlier_prob > 0))
-    prg_sampler = PruneRegraphSampler(tree_dist, rng)
+    prg_sampler = PruneRegraphSampler(tree_dist, rng, labeled=labelled)
     conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
     burnin_sampler = UnconditionalSMCSampler(
         kernel, num_particles=num_particles, resample_threshold=resample_threshold
