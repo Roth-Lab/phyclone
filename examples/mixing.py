@@ -6,7 +6,7 @@ import pandas as pd
 import random
 
 from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
-from phyclone.consensus import get_consensus_tree
+from phyclone.process_trace.consensus import get_consensus_tree
 from phyclone.data.pyclone import load_data
 from phyclone.utils.math import discrete_rvs
 from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler, ParticleGibbsSubtreeSampler
@@ -17,7 +17,7 @@ from phyclone.smc.utils import RootPermutationDistribution
 
 import phyclone.mcmc.gibbs_mh as mh
 
-from phyclone.map import get_map_node_ccfs
+from phyclone.process_trace.map import get_map_node_ccfs
 from phyclone.run import instantiate_and_seed_RNG
 
 

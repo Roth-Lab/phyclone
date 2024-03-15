@@ -4,8 +4,8 @@ import networkx as nx
 import numpy as np
 
 from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
-from phyclone.consensus import get_consensus_tree
-from phyclone.map import get_map_node_ccfs
+from phyclone.process_trace.consensus import get_consensus_tree
+from phyclone.process_trace.map import get_map_node_ccfs
 from phyclone.utils.math import discrete_rvs
 from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler, ParticleGibbsSubtreeSampler
 from phyclone.smc.samplers import SMCSampler

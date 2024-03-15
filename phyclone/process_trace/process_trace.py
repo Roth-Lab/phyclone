@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 from numba import set_num_threads
 
-from phyclone.consensus import get_consensus_tree
-from phyclone.map import get_map_node_ccfs
+from phyclone.process_trace.consensus import get_consensus_tree
+from phyclone.process_trace.map import get_map_node_ccfs
 from phyclone.utils.math import exp_normalize
 from phyclone.smc.kernels.fully_adapted import _get_cached_proposal_dist
 from phyclone.tree import Tree
@@ -377,7 +377,7 @@ def get_labels_table(data, tree, clusters=None):
     return df
 
 
-def _create_main_run_output(cluster_file, out_file, results):
+def create_main_run_output(cluster_file, out_file, results):
     if cluster_file is not None:
         results["clusters"] = pd.read_csv(cluster_file, sep="\t")[
             ["mutation_id", "cluster_id"]

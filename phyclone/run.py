@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
 from phyclone.mcmc.gibbs_mh import DataPointSampler, PruneRegraphSampler
 from phyclone.mcmc.particle_gibbs import ParticleGibbsSubtreeSampler, ParticleGibbsTreeSampler
-from phyclone.process_trace import _create_main_run_output
+from phyclone.process_trace import create_main_run_output
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel, FlipKernel
 from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
@@ -84,7 +84,7 @@ def run(
                                 num_samples_prune_regraph, print_freq, rng, samplers, samples, subtree_update_prob,
                                 thin, timer, tree, tree_dist)
 
-    _create_main_run_output(cluster_file, out_file, results)
+    create_main_run_output(cluster_file, out_file, results)
 
 
 def _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,

@@ -4,7 +4,7 @@ import networkx as nx
 import numpy as np
 
 from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
-from phyclone.consensus import get_consensus_tree
+from phyclone.process_trace.consensus import get_consensus_tree
 from phyclone.mcmc.gibbs_mh import PruneRegraphSampler
 from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler
 from phyclone.smc.kernels import FullyAdaptedKernel

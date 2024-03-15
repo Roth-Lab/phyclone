@@ -9,7 +9,7 @@ import numpy as np
 
 from phyclone.data.base import DataPoint
 from phyclone.tree import Tree
-from phyclone.consensus import get_clades
+from phyclone.process_trace.consensus import get_clades
 
 
 class Test(unittest.TestCase):
