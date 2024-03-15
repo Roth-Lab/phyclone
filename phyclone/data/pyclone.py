@@ -6,7 +6,7 @@ import pandas as pd
 
 import phyclone.data.base
 import phyclone.utils.math
-from phyclone.exceptions import MajorCopyNumberError
+from phyclone.utils.exceptions import MajorCopyNumberError
 
 
 def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400):
