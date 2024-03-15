@@ -6,6 +6,7 @@ import numpy as np
 from phyclone.consensus import get_clades
 from phyclone.math_utils import log_sum_exp, log_factorial
 from phyclone.tree_utils import compute_log_S
+from phyclone.utils import get_iterator_length
 
 
 class FSCRPDistribution(object):
@@ -193,7 +194,8 @@ class Tree(object):
 
     @property
     def leafs(self):
-        return [x for x in self.nodes if len(self.get_children(x)) == 0]
+        # return [x for x in self.nodes if len(self.get_children(x)) == 0]
+        return [x for x in self.nodes if self.get_number_of_children(x) == 0]
 
     @property
     def multiplicity(self):
@@ -367,6 +369,11 @@ class Tree(object):
 
     def get_children(self, node):
         return list(self._graph.successors(node))
+
+    def get_number_of_children(self, node):
+        children = self._graph.successors(node)
+        num_children = get_iterator_length(children)
+        return num_children
 
     def get_descendants(self, source="root"):
         return nx.descendants(self._graph, source=source)

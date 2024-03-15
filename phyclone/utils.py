@@ -4,6 +4,8 @@ from functools import lru_cache, wraps
 import xxhash
 import pickle
 from os.path import join, dirname
+from itertools import count
+from collections import deque
 
 
 def read_pickle(file):
@@ -21,6 +23,12 @@ def save_numpy_rng(out_file, rng):
     rng_pickle_fn = join(dirname(out_file), 'numpy_bit_generator.pkl')
     state = rng.bit_generator
     write_pickle(state, rng_pickle_fn)
+
+
+def get_iterator_length(iterable):
+    counter = count()
+    deque(zip(iterable, counter), maxlen=0)
+    return next(counter)
 
 
 class Timer:

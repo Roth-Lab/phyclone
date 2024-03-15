@@ -119,7 +119,8 @@ class PruneRegraphSampler(object):
                 nc = len(new_tree.roots)
 
             else:
-                nc = len(new_tree.get_children(parent))
+                # nc = len(new_tree.get_children(parent))
+                nc = new_tree.get_number_of_children(parent)
 
             new_tree.add_subtree(subtree, parent=parent)
 
