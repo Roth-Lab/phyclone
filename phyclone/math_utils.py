@@ -78,8 +78,15 @@ def lse(log_x):
     ans = x[0]
 
     for i in range(1, len(x)):
-        max_value = max(ans, x[i])
-        min_value = min(ans, x[i])
+        curr = x[i]
+        if ans > curr:
+            max_value = ans
+            min_value = curr
+        else:
+            max_value = curr
+            min_value = ans
+        # max_value = max(ans, x[i])
+        # min_value = min(ans, x[i])
         ans = max_value + np.log1p(np.exp(min_value - max_value))
 
     return ans
@@ -91,8 +98,15 @@ def lse_accumulate(log_x, out_arr):
     t = log_x[0]
     out_arr[0] = t
     for i in range(1, len_arr):
-        max_value = max(t, log_x[i])
-        min_value = min(t, log_x[i])
+        # max_value = max(t, log_x[i])
+        # min_value = min(t, log_x[i])
+        curr = log_x[i]
+        if t > curr:
+            max_value = t
+            min_value = curr
+        else:
+            max_value = curr
+            min_value = t
         t = max_value + np.log1p(np.exp(min_value - max_value))
         out_arr[i] = t
     return out_arr

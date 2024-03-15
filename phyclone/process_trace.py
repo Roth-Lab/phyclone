@@ -203,7 +203,7 @@ def write_consensus_results(
 
     trees = [Tree.from_dict(data, x["tree"]) for x in results["trace"]]
 
-    probs = np.array([x["log_p"] for x in results["trace"]])
+    probs = np.array([x["log_p_one"] for x in results["trace"]])
 
     probs, norm = exp_normalize(probs)
 

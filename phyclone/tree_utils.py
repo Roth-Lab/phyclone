@@ -95,8 +95,14 @@ def conv_log(log_x, log_y, ans):
             if sub_ans is None:
                 sub_ans = curr
             else:
-                max_val = max(sub_ans, curr)
-                min_val = min(sub_ans, curr)
+                # max_val = max(sub_ans, curr)
+                # min_val = min(sub_ans, curr)
+                if sub_ans > curr:
+                    max_val = sub_ans
+                    min_val = curr
+                else:
+                    max_val = curr
+                    min_val = sub_ans
                 sub_ans = max_val + np.log1p(np.exp(min_val - max_val))
 
         ans[k - 1] = sub_ans

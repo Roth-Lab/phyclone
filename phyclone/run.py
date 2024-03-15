@@ -147,7 +147,7 @@ def append_to_trace(i, timer, trace, tree, tree_dist):
         "alpha": tree_dist.prior.alpha,
         "log_p_one": tree_dist.log_p_one(tree),
         "log_p": tree_dist.log_p(tree),
-        "prior_log_likelihood": tree_dist.prior.log_p(tree),
+        # "prior_log_likelihood": tree_dist.prior.log_p(tree),
         "tree": tree.to_dict()
     })
 
