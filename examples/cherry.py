@@ -70,7 +70,7 @@ tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
 
 dp_sampler = DataPointSampler(tree_dist, rng, outliers=False)
 
-mh_sampler = PruneRegraphSampler(tree_dist, rng=rng, labeled=False)
+mh_sampler = PruneRegraphSampler(tree_dist, rng=rng)
 
 kernel = FullyAdaptedKernel(tree_dist, outlier_proposal_prob=0.0, rng=rng)
 

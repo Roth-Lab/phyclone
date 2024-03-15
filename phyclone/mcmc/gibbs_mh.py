@@ -71,12 +71,12 @@ class DataPointSampler(object):
 class PruneRegraphSampler(object):
     """Prune a subtree and regraph by Gibbs sampling possible attachement points"""
 
-    def __init__(self, tree_dist, rng: np.random.Generator, labeled=True):
+    def __init__(self, tree_dist, rng: np.random.Generator):
         self.tree_dist = tree_dist
 
         self._rng = rng
 
-        self.labeled = labeled
+        # self.labeled = labeled
 
     def sample_tree(self, tree):
         if len(tree.nodes) <= 1:
@@ -89,13 +89,15 @@ class PruneRegraphSampler(object):
 
         trees = self._create_sampled_trees_array(remaining_nodes, subtree_root, tree)
 
-        if self.labeled:
-            log_p = np.array(
-                [np.log(n + 1) + self.tree_dist.log_p_one(x) for n, x in trees]
-            )
+        log_p = np.array([np.log(n + 1) + self.tree_dist.log_p_one(x) for n, x in trees])
 
-        else:
-            log_p = np.array([self.tree_dist.log_p_one(x) for _, x in trees])
+        # if self.labeled:
+        #     log_p = np.array(
+        #         [np.log(n + 1) + self.tree_dist.log_p_one(x) for n, x in trees]
+        #     )
+        #
+        # else:
+        #     log_p = np.array([self.tree_dist.log_p_one(x) for _, x in trees])
 
         p, _ = exp_normalize(log_p)
 

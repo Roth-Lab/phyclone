@@ -57,10 +57,8 @@ def run(
         precision=precision)
 
     if tree_prior == "uniform":
-        prg_labelled = True
         tree_dist = TreeJointDistribution(UniformFSCRPDistribution(concentration_value))
     else:
-        prg_labelled = False
         tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
 
     run_info = {"prior": tree_prior}
@@ -72,8 +70,7 @@ def run(
                               outlier_prob,
                               resample_threshold,
                               rng,
-                              tree_dist,
-                              prg_labelled)
+                              tree_dist)
 
     tree = Tree.get_single_node_tree(data)
 
@@ -216,9 +213,9 @@ class SamplersHolder:
     subtree_sampler: ParticleGibbsSubtreeSampler
 
 
-def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist, labelled):
+def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist):
     dp_sampler = DataPointSampler(tree_dist, rng, outliers=(outlier_prob > 0))
-    prg_sampler = PruneRegraphSampler(tree_dist, rng, labeled=labelled)
+    prg_sampler = PruneRegraphSampler(tree_dist, rng)
     conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
     burnin_sampler = UnconditionalSMCSampler(
         kernel, num_particles=num_particles, resample_threshold=resample_threshold
