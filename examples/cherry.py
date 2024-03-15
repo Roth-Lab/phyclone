@@ -9,7 +9,6 @@ from phyclone.run import instantiate_and_seed_RNG
 from phyclone.smc.kernels import FullyAdaptedKernel
 from phyclone.tree import (
     FSCRPDistribution,
-    UniformFSCRPDistribution,
     Tree,
     TreeJointDistribution,
 )
@@ -65,8 +64,6 @@ tree = Tree.get_single_node_tree(data)
 conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
 
 tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
-
-# tree_dist = TreeJointDistribution(UniformFSCRPDistribution(1.0))
 
 dp_sampler = DataPointSampler(tree_dist, rng, outliers=False)
 

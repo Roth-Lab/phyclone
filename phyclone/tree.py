@@ -37,36 +37,6 @@ class FSCRPDistribution(object):
         return log_p
 
 
-class UniformFSCRPDistribution(object):
-    """FSCRP prior distribution on trees."""
-
-    def __init__(self, alpha):
-        self.alpha = alpha
-
-    def log_p(self, tree):
-        log_p = 0
-
-        # CRP prior
-        num_nodes = len(tree.nodes)
-
-        log_p += num_nodes * np.log(self.alpha)
-
-        for node, node_data in tree.node_data.items():
-            if node == -1:
-                continue
-
-            num_data_points = len(node_data)
-
-            log_p += log_factorial(num_data_points - 1)
-
-        # Uniform prior on toplogies
-        log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
-
-        log_p -= tree.multiplicity
-
-        return log_p
-
-
 class TreeJointDistribution(object):
     def __init__(self, prior):
         self.prior = prior

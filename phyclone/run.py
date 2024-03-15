@@ -13,7 +13,7 @@ from phyclone.mcmc.particle_gibbs import ParticleGibbsSubtreeSampler, ParticleGi
 from phyclone.process_trace import _create_main_run_output
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel, FlipKernel
 from phyclone.smc.samplers import UnconditionalSMCSampler
-from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution, UniformFSCRPDistribution
+from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer, read_pickle, save_numpy_rng
 from phyclone.data.pyclone import load_data
 
@@ -42,8 +42,7 @@ def run(
         thin=1,
         num_threads=1,
         rng_pickle=None,
-        save_rng=True,
-        tree_prior="uniform"):
+        save_rng=True):
 
     rng = instantiate_and_seed_RNG(seed, rng_pickle)
 
@@ -56,12 +55,7 @@ def run(
         in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
         precision=precision)
 
-    if tree_prior == "uniform":
-        tree_dist = TreeJointDistribution(UniformFSCRPDistribution(concentration_value))
-    else:
-        tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
-
-    run_info = {"prior": tree_prior}
+    tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
 
     kernel = setup_kernel(outlier_prob, proposal, rng, tree_dist, num_mutations)
 
@@ -89,8 +83,6 @@ def run(
     results = _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
                                 num_samples_prune_regraph, print_freq, rng, samplers, samples, subtree_update_prob,
                                 thin, timer, tree, tree_dist)
-
-    results["run_info"] = run_info
 
     _create_main_run_output(cluster_file, out_file, results)
 
