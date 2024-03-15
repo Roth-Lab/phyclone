@@ -193,6 +193,7 @@ def _create_topology_dataframe(topologies):
         topology["topology"] = as_str
 
     df = pd.DataFrame(topologies)
+    df["multiplicity_corrected_count"] = df["count"] // df["multiplicity"]
     return df
 
 
