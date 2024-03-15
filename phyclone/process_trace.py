@@ -26,27 +26,30 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
-    map_iter = 0
-
-    # map_val = float("-inf")
-    topologies = []
-
+    prior_type = results['run_info']['prior']
     data = results["data"]
 
-    for i, x in enumerate(results["trace"]):
-        curr_tree = Tree.from_dict(data, x["tree"])
-        count_topology(topologies, x, i, curr_tree)
+    if prior_type == 'uniform':
+        topologies = []
 
-    df = _create_topology_dataframe(topologies)
-    df = df.sort_values(by="count", ascending=False)
+        for i, x in enumerate(results["trace"]):
+            curr_tree = Tree.from_dict(data, x["tree"])
+            count_topology(topologies, x, i, curr_tree)
 
-    map_iter = df['iter'].iloc[0]
+        df = _create_topology_dataframe(topologies)
+        df = df.sort_values(by="count", ascending=False)
 
-    # for i, x in enumerate(results["trace"]):
-    #     if x["log_p"] > map_val:
-    #         map_iter = i
-    #
-    #         map_val = x["log_p"]
+        map_iter = df['iter'].iloc[0]
+    else:
+        map_iter = 0
+
+        map_val = float("-inf")
+
+        for i, x in enumerate(results["trace"]):
+            if x["log_p_one"] > map_val:
+                map_iter = i
+
+                map_val = x["log_p_one"]
 
     tree = Tree.from_dict(data, results["trace"][map_iter]["tree"])
 
@@ -138,7 +141,7 @@ def count_topology(topologies, x, i, x_top):
         top = topology["topology"]
         if top == x_top:
             topology["count"] += 1
-            curr_log_p = x["log_p"]
+            curr_log_p = x["log_p_one"]
             if curr_log_p > topology["log_p_max"]:
                 topology["log_p_max"] = curr_log_p
                 topology["iter"] = i
@@ -149,7 +152,7 @@ def count_topology(topologies, x, i, x_top):
             {
                 "topology": x_top,
                 "count": 1,
-                "log_p_max": x["log_p"],
+                "log_p_max": x["log_p_one"],
                 "iter": i,
                 "multiplicity": np.exp(x_top.multiplicity),
             }
@@ -372,8 +375,8 @@ def _create_main_run_output(cluster_file, out_file, results):
     with gzip.GzipFile(out_file, mode="wb") as fh:
         pickle.dump(results, fh)
 
-    # cache_txt_file = os.path.join(os.path.dirname(out_file), 'cache_info.txt')
-    # create_cache_info_file(cache_txt_file)
+    cache_txt_file = os.path.join(os.path.dirname(out_file), 'cache_info.txt')
+    create_cache_info_file(cache_txt_file)
 
 
 def create_cache_info_file(out_file):

@@ -63,6 +63,8 @@ def run(
         prg_labelled = False
         tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
 
+    run_info = {"prior": tree_prior}
+
     kernel = setup_kernel(outlier_prob, proposal, rng, tree_dist, num_mutations)
 
     samplers = setup_samplers(kernel,
@@ -90,6 +92,8 @@ def run(
     results = _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
                                 num_samples_prune_regraph, print_freq, rng, samplers, samples, subtree_update_prob,
                                 thin, timer, tree, tree_dist)
+
+    results["run_info"] = run_info
 
     _create_main_run_output(cluster_file, out_file, results)
 
@@ -141,7 +145,9 @@ def append_to_trace(i, timer, trace, tree, tree_dist):
         "iter": i,
         "time": timer.elapsed,
         "alpha": tree_dist.prior.alpha,
-        "log_p": tree_dist.log_p_one(tree),
+        "log_p_one": tree_dist.log_p_one(tree),
+        "log_p": tree_dist.log_p(tree),
+        "prior_log_likelihood": tree_dist.prior.log_p(tree),
         "tree": tree.to_dict()
     })
 

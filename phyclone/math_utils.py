@@ -69,6 +69,23 @@ def exp_normalize(log_p):
 
 
 @numba.jit(cache=True, nopython=True)
+def lse(log_x):
+    inf_check = np.all(np.isinf(log_x))
+    if inf_check:
+        return log_x[0]
+
+    x = log_x[np.isfinite(log_x)]
+    ans = x[0]
+
+    for i in range(1, len(x)):
+        max_value = max(ans, x[i])
+        min_value = min(ans, x[i])
+        ans = max_value + np.log1p(np.exp(min_value - max_value))
+
+    return ans
+
+
+@numba.jit(cache=True, nopython=True)
 def log_sum_exp(log_X):
     """ Given a list of values in log space, log_X. Compute exp(log_X[0] + log_X[1] + ... log_X[n])
 

@@ -61,7 +61,7 @@ class UniformFSCRPDistribution(object):
         # Uniform prior on toplogies
         log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
 
-        log_p += tree.multiplicity
+        log_p -= tree.multiplicity
 
         return log_p
 

@@ -2,7 +2,7 @@ import numpy as np
 
 from phyclone.concentration import GammaPriorConcentrationSampler
 from phyclone.data.base import DataPoint
-from phyclone.mcmc.gibbs_mh import PruneRegraphSampler
+from phyclone.mcmc.gibbs_mh import PruneRegraphSampler, DataPointSampler
 from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler
 from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.run import instantiate_and_seed_RNG
@@ -41,8 +41,8 @@ if data == "binomial":
     data_vals = [d_0, d_1, d_2, d_3]
 
 elif data == "point_mass":
-    ccfs = [5, 10, 15, 20, 100]
-    # ccfs = [30, 70, 100]
+    # ccfs = [5, 10, 15, 20, 100]
+    ccfs = [30, 70, 100]
 
     data_vals = []
 
@@ -58,17 +58,19 @@ data = []
 for i, d in enumerate(data_vals):
     data.append(DataPoint(i, np.atleast_2d(d)))
 
-rng = instantiate_and_seed_RNG(None, None)
+rng = instantiate_and_seed_RNG(1234568974132, None)
 
 tree = Tree.get_single_node_tree(data)
 
 conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
 
-# tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
+tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
 
-tree_dist = TreeJointDistribution(UniformFSCRPDistribution(1.0))
+# tree_dist = TreeJointDistribution(UniformFSCRPDistribution(1.0))
 
-mh_sampler = PruneRegraphSampler(tree_dist, rng=rng, labeled=True)
+dp_sampler = DataPointSampler(tree_dist, rng, outliers=False)
+
+mh_sampler = PruneRegraphSampler(tree_dist, rng=rng, labeled=False)
 
 kernel = FullyAdaptedKernel(tree_dist, outlier_proposal_prob=0.0, rng=rng)
 
@@ -96,6 +98,8 @@ for i in range(burnin):
 for i in range(num_iters):
     tree = pg_sampler.sample_tree(tree)
 
+    tree = dp_sampler.sample_tree(tree)
+
     tree = mh_sampler.sample_tree(tree)
 
     trace.append(
@@ -103,7 +107,7 @@ for i in range(num_iters):
             "iter": i,
             "time": 0,
             "alpha": tree_dist.prior.alpha,
-            "log_p": tree_dist.log_p_one(tree),
+            "log_p_one": tree_dist.log_p_one(tree),
             "tree": tree.to_dict(),
         }
     )
