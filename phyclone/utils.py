@@ -121,7 +121,7 @@ class NumpyTwoArraysHasher:
     def __init__(self, arr_1, arr_2) -> None:
         self.input_1 = arr_1
         self.input_2 = arr_2
-        self.h = (xxhash.xxh3_64_hexdigest(arr_1), xxhash.xxh3_64_hexdigest(arr_2))
+        self.h = frozenset([xxhash.xxh3_64_hexdigest(arr_1), xxhash.xxh3_64_hexdigest(arr_2)])
 
     def __hash__(self) -> int:
         return hash(self.h)
