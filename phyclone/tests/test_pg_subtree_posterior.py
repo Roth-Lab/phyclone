@@ -11,9 +11,7 @@ from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.tests.exact_posterior import get_exact_posterior
 
 import phyclone.tests.simulate as simulate
-from math import inf
-from phyclone.math_utils import simple_log_factorial
-from numpy import full, random
+from numpy import random
 
 
 class BaseTest(object):

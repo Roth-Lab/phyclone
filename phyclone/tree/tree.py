@@ -4,7 +4,7 @@ import networkx as nx
 import numpy as np
 
 from phyclone.consensus import get_clades
-from phyclone.math_utils import log_factorial
+from phyclone.utils.math import log_factorial
 from phyclone.tree.tree_utils import compute_log_S
 from phyclone.utils import get_iterator_length
 

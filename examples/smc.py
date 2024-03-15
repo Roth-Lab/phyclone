@@ -9,13 +9,13 @@ from sklearn.metrics import homogeneity_completeness_v_measure
 import networkx as nx
 import numpy as np
 
-from phyclone.math_utils import discrete_rvs
+from phyclone.utils.math import discrete_rvs
 from phyclone.smc.kernels import FullyAdaptedKernel
 from phyclone.smc.samplers import SMCSampler
 from phyclone.tree import FSCRPDistribution, TreeJointDistribution
 
 from toy_data import load_test_data
-from phyclone.math_utils import simple_log_factorial
+from phyclone.utils.math import simple_log_factorial
 from math import inf
 from phyclone.run import instantiate_and_seed_RNG
 

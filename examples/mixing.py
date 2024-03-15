@@ -8,7 +8,7 @@ import random
 from phyclone.concentration import GammaPriorConcentrationSampler
 from phyclone.consensus import get_consensus_tree
 from phyclone.data.pyclone import load_data
-from phyclone.math_utils import discrete_rvs
+from phyclone.utils.math import discrete_rvs
 from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler, ParticleGibbsSubtreeSampler
 from phyclone.smc.samplers import SMCSampler
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel

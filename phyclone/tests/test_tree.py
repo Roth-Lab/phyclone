@@ -4,7 +4,7 @@ import numpy as np
 
 from phyclone.data.base import DataPoint
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
-from phyclone.math_utils import log_factorial
+from phyclone.utils.math import log_factorial
 
 
 class Test(unittest.TestCase):

@@ -1,7 +1,7 @@
 import itertools
 import numpy as np
 from functools import lru_cache
-from phyclone.math_utils import log_normalize, discrete_rvs
+from phyclone.utils.math import log_normalize, discrete_rvs
 from phyclone.smc.kernels.base import Kernel, ProposalDistribution, TreeHolder
 from phyclone.tree import Tree
 

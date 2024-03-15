@@ -4,7 +4,7 @@ import itertools
 import numpy as np
 
 from phyclone.consensus import get_clades
-from phyclone.math_utils import exp_normalize
+from phyclone.utils.math import exp_normalize
 from phyclone.tree import Tree
 
 

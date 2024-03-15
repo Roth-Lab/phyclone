@@ -1,6 +1,6 @@
 import numpy as np
-from phyclone.math_utils import exp_normalize, discrete_rvs
-import phyclone.math_utils
+from phyclone.utils.math import exp_normalize, discrete_rvs
+import phyclone.utils.math
 
 
 class DataPointSampler(object):
@@ -57,7 +57,7 @@ class DataPointSampler(object):
 
         log_q = np.array([self.tree_dist.log_p_one(x) for x in new_trees])
 
-        log_q = phyclone.math_utils.log_normalize(log_q)
+        log_q = phyclone.utils.math_utils.log_normalize(log_q)
 
         q = np.exp(log_q)
 

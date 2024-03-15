@@ -11,7 +11,7 @@ from numba import set_num_threads
 
 from phyclone.consensus import get_consensus_tree
 from phyclone.map import get_map_node_ccfs
-from phyclone.math_utils import exp_normalize
+from phyclone.utils.math import exp_normalize
 from phyclone.smc.kernels.fully_adapted import _get_cached_proposal_dist
 from phyclone.tree import Tree
 from phyclone.tree.tree_utils import (

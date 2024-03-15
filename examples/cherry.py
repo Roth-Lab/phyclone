@@ -13,7 +13,7 @@ from phyclone.tree import (
     TreeJointDistribution,
 )
 from phyclone.process_trace import count_topology, _create_topology_dataframe
-from phyclone.math_utils import log_binomial_likelihood
+from phyclone.utils.math import log_binomial_likelihood
 
 # data = "binomial"
 data = "point_mass"

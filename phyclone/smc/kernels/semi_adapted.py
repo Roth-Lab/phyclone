@@ -1,5 +1,5 @@
 import numpy as np
-from phyclone.math_utils import log_binomial_coefficient, log_normalize
+from phyclone.utils.math import log_binomial_coefficient, log_normalize
 from phyclone.smc.kernels.base import Kernel, ProposalDistribution
 from phyclone.tree import Tree
 

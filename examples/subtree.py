@@ -6,7 +6,7 @@ import numpy as np
 from phyclone.concentration import GammaPriorConcentrationSampler
 from phyclone.consensus import get_consensus_tree
 from phyclone.map import get_map_node_ccfs
-from phyclone.math_utils import discrete_rvs
+from phyclone.utils.math import discrete_rvs
 from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler, ParticleGibbsSubtreeSampler
 from phyclone.smc.samplers import SMCSampler
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel

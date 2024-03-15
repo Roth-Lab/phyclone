@@ -11,7 +11,7 @@ from phyclone.smc.kernels import FullyAdaptedKernel
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 
 from toy_data import load_test_data
-from phyclone.math_utils import simple_log_factorial
+from phyclone.utils.math import simple_log_factorial
 from math import inf
 from phyclone.run import instantiate_and_seed_RNG
 

@@ -1,4 +1,4 @@
-from phyclone.math_utils import discrete_rvs
+from phyclone.utils.math import discrete_rvs
 from phyclone.smc.samplers import SMCSampler
 from phyclone.smc.utils import RootPermutationDistribution
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-from phyclone.math_utils import log_factorial, log_sum_exp
+from phyclone.utils.math import log_factorial, log_sum_exp
 
 
 class FSCRPDistribution(object):

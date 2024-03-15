@@ -4,7 +4,7 @@ Created on 9 Aug 2017
 @author: Andrew Roth
 '''
 import numpy as np
-from phyclone.math_utils import log_factorial, log_binomial_coefficient, log_multinomial_coefficient
+from phyclone.utils.math import log_factorial, log_binomial_coefficient, log_multinomial_coefficient
 
 
 class RootPermutationDistribution(object):
