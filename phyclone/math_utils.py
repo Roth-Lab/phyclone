@@ -86,6 +86,32 @@ def lse(log_x):
 
 
 @numba.jit(cache=True, nopython=True)
+def lse_accumulate(log_x, out_arr):
+    len_arr = len(log_x)
+    t = log_x[0]
+    out_arr[0] = t
+    for i in range(1, len_arr):
+        max_value = max(t, log_x[i])
+        min_value = min(t, log_x[i])
+        t = max_value + np.log1p(np.exp(min_value - max_value))
+        out_arr[i] = t
+    return out_arr
+
+
+# @numba.jit(cache=True, nopython=True)
+# def lse_accumulate(log_x, out_arr):
+#     r = np.empty(2)
+#     len_arr = len(log_x)
+#     t = -np.inf
+#     for i in range(len_arr):
+#         r[0] = t
+#         r[1] = log_x[i]
+#         t = lse(r)
+#         out_arr[i] = t
+#     return out_arr
+
+
+@numba.jit(cache=True, nopython=True)
 def log_sum_exp(log_X):
     """ Given a list of values in log space, log_X. Compute exp(log_X[0] + log_X[1] + ... log_X[n])
 

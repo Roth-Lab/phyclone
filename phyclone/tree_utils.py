@@ -1,6 +1,7 @@
 import numpy as np
 import numba
 from phyclone.utils import two_np_arr_cache, list_of_np_cache
+from phyclone.math_utils import lse_accumulate
 
 
 @list_of_np_cache(maxsize=4096)
@@ -21,11 +22,20 @@ def compute_log_S(child_log_R_values):
     return np.ascontiguousarray(log_S)
 
 
+# def _sub_compute_S(log_D):
+#     log_S = np.zeros(log_D.shape, order='C')
+#     num_dims = log_D.shape[0]
+#     for i in range(num_dims):
+#         log_S[i, :] = np.logaddexp.accumulate(log_D[i, :])
+#     return log_S
+
+@numba.jit(cache=True, nopython=True)
 def _sub_compute_S(log_D):
-    log_S = np.zeros(log_D.shape, order='C')
+    # log_S = np.zeros(log_D.shape, order='C')
+    log_S = np.empty_like(log_D)
     num_dims = log_D.shape[0]
     for i in range(num_dims):
-        log_S[i, :] = np.logaddexp.accumulate(log_D[i, :])
+        lse_accumulate(log_D[i, :], log_S[i, :])
     return log_S
 
 
