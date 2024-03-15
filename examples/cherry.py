@@ -1,6 +1,6 @@
 import numpy as np
 
-from phyclone.concentration import GammaPriorConcentrationSampler
+from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
 from phyclone.data.base import DataPoint
 from phyclone.mcmc.gibbs_mh import PruneRegraphSampler, DataPointSampler
 from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler

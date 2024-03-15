@@ -7,7 +7,7 @@ import numpy as np
 from numba import set_num_threads
 from dataclasses import dataclass
 
-from phyclone.concentration import GammaPriorConcentrationSampler
+from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
 from phyclone.mcmc.gibbs_mh import DataPointSampler, PruneRegraphSampler
 from phyclone.mcmc.particle_gibbs import ParticleGibbsSubtreeSampler, ParticleGibbsTreeSampler
 from phyclone.process_trace import _create_main_run_output

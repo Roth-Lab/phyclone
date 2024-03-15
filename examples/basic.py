@@ -1,6 +1,6 @@
 from sklearn.metrics import homogeneity_completeness_v_measure
 
-from phyclone.concentration import GammaPriorConcentrationSampler
+from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
 from phyclone.mcmc.gibbs_mh import PruneRegraphSampler
 from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler
 from phyclone.smc.kernels import SemiAdaptedKernel

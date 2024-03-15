@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import random
 
-from phyclone.concentration import GammaPriorConcentrationSampler
+from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
 from phyclone.consensus import get_consensus_tree
 from phyclone.data.pyclone import load_data
 from phyclone.utils.math import discrete_rvs

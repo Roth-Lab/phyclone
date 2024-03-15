@@ -3,7 +3,7 @@ from sklearn.metrics import homogeneity_completeness_v_measure
 import networkx as nx
 import numpy as np
 
-from phyclone.concentration import GammaPriorConcentrationSampler
+from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
 from phyclone.consensus import get_consensus_tree
 from phyclone.mcmc.gibbs_mh import PruneRegraphSampler
 from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler
