@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from phyclone.tree.tree_utils import conv_log, _convolve_two_children
+from phyclone.tree.utils import conv_log, _convolve_two_children
 
 
 def numpy_reliant_non_log_conv(child_log_R, prev_log_D_n):

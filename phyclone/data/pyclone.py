@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 import phyclone.data.base
-import phyclone.utils.math
+from phyclone.utils.math import log_normalize, log_beta_binomial_pdf, log_sum_exp, log_binomial_pdf
 from phyclone.utils.exceptions import MajorCopyNumberError
 
 
@@ -178,7 +178,7 @@ def get_major_cn_prior(major_cn, minor_cn, normal_cn, error_rate=1e-3):
 
     mu = np.array(mu, dtype=float)
 
-    log_pi = phyclone.utils.math_utils.log_normalize(np.array(log_pi, dtype=float))
+    log_pi = log_normalize(np.array(log_pi, dtype=float))
 
     return cn, mu, log_pi
 
@@ -273,9 +273,9 @@ def log_pyclone_beta_binomial_pdf(data, f, s):
 
         b = s - a
 
-        ll[c] = data.log_pi[c] + phyclone.utils.math_utils.log_beta_binomial_pdf(data.a + data.b, data.b, a, b)
+        ll[c] = data.log_pi[c] + log_beta_binomial_pdf(data.a + data.b, data.b, a, b)
 
-    return phyclone.utils.math_utils.log_sum_exp(ll)
+    return log_sum_exp(ll)
 
 
 @numba.jit(nopython=True)
@@ -305,6 +305,6 @@ def log_pyclone_binomial_pdf(data, f):
 
         e_vaf /= norm_const
 
-        ll[c] = data.log_pi[c] + phyclone.utils.math_utils.log_binomial_pdf(data.a + data.b, data.b, e_vaf)
+        ll[c] = data.log_pi[c] + log_binomial_pdf(data.a + data.b, data.b, e_vaf)
 
-    return phyclone.utils.math_utils.log_sum_exp(ll)
+    return log_sum_exp(ll)

@@ -4,7 +4,7 @@ from phyclone.utils.math import log_sum_exp
 
 
 class ParticleSwarm(object):
-    """ A collection of particles from one iterations of an SMC algorithm.
+    """ A collection of particles from one iteration of an SMC algorithm.
 
     This class handles tracking particles, their weights and normalization.
     """

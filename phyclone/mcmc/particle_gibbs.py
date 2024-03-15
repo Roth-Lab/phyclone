@@ -44,7 +44,7 @@ class ParticleGibbsTreeSampler(object):
     def _sample_tree_from_swarm(self, swarm):
         """ Given an SMC swarm sample a tree
         """
-        particle_idx = phyclone.utils.math_utils.discrete_rvs(swarm.weights, self._rng)
+        particle_idx = phyclone.utils.math.discrete_rvs(swarm.weights, self._rng)
 
         particle = swarm.particles[particle_idx]
 

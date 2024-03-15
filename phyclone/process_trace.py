@@ -14,7 +14,7 @@ from phyclone.map import get_map_node_ccfs
 from phyclone.utils.math import exp_normalize
 from phyclone.smc.kernels.fully_adapted import _get_cached_proposal_dist
 from phyclone.tree import Tree
-from phyclone.tree.tree_utils import (
+from phyclone.tree.utils import (
     compute_log_S,
     _cache_ratio,
     _convolve_two_children,
