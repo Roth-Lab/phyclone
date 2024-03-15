@@ -170,7 +170,7 @@ def topology_report(**kwargs):
 )
 @click.option(
     "-p", "--proposal",
-    default="default",
+    default="semi-adapted",
     type=click.Choice(["bootstrap", "fully-adapted", "semi-adapted", "default"]),
     show_default=True,
     help="""
