@@ -78,7 +78,7 @@ class PruneRegraphSampler(object):
         # self.labeled = labeled
 
     def sample_tree(self, tree):
-        if len(tree.nodes) <= 1:
+        if tree.get_number_of_nodes() <= 1:
             return tree
 
         remaining_nodes, subtree_root = self._get_subtree_and_pruned_tree(tree)
@@ -117,7 +117,8 @@ class PruneRegraphSampler(object):
             new_tree.remove_subtree(subtree)
 
             if parent is None:
-                nc = len(new_tree.roots)
+                # nc = len(new_tree.roots)
+                nc = new_tree.get_number_of_children("root")
 
             else:
                 # nc = len(new_tree.get_children(parent))

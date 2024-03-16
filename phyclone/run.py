@@ -149,7 +149,7 @@ def update_concentration_value(conc_sampler, tree, tree_dist):
 
         node_sizes.append(len(node_data))
 
-    tree_dist.prior.alpha = conc_sampler.sample(tree_dist.prior.alpha, len(tree.nodes), sum(node_sizes))
+    tree_dist.prior.alpha = conc_sampler.sample(tree_dist.prior.alpha, len(node_sizes), sum(node_sizes))
 
 
 def setup_trace(timer, tree, tree_dist):
@@ -259,4 +259,6 @@ def instantiate_and_seed_RNG(seed, rng_pickle):
 def print_stats(iter_id, tree, tree_dist):
     string_template = 'iter: {}, alpha: {}, log_p: {}, num_nodes: {}, num_outliers: {}, num_roots: {}'
     print(string_template.format(iter_id, round(tree_dist.prior.alpha, 3), round(tree_dist.log_p_one(tree), 3),
-                                 len(tree.nodes), len(tree.outliers), len(tree.roots)))
+                                 tree.get_number_of_nodes(), len(tree.outliers), tree.get_number_of_children("root")))
+    # print(string_template.format(iter_id, round(tree_dist.prior.alpha, 3), round(tree_dist.log_p_one(tree), 3),
+    #                              len(tree.nodes), len(tree.outliers), len(tree.roots)))
