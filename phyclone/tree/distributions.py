@@ -1,5 +1,5 @@
 import numpy as np
-from phyclone.utils.math import log_factorial, log_sum_exp
+from phyclone.utils.math import log_factorial, log_sum_exp, lse
 
 
 class FSCRPDistribution(object):
@@ -47,11 +47,12 @@ class TreeJointDistribution(object):
         log_p = self.prior.log_p(tree, node_data)
 
         # Outlier prior
-        log_p = self.outlier_prior(log_p, node_data)
+        log_p += self.outlier_prior(node_data)
 
         if tree.get_number_of_children("root") > 0:
             for i in range(tree.grid_size[0]):
-                log_p += log_sum_exp(tree.data_log_likelihood[i, :])
+                # log_p += log_sum_exp(tree.data_log_likelihood[i, :])
+                log_p += lse(tree.data_log_likelihood[i, :])
 
         for data_point in tree.outliers:
             log_p += data_point.outlier_marginal_prob
@@ -66,7 +67,7 @@ class TreeJointDistribution(object):
         log_p = self.prior.log_p(tree, node_data)
 
         # Outlier prior
-        log_p = self.outlier_prior(log_p, node_data)
+        log_p += self.outlier_prior(node_data)
 
         if tree.get_number_of_children("root") > 0:
             for i in range(tree.grid_size[0]):
@@ -78,7 +79,8 @@ class TreeJointDistribution(object):
         return log_p
 
     @staticmethod
-    def outlier_prior(log_p, node_data):
+    def outlier_prior(node_data):
+        log_p = 0
         for node, node_data in node_data.items():
             for data_point in node_data:
                 if data_point.outlier_prob != 0:
