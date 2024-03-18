@@ -2,7 +2,7 @@ import unittest
 
 from collections import defaultdict, Counter
 
-from phyclone.process_trace.consensus import get_clades
+from phyclone.tree.utils import get_clades
 from phyclone.mcmc import ParticleGibbsSubtreeSampler
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
 from phyclone.smc.utils import RootPermutationDistribution

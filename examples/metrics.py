@@ -1,4 +1,4 @@
-from phyclone.process_trace.consensus import get_clades
+from phyclone.tree.utils import get_clades
 
 
 def partition_metric(tree_1, tree_2):

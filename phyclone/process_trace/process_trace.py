@@ -94,7 +94,7 @@ def write_topology_report(in_file, out_file):
         count_parent_child_relationships(curr_tree, data_index_dict, parent_child_arr)
         count_topology(topologies, x, i, curr_tree)
 
-    df = _create_topology_dataframe(topologies)
+    df = create_topology_dataframe(topologies)
     df = df.sort_values(by="count", ascending=False)
     df.to_csv(out_file, index=False, sep="\t")
 
@@ -150,10 +150,13 @@ def count_topology(topologies, x, i, x_top):
         top = topology["topology"]
         if top == x_top:
             topology["count"] += 1
-            curr_log_p = x["log_p_one"]
+            curr_log_p_one = x["log_p_one"]
+            curr_log_p = x["log_p"]
+            if curr_log_p_one > topology["log_p_joint_max"]:
+                topology["log_p_joint_max"] = curr_log_p_one
+                topology["iter"] = i
             if curr_log_p > topology["log_p_max"]:
                 topology["log_p_max"] = curr_log_p
-                topology["iter"] = i
             found = True
             break
     if not found:
@@ -161,7 +164,8 @@ def count_topology(topologies, x, i, x_top):
             {
                 "topology": x_top,
                 "count": 1,
-                "log_p_max": x["log_p_one"],
+                "log_p_joint_max": x["log_p_one"],
+                "log_p_max": x["log_p"],
                 "iter": i,
                 "multiplicity": np.exp(x_top.multiplicity),
             }
@@ -182,7 +186,7 @@ def _create_results_output_files(
         log_probs_table.to_csv(out_log_probs_file, index=False, sep="\t")
 
 
-def _create_topology_dataframe(topologies):
+def create_topology_dataframe(topologies):
     for topology in topologies:
         tmp_str_io = StringIO()
         tree = topology["topology"]

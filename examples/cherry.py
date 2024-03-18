@@ -1,5 +1,5 @@
 import numpy as np
-
+from phyclone.tree import Tree, FSCRPDistribution, TreeJointDistribution
 from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
 from phyclone.data.base import DataPoint
 from phyclone.mcmc.gibbs_mh import PruneRegraphSampler, DataPointSampler
@@ -7,13 +7,11 @@ from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler
 from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.run import instantiate_and_seed_RNG
 from phyclone.smc.kernels import FullyAdaptedKernel
-from phyclone.tree import (
-    FSCRPDistribution,
-    Tree,
-    TreeJointDistribution,
-)
-from phyclone.process_trace import count_topology, _create_topology_dataframe
+from phyclone.process_trace import count_topology, create_topology_dataframe
 from phyclone.utils.math import log_binomial_likelihood
+import pandas as pd
+
+pd.options.display.max_columns = None
 
 # data = "binomial"
 data = "point_mass"
@@ -40,8 +38,8 @@ if data == "binomial":
     data_vals = [d_0, d_1, d_2, d_3]
 
 elif data == "point_mass":
-    # ccfs = [5, 10, 15, 20, 100]
-    ccfs = [30, 70, 100]
+    ccfs = [5, 10, 15, 20, 100]
+    # ccfs = [30, 70, 100]
 
     data_vals = []
 
@@ -105,6 +103,7 @@ for i in range(num_iters):
             "time": 0,
             "alpha": tree_dist.prior.alpha,
             "log_p_one": tree_dist.log_p_one(tree),
+            "log_p": tree_dist.log_p(tree),
             "tree": tree.to_dict(),
         }
     )
@@ -116,7 +115,7 @@ for i, x in enumerate(trace):
     curr_tree = Tree.from_dict(data, x["tree"])
     count_topology(topologies, x, i, curr_tree)
 
-df = _create_topology_dataframe(topologies)
+df = create_topology_dataframe(topologies)
 
 df = df.sort_values(by="count", ascending=False)
 

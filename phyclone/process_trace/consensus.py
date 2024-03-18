@@ -1,6 +1,8 @@
 from collections import defaultdict
 import networkx as nx
 
+from phyclone.tree.utils import get_clades
+
 
 def get_consensus_tree(trees, data=None, threshold=0.5, weighted=False, log_p_list=None):
 
@@ -104,30 +106,6 @@ def key_above_threshold(counter, threshold):
     """ Only keeps the keys in a dict above or equal the threshold
     """
     return set([key for key, value in counter.items() if value > threshold])
-
-
-def get_clades(tree):
-    result = set()
-
-    for root in tree.roots:
-        _clades(result, root, tree)
-
-    return frozenset(result)
-
-
-def _clades(clades, node, tree):
-    current_clade = set()
-
-    for mutation in tree.get_data(node):
-        current_clade.add(mutation.idx)
-
-    for child in tree.get_children(node):
-        for mutation in _clades(clades, child, tree):
-            current_clade.add(mutation)
-
-    clades.add(frozenset(current_clade))
-
-    return current_clade
 
 
 def _relabel(node, transformed, original):

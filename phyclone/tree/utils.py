@@ -116,3 +116,27 @@ def _cache_ratio(cache_obj):
     except ZeroDivisionError:
         ratio = 0.0
     return ratio
+
+
+def get_clades(tree):
+    result = set()
+
+    for root in tree.roots:
+        _clades(result, root, tree)
+
+    return frozenset(result)
+
+
+def _clades(clades, node, tree):
+    current_clade = set()
+
+    for mutation in tree.get_data(node):
+        current_clade.add(mutation.idx)
+
+    for child in tree.get_children(node):
+        for mutation in _clades(clades, child, tree):
+            current_clade.add(mutation)
+
+    clades.add(frozenset(current_clade))
+
+    return current_clade
