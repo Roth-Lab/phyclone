@@ -35,11 +35,18 @@ from phyclone.run import run as run_prog
     show_default=True,
     help="""Consensus threshold to keep an SNV."""
 )
+# @click.option(
+#     "--weighted-consensus/--non-weighted-consensus",
+#     default=True,
+#     show_default=True,
+#     help="Whether the consensus tree should be computed using weighted trees."
+# )
 @click.option(
-    "--weighted-consensus/--non-weighted-consensus",
-    default=True,
+    "-w", "--weight-type",
+    default="counts",
+    type=click.Choice(["counts", "corrected-counts", "joint-likelihood"]),
     show_default=True,
-    help="Whether the consensus tree should be computed using weighted trees."
+    help="""Which measure to use as the consensus tree weights. Counts is the same as an unweighted consensus."""
 )
 def consensus(**kwargs):
     """ Build consensus results.

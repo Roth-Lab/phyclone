@@ -160,6 +160,7 @@ def count_topology(topologies, x, i, x_top):
             found = True
             break
     if not found:
+        log_mult = x_top.multiplicity
         topologies.append(
             {
                 "topology": x_top,
@@ -167,7 +168,8 @@ def count_topology(topologies, x, i, x_top):
                 "log_p_joint_max": x["log_p_one"],
                 "log_p_max": x["log_p"],
                 "iter": i,
-                "multiplicity": np.exp(x_top.multiplicity),
+                "multiplicity": np.exp(log_mult),
+                "log_multiplicity": log_mult,
             }
         )
 
@@ -197,7 +199,8 @@ def create_topology_dataframe(topologies):
         topology["topology"] = as_str
 
     df = pd.DataFrame(topologies)
-    df["multiplicity_corrected_count"] = df["count"] // df["multiplicity"]
+    df["multiplicity_corrected_count"] = df["count"] / df["multiplicity"]
+    df["log_multiplicity_corrected_count"] = np.log(df["count"]) - df["log_multiplicity"]
     return df
 
 
@@ -207,7 +210,8 @@ def write_consensus_results(
     out_tree_file,
     out_log_probs_file=None,
     consensus_threshold=0.5,
-    weighted_consensus=True,
+    # weighted_consensus=True,
+    weight_type="counts"
 ):
     set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
@@ -215,11 +219,32 @@ def write_consensus_results(
 
     data = results["data"]
 
-    trees = [Tree.from_dict(data, x["tree"]) for x in results["trace"]]
+    topologies = []
+    trees = []
+    probs = []
 
-    probs = np.array([x["log_p_one"] for x in results["trace"]])
+    weighted_consensus = True
 
-    probs, norm = exp_normalize(probs)
+    if weight_type == "counts":
+        weighted_consensus = False
+        trees = [Tree.from_dict(data, x["tree"]) for x in results["trace"]]
+    elif weight_type == "corrected-counts":
+        for i, x in enumerate(results["trace"]):
+            curr_tree = Tree.from_dict(data, x["tree"])
+            count_topology(topologies, x, i, curr_tree)
+
+        for topology in topologies:
+            curr_tree = topology["topology"]
+            curr_prob = np.log(topology["count"]) - topology["log_multiplicity"]
+            trees.append(curr_tree)
+            probs.append(curr_prob)
+    else:
+        trees = [Tree.from_dict(data, x["tree"]) for x in results["trace"]]
+        probs = np.array([x["log_p_one"] for x in results["trace"]])
+
+    if weighted_consensus:
+        probs = np.array(probs)
+        probs, norm = exp_normalize(probs)
 
     graph = get_consensus_tree(
         trees,
