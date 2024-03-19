@@ -9,24 +9,12 @@ import numpy as np
 from functools import lru_cache
 
 
-# def bernoulli_rvs(p=0.5):
-#     return (random.random() < p)
-#
-#
-# def discrete_rvs(p):
-#     p = p / np.sum(p)
-#
-#     return np.random.multinomial(1, p).argmax()
-
 def bernoulli_rvs(rng: np.random.Generator, p=0.5):
-    # return (random.random() < p)
     return rng.random() < p
 
 
 def discrete_rvs(p, rng):
     p = p / np.sum(p)
-
-    # return np.random.multinomial(1, p).argmax()
     return rng.multinomial(1, p).argmax()
 
 
@@ -85,8 +73,6 @@ def lse(log_x):
         else:
             max_value = curr
             min_value = ans
-        # max_value = max(ans, x[i])
-        # min_value = min(ans, x[i])
         ans = max_value + np.log1p(np.exp(min_value - max_value))
 
     return ans
@@ -98,8 +84,6 @@ def lse_accumulate(log_x, out_arr):
     t = log_x[0]
     out_arr[0] = t
     for i in range(1, len_arr):
-        # max_value = max(t, log_x[i])
-        # min_value = min(t, log_x[i])
         curr = log_x[i]
         if t > curr:
             max_value = t
@@ -110,19 +94,6 @@ def lse_accumulate(log_x, out_arr):
         t = max_value + np.log1p(np.exp(min_value - max_value))
         out_arr[i] = t
     return out_arr
-
-
-# @numba.jit(cache=True, nopython=True)
-# def lse_accumulate(log_x, out_arr):
-#     r = np.empty(2)
-#     len_arr = len(log_x)
-#     t = -np.inf
-#     for i in range(len_arr):
-#         r[0] = t
-#         r[1] = log_x[i]
-#         t = lse(r)
-#         out_arr[i] = t
-#     return out_arr
 
 
 @numba.jit(cache=True, nopython=True)
