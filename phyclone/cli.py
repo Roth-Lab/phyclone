@@ -171,13 +171,12 @@ def topology_report(**kwargs):
 @click.option(
     "-p", "--proposal",
     default="semi-adapted",
-    type=click.Choice(["bootstrap", "fully-adapted", "semi-adapted", "default"]),
+    type=click.Choice(["bootstrap", "fully-adapted", "semi-adapted"]),
     show_default=True,
     help="""
     Proposal distribution to use for PG sampling.
     Fully adapted is the most computationally expensive but also likely to lead to the best performance per iteration.
     For large datasets it may be necessary to use one of the other proposals.
-    Default will select between fully-adapted and semi-adapted depending on computational expense.
     """
 )
 # @click.option(

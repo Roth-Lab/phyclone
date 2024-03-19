@@ -11,7 +11,7 @@ from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
 from phyclone.mcmc.gibbs_mh import DataPointSampler, PruneRegraphSampler
 from phyclone.mcmc.particle_gibbs import ParticleGibbsSubtreeSampler, ParticleGibbsTreeSampler
 from phyclone.process_trace import create_main_run_output
-from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel, FlipKernel
+from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
 from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer, read_pickle, save_numpy_rng
@@ -35,7 +35,7 @@ def run(
         outlier_prob=0,
         precision=1.0,
         print_freq=100,
-        proposal="default",
+        proposal="semi-adapted",
         resample_threshold=0.5,
         seed=None,
         subtree_update_prob=0,
@@ -57,7 +57,7 @@ def run(
 
     tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
 
-    kernel = setup_kernel(outlier_prob, proposal, rng, tree_dist, num_mutations)
+    kernel = setup_kernel(outlier_prob, proposal, rng, tree_dist)
 
     samplers = setup_samplers(kernel,
                               num_particles,
@@ -226,22 +226,20 @@ def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng,
                           subtree_sampler)
 
 
-def setup_kernel(outlier_prob, proposal, rng, tree_dist, num_mutations):
+def setup_kernel(outlier_prob, proposal, rng, tree_dist):
     if outlier_prob > 0:
         outlier_proposal_prob = 0.1
     else:
         outlier_proposal_prob = 0
-    kernel_cls = FlipKernel
+    kernel_cls = SemiAdaptedKernel
     if proposal == "bootstrap":
         kernel_cls = BootstrapKernel
     elif proposal == "fully-adapted":
         kernel_cls = FullyAdaptedKernel
     elif proposal == "semi-adapted":
         kernel_cls = SemiAdaptedKernel
-    if kernel_cls == FlipKernel:
-        kernel = kernel_cls(tree_dist, rng, num_mutations, outlier_proposal_prob=outlier_proposal_prob)
-    else:
-        kernel = kernel_cls(tree_dist, rng, outlier_proposal_prob=outlier_proposal_prob)
+
+    kernel = kernel_cls(tree_dist, rng, outlier_proposal_prob=outlier_proposal_prob)
     return kernel
 
 
