@@ -78,6 +78,13 @@ def consensus(**kwargs):
     default=None,
     type=click.Path(resolve_path=True)
 )
+@click.option(
+    "--map-type",
+    default="frequency",
+    type=click.Choice(["joint-likelihood", "frequency"]),
+    show_default=True,
+    help="""Which measure to use as for MAP computation."""
+)
 def map(**kwargs):
     """ Build MAP results.
     """

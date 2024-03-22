@@ -21,44 +21,43 @@ from phyclone.tree.utils import (
 )
 
 
-def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None):
+def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None, map_type='frequency'):
     set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
-    # prior_type = results['run_info']['prior']
     data = results["data"]
 
-    # if prior_type == 'uniform':
-    #     topologies = []
-    #
-    #     for i, x in enumerate(results["trace"]):
-    #         curr_tree = Tree.from_dict(data, x["tree"])
-    #         count_topology(topologies, x, i, curr_tree)
-    #
-    #     df = _create_topology_dataframe(topologies)
-    #     df = df.sort_values(by="count", ascending=False)
-    #
-    #     map_iter = df['iter'].iloc[0]
-    # else:
-    #     map_iter = 0
-    #
-    #     map_val = float("-inf")
-    #
-    #     for i, x in enumerate(results["trace"]):
-    #         if x["log_p_one"] > map_val:
-    #             map_iter = i
-    #
-    #             map_val = x["log_p_one"]
-    map_iter = 0
+    if map_type == 'frequency':
+        topologies = []
 
-    map_val = float("-inf")
+        for i, x in enumerate(results["trace"]):
+            curr_tree = Tree.from_dict(data, x["tree"])
+            count_topology(topologies, x, i, curr_tree)
 
-    for i, x in enumerate(results["trace"]):
-        if x["log_p_one"] > map_val:
-            map_iter = i
+        df = create_topology_dataframe(topologies)
+        df = df.sort_values(by="count", ascending=False)
 
-            map_val = x["log_p_one"]
+        map_iter = df['iter'].iloc[0]
+    else:
+        map_iter = 0
+
+        map_val = float("-inf")
+
+        for i, x in enumerate(results["trace"]):
+            if x["log_p_one"] > map_val:
+                map_iter = i
+
+                map_val = x["log_p_one"]
+    # map_iter = 0
+    #
+    # map_val = float("-inf")
+    #
+    # for i, x in enumerate(results["trace"]):
+    #     if x["log_p_one"] > map_val:
+    #         map_iter = i
+    #
+    #         map_val = x["log_p_one"]
 
     tree = Tree.from_dict(data, results["trace"][map_iter]["tree"])
 
