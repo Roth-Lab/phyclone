@@ -65,24 +65,24 @@ def write_topology_report(in_file, out_file):
 
     data = results["data"]
 
-    data_arr = np.array(list(data))
+    # data_arr = np.array(list(data))
 
-    data_index_dict = dict(
-        zip(np.arange(len(data_arr)), [data_point.idx for data_point in data_arr])
-    )
-
-    parent_child_arr = np.zeros((len(data_arr), len(data_arr)))
+    # data_index_dict = dict(
+    #     zip(np.arange(len(data_arr)), [data_point.idx for data_point in data_arr])
+    # )
+    #
+    # parent_child_arr = np.zeros((len(data_arr), len(data_arr)))
 
     for i, x in enumerate(results["trace"]):
         curr_tree = Tree.from_dict(data, x["tree"])
-        count_parent_child_relationships(curr_tree, data_index_dict, parent_child_arr)
+        # count_parent_child_relationships(curr_tree, data_index_dict, parent_child_arr)
         count_topology(topologies, x, i, curr_tree)
 
     df = create_topology_dataframe(topologies)
     df = df.sort_values(by="count", ascending=False)
     df.to_csv(out_file, index=False, sep="\t")
 
-    _create_parent_child_out_files(data_arr, out_file, parent_child_arr, results)
+    # _create_parent_child_out_files(data_arr, out_file, parent_child_arr, results)
 
 
 def _create_parent_child_out_files(data_arr, out_file, parent_child_arr, results):
