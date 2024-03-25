@@ -12,13 +12,7 @@ from numba import set_num_threads
 from phyclone.process_trace.consensus import get_consensus_tree
 from phyclone.process_trace.map import get_map_node_ccfs
 from phyclone.utils.math import exp_normalize
-from phyclone.smc.kernels.fully_adapted import _get_cached_proposal_dist
 from phyclone.tree import Tree
-from phyclone.tree.utils import (
-    compute_log_S,
-    _cache_ratio,
-    _convolve_two_children,
-)
 
 
 def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None, map_type='frequency'):
@@ -49,15 +43,6 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
                 map_iter = i
 
                 map_val = x["log_p_one"]
-    # map_iter = 0
-    #
-    # map_val = float("-inf")
-    #
-    # for i, x in enumerate(results["trace"]):
-    #     if x["log_p_one"] > map_val:
-    #         map_iter = i
-    #
-    #         map_val = x["log_p_one"]
 
     tree = Tree.from_dict(data, results["trace"][map_iter]["tree"])
 
@@ -209,7 +194,6 @@ def write_consensus_results(
     out_tree_file,
     out_log_probs_file=None,
     consensus_threshold=0.5,
-    # weighted_consensus=True,
     weight_type="counts"
 ):
     set_num_threads(1)
@@ -412,30 +396,3 @@ def create_main_run_output(cluster_file, out_file, results):
         ].drop_duplicates()
     with gzip.GzipFile(out_file, mode="wb") as fh:
         pickle.dump(results, fh)
-
-    cache_txt_file = os.path.join(os.path.dirname(out_file), 'cache_info.txt')
-    create_cache_info_file(cache_txt_file)
-
-
-def create_cache_info_file(out_file):
-    with open(out_file, "w") as f:
-        print(
-            "compute_s cache info: {}, hit ratio: {}".format(
-                compute_log_S.cache_info(), _cache_ratio(compute_log_S.cache_info())
-            ),
-            file=f,
-        )
-        print(
-            "_convolve_two_children cache info: {}, hit ratio: {}".format(
-                _convolve_two_children.cache_info(),
-                _cache_ratio(_convolve_two_children.cache_info()),
-            ),
-            file=f,
-        )
-        print(
-            "_get_cached_proposal_dist cache info: {}, hit ratio: {}".format(
-                _get_cached_proposal_dist.cache_info(),
-                _cache_ratio(_get_cached_proposal_dist.cache_info()),
-            ),
-            file=f,
-        )

@@ -22,16 +22,8 @@ def compute_log_S(child_log_R_values):
     return np.ascontiguousarray(log_S)
 
 
-# def _sub_compute_S(log_D):
-#     log_S = np.zeros(log_D.shape, order='C')
-#     num_dims = log_D.shape[0]
-#     for i in range(num_dims):
-#         log_S[i, :] = np.logaddexp.accumulate(log_D[i, :])
-#     return log_S
-
 @numba.jit(cache=True, nopython=True)
 def _sub_compute_S(log_D):
-    # log_S = np.zeros(log_D.shape, order='C')
     log_S = np.empty_like(log_D)
     num_dims = log_D.shape[0]
     for i in range(num_dims):
@@ -95,8 +87,6 @@ def conv_log(log_x, log_y, ans):
             if sub_ans is None:
                 sub_ans = curr
             else:
-                # max_val = max(sub_ans, curr)
-                # min_val = min(sub_ans, curr)
                 if sub_ans > curr:
                     max_val = sub_ans
                     min_val = curr
@@ -108,14 +98,6 @@ def conv_log(log_x, log_y, ans):
         ans[k - 1] = sub_ans
 
     return ans
-
-
-def _cache_ratio(cache_obj):
-    try:
-        ratio = cache_obj.hits / (cache_obj.hits + cache_obj.misses)
-    except ZeroDivisionError:
-        ratio = 0.0
-    return ratio
 
 
 def get_clades(tree):
