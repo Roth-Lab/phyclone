@@ -70,15 +70,8 @@ def run(
 
     timer = Timer()
 
-    # =========================================================================
-    # Burnin
-    # =========================================================================
     tree = _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regraph, print_freq, samplers, timer,
                        tree, tree_dist)
-
-    # =========================================================================
-    # Main sampler
-    # =========================================================================
 
     results = _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
                                 num_samples_prune_regraph, print_freq, rng, samplers, samples, subtree_update_prob,
@@ -136,7 +129,6 @@ def append_to_trace(i, timer, trace, tree, tree_dist):
         "alpha": tree_dist.prior.alpha,
         "log_p_one": tree_dist.log_p_one(tree),
         "log_p": tree_dist.log_p(tree),
-        # "prior_log_likelihood": tree_dist.prior.log_p(tree),
         "tree": tree.to_dict()
     })
 
@@ -258,5 +250,3 @@ def print_stats(iter_id, tree, tree_dist):
     string_template = 'iter: {}, alpha: {}, log_p: {}, num_nodes: {}, num_outliers: {}, num_roots: {}'
     print(string_template.format(iter_id, round(tree_dist.prior.alpha, 3), round(tree_dist.log_p_one(tree), 3),
                                  tree.get_number_of_nodes(), len(tree.outliers), tree.get_number_of_children("root")))
-    # print(string_template.format(iter_id, round(tree_dist.prior.alpha, 3), round(tree_dist.log_p_one(tree), 3),
-    #                              len(tree.nodes), len(tree.outliers), len(tree.roots)))
