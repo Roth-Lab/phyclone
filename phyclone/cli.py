@@ -187,23 +187,6 @@ def topology_report(**kwargs):
     For large datasets it may be necessary to use one of the other proposals.
     """
 )
-# @click.option(
-#     "--tree-prior",
-#     default="uniform",
-#     type=click.Choice(["uniform", "original"]),
-#     show_default=True,
-#     help="""
-#     Which implementation of FSCRP prior to use. Default is "uniform".
-#     """
-# )
-# @click.option(
-#     "-s",
-#     "--subtree-update-prob",
-#     default=0.0,
-#     type=float,
-#     show_default=True,
-#     help="""Probability of updating a subtree (instead of whole tree) using PG sampler. Default is 0.0"""
-# )
 @click.option(
     "-t",
     "--max-time",

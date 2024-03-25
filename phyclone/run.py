@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
 from phyclone.mcmc.gibbs_mh import DataPointSampler, PruneRegraphSampler
-from phyclone.mcmc.particle_gibbs import ParticleGibbsSubtreeSampler, ParticleGibbsTreeSampler
+from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler
 from phyclone.process_trace import create_main_run_output
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
 from phyclone.smc.samplers import UnconditionalSMCSampler
@@ -38,7 +38,6 @@ def run(
         proposal="semi-adapted",
         resample_threshold=0.5,
         seed=None,
-        subtree_update_prob=0,
         thin=1,
         num_threads=1,
         rng_pickle=None,
@@ -74,21 +73,20 @@ def run(
                        tree, tree_dist)
 
     results = _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
-                                num_samples_prune_regraph, print_freq, rng, samplers, samples, subtree_update_prob,
-                                thin, timer, tree, tree_dist)
+                                num_samples_prune_regraph, print_freq, samplers, samples, thin, timer, tree, tree_dist)
 
     create_main_run_output(cluster_file, out_file, results)
 
 
 def _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
-                      num_samples_prune_regraph, print_freq, rng, samplers, samples, subtree_update_prob, thin, timer,
+                      num_samples_prune_regraph, print_freq, samplers, samples, thin, timer,
                       tree, tree_dist):
 
     trace = setup_trace(timer, tree, tree_dist)
 
     dp_sampler = samplers.dp_sampler
     prg_sampler = samplers.prg_sampler
-    subtree_sampler = samplers.subtree_sampler
+    # subtree_sampler = samplers.subtree_sampler
     tree_sampler = samplers.tree_sampler
     conc_sampler = samplers.conc_sampler
 
@@ -97,10 +95,11 @@ def _run_main_sampler(concentration_update, data, max_time, num_iters, num_sampl
             if i % print_freq == 0:
                 print_stats(i, tree, tree_dist)
 
-            if rng.random() < subtree_update_prob:
-                tree = subtree_sampler.sample_tree(tree)
-            else:
-                tree = tree_sampler.sample_tree(tree)
+            # if rng.random() < subtree_update_prob:
+            #     tree = subtree_sampler.sample_tree(tree)
+            # else:
+            #     tree = tree_sampler.sample_tree(tree)
+            tree = tree_sampler.sample_tree(tree)
 
             for _ in range(num_samples_data_point):
                 tree = dp_sampler.sample_tree(tree)
@@ -194,7 +193,7 @@ class SamplersHolder:
     conc_sampler: GammaPriorConcentrationSampler
     burnin_sampler: UnconditionalSMCSampler
     tree_sampler: ParticleGibbsTreeSampler
-    subtree_sampler: ParticleGibbsSubtreeSampler
+    # subtree_sampler: ParticleGibbsSubtreeSampler
 
 
 def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist):
@@ -207,15 +206,14 @@ def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng,
     tree_sampler = ParticleGibbsTreeSampler(
         kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
     )
-    subtree_sampler = ParticleGibbsSubtreeSampler(
-        kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
-    )
+    # subtree_sampler = ParticleGibbsSubtreeSampler(
+    #     kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
+    # )
     return SamplersHolder(dp_sampler,
                           prg_sampler,
                           conc_sampler,
                           burnin_sampler,
-                          tree_sampler,
-                          subtree_sampler)
+                          tree_sampler)
 
 
 def setup_kernel(outlier_prob, proposal, rng, tree_dist):
