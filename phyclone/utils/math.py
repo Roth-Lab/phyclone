@@ -199,3 +199,32 @@ def log_binomial_pdf(n, x, p):
 @numba.jit(cache=True, nopython=True)
 def log_beta_binomial_pdf(n, x, a, b):
     return log_binomial_coefficient(n, x) + log_beta_binomial_likelihood(n, x, a, b)
+
+
+@numba.jit(cache=True, nopython=True)
+def conv_log(log_x, log_y, ans):
+    """ Convolve in log space.
+    """
+    nx = len(log_x)
+
+    log_y = log_y[::-1]
+    n = nx
+
+    for k in range(1, n + 1):
+        sub_ans = None
+        for j in range(k):
+            curr = log_x[j] + log_y[n - (k - j)]
+            if sub_ans is None:
+                sub_ans = curr
+            else:
+                if sub_ans > curr:
+                    max_val = sub_ans
+                    min_val = curr
+                else:
+                    max_val = curr
+                    min_val = sub_ans
+                sub_ans = max_val + np.log1p(np.exp(min_val - max_val))
+
+        ans[k - 1] = sub_ans
+
+    return ans
