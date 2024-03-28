@@ -4,7 +4,6 @@ Created on 2012-02-08
 @author: Andrew Roth
 """
 import numpy as np
-from numba import set_num_threads
 from dataclasses import dataclass
 
 from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
@@ -39,7 +38,6 @@ def run(
         resample_threshold=0.5,
         seed=None,
         thin=1,
-        num_threads=1,
         rng_pickle=None,
         save_rng=True):
 
@@ -48,9 +46,7 @@ def run(
     if save_rng:
         save_numpy_rng(out_file, rng)
 
-    set_num_threads(num_threads)
-
-    data, samples, num_mutations = load_data(
+    data, samples = load_data(
         in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
         precision=precision)
 

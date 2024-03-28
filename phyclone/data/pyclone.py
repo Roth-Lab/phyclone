@@ -10,7 +10,7 @@ from phyclone.utils.exceptions import MajorCopyNumberError
 
 
 def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400):
-    pyclone_data, samples, num_mutations = load_pyclone_data(file_name)
+    pyclone_data, samples = load_pyclone_data(file_name)
 
     if cluster_file is None:
         data = []
@@ -25,17 +25,8 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
             data.append(data_point)
 
     else:
-        cluster_df = pd.read_csv(cluster_file, sep="\t")
+        cluster_df = _setup_cluster_df(cluster_file, outlier_prob)
 
-        if 'outlier_prob' not in cluster_df.columns:
-            print('Cluster level outlier probability column not found. Setting values to {p}'.format(p=outlier_prob))
-            cluster_df.loc[:, 'outlier_prob'] = outlier_prob
-
-        if outlier_prob == 0:
-            cluster_df.loc[:, 'outlier_prob'] = outlier_prob
-
-        cluster_df = cluster_df[["mutation_id", "cluster_id", "outlier_prob"]].drop_duplicates()
-        
         cluster_sizes = cluster_df["cluster_id"].value_counts().to_dict()
 
         clusters = cluster_df.set_index("mutation_id")["cluster_id"].to_dict()
@@ -44,24 +35,39 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
         
         print("Using input clustering with {} clusters".format(cluster_df["cluster_id"].nunique()))
 
-        raw_data = defaultdict(list)
+        data = _create_clustered_data_arr(cluster_outlier_probs, cluster_sizes, clusters, density, grid_size,
+                                          precision, pyclone_data)
 
-        for mut, val in pyclone_data.items():
-            raw_data[clusters[mut]].append(val.to_likelihood_grid(density, grid_size, precision=precision))
+    return data, samples
 
-        data = []
 
-        for idx, cluster_id in enumerate(sorted(raw_data.keys())):
-            val = np.sum(np.array(raw_data[cluster_id]), axis=0)
-            cluster_outlier_prob = cluster_outlier_probs[cluster_id]
-            out_probs = compute_outlier_prob(cluster_outlier_prob, cluster_sizes[cluster_id])
+def _create_clustered_data_arr(cluster_outlier_probs, cluster_sizes, clusters, density, grid_size, precision,
+                               pyclone_data):
+    raw_data = defaultdict(list)
+    for mut, val in pyclone_data.items():
+        raw_data[clusters[mut]].append(val.to_likelihood_grid(density, grid_size, precision=precision))
+    data = []
+    for idx, cluster_id in enumerate(sorted(raw_data.keys())):
+        val = np.sum(np.array(raw_data[cluster_id]), axis=0)
+        cluster_outlier_prob = cluster_outlier_probs[cluster_id]
+        out_probs = compute_outlier_prob(cluster_outlier_prob, cluster_sizes[cluster_id])
 
-            data_point = phyclone.data.base.DataPoint(idx, val, name="{}".format(cluster_id),
-                                                      outlier_prob=out_probs[0], outlier_prob_not=out_probs[1])
+        data_point = phyclone.data.base.DataPoint(idx, val, name="{}".format(cluster_id),
+                                                  outlier_prob=out_probs[0], outlier_prob_not=out_probs[1])
 
-            data.append(data_point)
+        data.append(data_point)
+    return data
 
-    return data, samples, num_mutations
+
+def _setup_cluster_df(cluster_file, outlier_prob):
+    cluster_df = pd.read_csv(cluster_file, sep="\t")
+    if 'outlier_prob' not in cluster_df.columns:
+        print('Cluster level outlier probability column not found. Setting values to {p}'.format(p=outlier_prob))
+        cluster_df.loc[:, 'outlier_prob'] = outlier_prob
+    if outlier_prob == 0:
+        cluster_df.loc[:, 'outlier_prob'] = outlier_prob
+    cluster_df = cluster_df[["mutation_id", "cluster_id", "outlier_prob"]].drop_duplicates()
+    return cluster_df
 
 
 def compute_outlier_prob(outlier_prob, cluster_size):
@@ -74,44 +80,48 @@ def compute_outlier_prob(outlier_prob, cluster_size):
 
 
 def load_pyclone_data(file_name):
-    df = pd.read_table(file_name)
-
-    if len(df.columns) == 1:
-        df = pd.read_csv(file_name)
-
-    df['sample_id'] = df['sample_id'].astype(str)
+    df = _create_raw_data_df(file_name)
 
     samples = sorted(df['sample_id'].unique())
 
     # Filter for mutations present in all samples
     df = df.groupby(by='mutation_id').filter(lambda x: sorted(x['sample_id'].unique()) == samples)
 
-    #TODO: break the following into a fxn
-
-    depth_est = df['alt_counts'].mean() + df['ref_counts'].mean()
-
     mutations = sorted(df['mutation_id'].unique())
 
+    print('Num mutations: {}'.format(len(mutations)))
+
+    _process_required_cols_on_df(df, samples)
+
+    data = _create_loaded_pyclone_data_dict(df, mutations, samples)
+
+    return data, samples
+
+
+def _process_required_cols_on_df(df, samples):
     if len(samples) > 10:
         print('Num Samples: {}'.format(len(samples)))
         print('Samples: {}...'.format(' '.join(samples[:4])))
     else:
         print('Samples: {}'.format(' '.join(samples)))
-
-    num_mutations = len(mutations)
-
-    print('Num mutations: {}'.format(num_mutations))
-
     if 'error_rate' not in df.columns:
         df.loc[:, 'error_rate'] = 1e-3
-
     if 'tumour_content' not in df.columns:
         print('Tumour content column not found. Setting values to 1.0.')
 
         df.loc[:, 'tumour_content'] = 1.0
 
-    data = OrderedDict()
 
+def _create_raw_data_df(file_name):
+    df = pd.read_table(file_name)
+    if len(df.columns) == 1:
+        df = pd.read_csv(file_name)
+    df['sample_id'] = df['sample_id'].astype(str)
+    return df
+
+
+def _create_loaded_pyclone_data_dict(df, mutations, samples):
+    data = OrderedDict()
     for name in mutations:
         mut_df = df[df['mutation_id'] == name]
 
@@ -138,8 +148,7 @@ def load_pyclone_data(file_name):
             )
 
         data[name] = DataPoint(samples, sample_data_points)
-
-    return data, samples, num_mutations
+    return data
 
 
 def get_major_cn_prior(major_cn, minor_cn, normal_cn, error_rate=1e-3):
