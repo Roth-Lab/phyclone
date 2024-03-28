@@ -37,18 +37,15 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
                 log_p = np.log(self.outlier_proposal_prob)
             
             # Existing node
-            # elif node in self.parent_particle.tree.nodes:
             elif node in self.parent_tree.nodes:
                 log_p = np.log((1 - self.outlier_proposal_prob) / 2) + self._log_p[tree]
             
             # New node
             else:
-                # old_num_roots = len(self.parent_particle.tree.roots)
                 old_num_roots = len(self.parent_particle.tree_roots)
                 
                 log_p = np.log((1 - self.outlier_proposal_prob) / 2)
-                
-                # num_children = len(tree.get_children(node))
+
                 num_children = tree.get_number_of_children(node)
                 
                 log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
@@ -58,7 +55,6 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     def sample(self):
         """ Sample a new tree from the proposal distribution.
         """
-        # u = random.random()
         u = self._rng.random()
         
         if self._empty_tree():
@@ -67,7 +63,6 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
                 tree = Tree(self.data_point.grid_size)
             
             else:
-                # tree = self.parent_particle.tree.copy()
                 tree = self.parent_tree.copy()
 
             if u < self.outlier_proposal_prob:
@@ -97,12 +92,10 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         
         if not self._empty_tree():
             trees = []
-        
-            # nodes = self.parent_particle.tree.roots
+
             nodes = self.parent_particle.tree_roots
         
             for node in nodes:
-                # tree = self.parent_particle.tree.copy()
                 tree = self.parent_tree.copy()
         
                 tree.add_data_point_to_node(self.data_point, node)
@@ -122,7 +115,6 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         q = q / sum(q)
 
-        # idx = np.random.multinomial(1, q).argmax()
         idx = self._rng.multinomial(1, q).argmax()
 
         tree = list(self._log_p.keys())[idx]
@@ -130,16 +122,11 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         return tree
 
     def _propose_new_node(self):
-        # num_roots = len(self.parent_particle.tree.roots)
         num_roots = len(self.parent_particle.tree_roots)
 
-        # num_children = random.randint(0, num_roots)
         num_children = self._rng.integers(0, num_roots+1)
 
-        # children = random.sample(self.parent_particle.tree.roots, num_children)
         children = self._rng.choice(self.parent_particle.tree_roots, num_children, replace=False)
-
-        # tree = self.parent_particle.tree.copy()
 
         tree = self.parent_tree.copy()
 
@@ -148,7 +135,6 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         return tree
 
     def _propose_outlier(self):
-        # tree = self.parent_particle.tree.copy()
         tree = self.parent_tree.copy()
 
         tree.add_data_point_to_outliers(self.data_point)

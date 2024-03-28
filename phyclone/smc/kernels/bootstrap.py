@@ -35,7 +35,6 @@ class BootstrapProposalDistribution(ProposalDistribution):
                 log_p = np.log(self.outlier_proposal_prob)
             
             # Node in tree
-            # elif node in self.parent_particle.tree.nodes:
             elif node in self.parent_tree.nodes:
                 num_nodes = len(self.parent_particle.tree_roots)
                 
@@ -48,7 +47,6 @@ class BootstrapProposalDistribution(ProposalDistribution):
                 log_p = np.log((1 - self.outlier_proposal_prob) / 2)
                 
                 if old_num_roots > 0:
-                    # num_children = len(tree.get_children(node))
                     num_children = tree.get_number_of_children(node)
                 
                     log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
@@ -58,7 +56,6 @@ class BootstrapProposalDistribution(ProposalDistribution):
     def sample(self):
         """ Sample a new tree from the proposal distribution.
         """
-        # u = random.random()
         u = self._rng.random()
         
         # First particle
@@ -75,7 +72,6 @@ class BootstrapProposalDistribution(ProposalDistribution):
         
         # Particles t=2 ...
         # Only outliers in tree
-        # elif len(self.parent_particle.tree.nodes) == 0:
         elif len(self.parent_tree.nodes) == 0:
             if u < (1 - self.outlier_proposal_prob):
                 tree = self._propose_new_node()
@@ -98,8 +94,7 @@ class BootstrapProposalDistribution(ProposalDistribution):
 
     def _propose_existing_node(self):
         nodes = self.parent_particle.tree_roots
-   
-        # node = random.choice(list(nodes))
+
         node = self._rng.choice(list(nodes))
 
         tree = self.parent_tree.copy()
@@ -111,10 +106,8 @@ class BootstrapProposalDistribution(ProposalDistribution):
     def _propose_new_node(self):
         num_roots = len(self.parent_particle.tree_roots)
 
-        # num_children = random.randint(0, num_roots)
         num_children = self._rng.integers(0, num_roots+1)
 
-        # children = random.sample(self.parent_particle.tree.roots, num_children)
         children = self._rng.choice(self.parent_particle.tree_roots, num_children, replace=False)
 
         tree = self.parent_tree.copy()

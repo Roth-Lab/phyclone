@@ -37,22 +37,6 @@ class Kernel(object):
     def create_particle(self, log_q, parent_particle, tree):
         """  Create a new particle from a parent particle.
         """
-        # if self.perm_dist is None:
-        #     if parent_particle is None:
-        #         log_w = self._get_log_p(tree) - log_q
-        #
-        #     else:
-        #         log_w = self._get_log_p(tree) - self._get_log_p(parent_particle.tree) - log_q
-        #
-        # else:
-        #     if parent_particle is None:
-        #         log_w = self._get_log_p(tree) + self.perm_dist.log_pdf(tree) - log_q
-        #
-        #     else:
-        #         parent_tree = parent_particle.tree
-        #         log_w = self._get_log_p(tree) - self._get_log_p(parent_tree) + \
-        #             self.perm_dist.log_pdf(tree) - self.perm_dist.log_pdf(parent_tree) - \
-        #             log_q
         particle = Particle(0, parent_particle, tree, self.tree_dist, self.perm_dist)
 
         if self.perm_dist is None:
@@ -73,7 +57,6 @@ class Kernel(object):
 
         particle.log_w = log_w
         return particle
-        # return Particle(log_w, parent_particle, tree, data, self.tree_dist, self.perm_dist)
 
     def propose_particle(self, data_point, parent_particle):
         """ Propose a particle for t given a particle from t - 1 and a data point.
@@ -110,7 +93,6 @@ class ProposalDistribution(object):
     def _empty_tree(self):
         """ Tree has no nodes
         """
-        # return (self.parent_particle is None) or (len(self.parent_particle.tree.roots) == 0)
         return (self.parent_particle is None) or (len(self.parent_particle.tree_roots) == 0)
 
     def _set_parent_tree(self, parent_tree):
