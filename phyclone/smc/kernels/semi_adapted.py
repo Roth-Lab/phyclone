@@ -3,6 +3,7 @@ from phyclone.utils.math import log_binomial_coefficient, log_normalize
 from phyclone.smc.kernels.base import Kernel, ProposalDistribution
 from phyclone.tree import Tree
 from functools import lru_cache
+from phyclone.smc.swarm import TreeHolder
 
 
 class SemiAdaptedProposalDistribution(ProposalDistribution):
@@ -13,9 +14,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     """
 
     def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, parent_tree=None):
-        super().__init__(data_point, kernel, parent_particle, parent_tree)
-
-        self.outlier_proposal_prob = outlier_proposal_prob
+        super().__init__(data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree)
 
         self._init_dist()
 
@@ -105,7 +104,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
                 trees.append(tree)
 
-            log_q = np.array([self.kernel.tree_dist.log_p(x) for x in trees])
+            log_q = np.array([self.tree_dist.log_p(x) for x in trees])
 
             log_q = log_normalize(log_q)
 

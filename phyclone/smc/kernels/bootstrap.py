@@ -12,9 +12,8 @@ class BootstrapProposalDistribution(ProposalDistribution):
     """
 
     def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, parent_tree=None):
-        super().__init__(data_point, kernel, parent_particle, parent_tree)
+        super().__init__(data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree)
 
-        self.outlier_proposal_prob = outlier_proposal_prob
         
     def log_p(self, tree):
         """ Get the log probability of the tree.

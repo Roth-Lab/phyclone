@@ -79,10 +79,16 @@ class ProposalDistribution(object):
     """ Abstract class for proposal distribution.
     """
 
-    def __init__(self, data_point, kernel, parent_particle, parent_tree=None):
+    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, parent_tree=None):
         self.data_point = data_point
 
-        self.kernel = kernel
+        # self.kernel = kernel
+
+        self.tree_dist = kernel.tree_dist
+
+        self.perm_dist = kernel.perm_dist
+
+        self.outlier_proposal_prob = outlier_proposal_prob
 
         self.parent_particle = parent_particle
 
