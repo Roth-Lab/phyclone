@@ -78,6 +78,7 @@ class Particle(object):
             self.log_pdf = self._perm_dist.log_pdf(tree)
         self.log_p_one = self._tree_dist.log_p_one(tree)
         self.tree_roots = tree.roots
+        self.tree_nodes = tree.nodes
         self._hash_val = hash(tree)
         self._tree = tree.to_dict()
         # self._tree = tree
