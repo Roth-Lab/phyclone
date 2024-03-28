@@ -13,8 +13,6 @@ class Particle(object):
 
         self.parent_particle = parent_particle
 
-        # self.data = data
-
         self._tree_dist = tree_dist
 
         self._perm_dist = perm_dist
@@ -57,7 +55,6 @@ class Particle(object):
         new.tree_roots = self.tree_roots.copy()
         new._tree = self._tree.copy()
         return new
-        # return Particle(self.log_w, self.parent_particle, self.tree, self.data, self._tree_dist, self._perm_dist)
 
     @property
     def tree(self):
@@ -66,7 +63,6 @@ class Particle(object):
     @tree.getter
     def tree(self):
         return Tree.from_dict(self._data, self._tree)
-        # return self._tree.copy()
 
     @tree.setter
     def tree(self, tree):
@@ -81,7 +77,6 @@ class Particle(object):
         self.tree_nodes = tree.nodes
         self._hash_val = hash(tree)
         self._tree = tree.to_dict()
-        # self._tree = tree
 
     @property
     def built_tree(self):

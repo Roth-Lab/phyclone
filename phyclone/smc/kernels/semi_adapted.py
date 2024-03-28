@@ -112,7 +112,6 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
                 trees.append(tree_holder)
 
-            # log_q = np.array([self.tree_dist.log_p(x) for x in trees])
             log_q = np.array([x.log_p for x in trees])
 
             log_q = log_normalize(log_q)
