@@ -134,12 +134,9 @@ def count_topology(topologies, x, i, x_top):
         if top == x_top:
             topology["count"] += 1
             curr_log_p_one = x["log_p_one"]
-            curr_log_p = x["log_p"]
             if curr_log_p_one > topology["log_p_joint_max"]:
                 topology["log_p_joint_max"] = curr_log_p_one
                 topology["iter"] = i
-            if curr_log_p > topology["log_p_max"]:
-                topology["log_p_max"] = curr_log_p
             found = True
             break
     if not found:
@@ -149,7 +146,6 @@ def count_topology(topologies, x, i, x_top):
                 "topology": x_top,
                 "count": 1,
                 "log_p_joint_max": x["log_p_one"],
-                "log_p_max": x["log_p"],
                 "iter": i,
                 "multiplicity": np.exp(log_mult),
                 "log_multiplicity": log_mult,
@@ -166,7 +162,7 @@ def _create_results_output_files(
     )
     if out_log_probs_file:
         log_probs_table = pd.DataFrame(
-            results["trace"], columns=["iter", "time", "log_p"]
+            results["trace"], columns=["iter", "time", "log_p_one"]
         )
         log_probs_table.to_csv(out_log_probs_file, index=False, sep="\t")
 
