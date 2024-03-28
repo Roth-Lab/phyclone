@@ -38,7 +38,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
             # Existing node
             elif node in self.parent_particle.tree_nodes:
-                log_p = np.log((1 - self.outlier_proposal_prob) / 2) + self._log_p[tree]
+                log_p = np.log((1 - self.outlier_proposal_prob) / 2) + self._get_log_p(tree)
 
             # New node
             else:
@@ -51,6 +51,12 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
                 log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
 
         return log_p
+
+    def _get_log_p(self, tree):
+        """ Get the log probability of the given tree. From stored dict, using TreeHolder intermediate.
+        """
+        tree_particle = TreeHolder(tree, self.tree_dist)
+        return self._log_p[tree_particle]
 
     def sample(self):
         """ Sample a new tree from the proposal distribution.
@@ -102,9 +108,12 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
                 tree.add_data_point_to_node(self.data_point, node)
 
-                trees.append(tree)
+                tree_holder = TreeHolder(tree, self.tree_dist)
 
-            log_q = np.array([self.tree_dist.log_p(x) for x in trees])
+                trees.append(tree_holder)
+
+            # log_q = np.array([self.tree_dist.log_p(x) for x in trees])
+            log_q = np.array([x.log_p for x in trees])
 
             log_q = log_normalize(log_q)
 
@@ -123,7 +132,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         tree = list(self._log_p.keys())[idx]
 
-        return tree
+        return tree.tree
 
     def _propose_new_node(self):
         num_roots = len(self.parent_particle.tree_roots)
