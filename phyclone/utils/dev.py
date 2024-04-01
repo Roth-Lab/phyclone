@@ -1,4 +1,5 @@
-from phyclone.smc.kernels.fully_adapted import _get_cached_proposal_dist
+from phyclone.smc.kernels.fully_adapted import _get_cached_full_proposal_dist
+from phyclone.smc.kernels.semi_adapted import _get_cached_semi_proposal_dist
 from phyclone.tree.utils import compute_log_S, _convolve_two_children
 
 
@@ -29,8 +30,15 @@ def create_cache_info_file(out_file):
         )
         print(
             "_get_cached_proposal_dist cache info: {}, hit ratio: {}".format(
-                _get_cached_proposal_dist.cache_info(),
-                _cache_ratio(_get_cached_proposal_dist.cache_info()),
+                _get_cached_full_proposal_dist.cache_info(),
+                _cache_ratio(_get_cached_full_proposal_dist.cache_info()),
+            ),
+            file=f,
+        )
+        print(
+            "_get_cached_semi_proposal_dist cache info: {}, hit ratio: {}".format(
+                _get_cached_semi_proposal_dist.cache_info(),
+                _cache_ratio(_get_cached_semi_proposal_dist.cache_info()),
             ),
             file=f,
         )
