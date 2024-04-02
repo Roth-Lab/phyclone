@@ -1,0 +1,19 @@
+name: phyclone
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.10
+  - biopython
+  - click
+  - matplotlib
+  - networkx
+  - numba
+  - numpy
+  - pandas
+  - scikit-learn
+  - scipy
+  - python-xxhash
+  - pip
+  - pip:
+      - "."
