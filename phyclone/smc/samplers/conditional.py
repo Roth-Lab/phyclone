@@ -62,9 +62,6 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
             parent_tree = new_tree
 
-            # print('Constrained path build for dp {}, iter {}'.format(data_point.idx, len(constrained_path)-1))
-
-        # assert nx.is_isomorphic(tree.graph, particle.tree.graph)
         assert nx.is_isomorphic(tree.graph, new_tree.graph)
 
         return constrained_path
@@ -90,7 +87,6 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
             log_uniform_weight = -np.log(self.num_particles)
 
-            # multiplicities = np.random.multinomial(self.num_particles - 1, self.swarm.weights)
             multiplicities = self._rng.multinomial(self.num_particles - 1, self.swarm.weights)
 
             assert not np.isneginf(self.constrained_path[self.iteration + 1].log_w)

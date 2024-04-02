@@ -17,7 +17,6 @@ class FSCRPDistribution(object):
         log_p = 0
 
         # CRP prior
-        # num_nodes = len(tree.nodes)
         num_nodes = tree.get_number_of_nodes()
 
         log_p += num_nodes * np.log(self.alpha)

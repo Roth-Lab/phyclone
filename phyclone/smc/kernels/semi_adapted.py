@@ -161,14 +161,6 @@ class SemiAdaptedKernel(Kernel):
 
         self.outlier_proposal_prob = outlier_proposal_prob
 
-    # def get_proposal_distribution(self, data_point, parent_particle, parent_tree=None):
-    #     return SemiAdaptedProposalDistribution(
-    #         data_point,
-    #         self,
-    #         parent_particle,
-    #         outlier_proposal_prob=self.outlier_proposal_prob,
-    #         parent_tree=parent_tree
-    #     )
     def get_proposal_distribution(self, data_point, parent_particle, parent_tree=None):
         if parent_particle is not None:
             parent_particle.built_tree = parent_tree

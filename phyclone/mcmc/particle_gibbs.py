@@ -27,7 +27,6 @@ class ParticleGibbsTreeSampler(object):
     def sample_swarm(self, tree):
         """ Sample a new SMC swarm
         """
-        # perm_dist = phyclone.smc.utils.RootPermutationDistribution()
 
         data_sigma = RootPermutationDistribution.sample(tree, self._rng)
 
@@ -62,7 +61,6 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
             if label != -1:
                 nodes.append(label)
 
-        # subtree_root_child = random.choice(nodes)
         subtree_root_child = self._rng.choice(nodes)
 
         subtree_root = tree.get_parent(subtree_root_child)
@@ -94,8 +92,6 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
         for p, w in zip(swarm.particles, swarm.unnormalized_log_weights):
             subtree = p.tree
 
-            # w -= self.kernel.tree_dist.log_p_one(subtree)
-
             w -= p.log_p_one
 
             new_tree = tree.copy()
@@ -108,10 +104,6 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
             new_tree.update()
 
             p.tree = new_tree
-
-            # p.data = new_tree.data
-
-            # w += self.kernel.tree_dist.log_p_one(new_tree)
 
             w += p.log_p_one
 

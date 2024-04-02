@@ -14,7 +14,6 @@ class BootstrapProposalDistribution(ProposalDistribution):
     def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, parent_tree=None):
         super().__init__(data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree)
 
-        
     def log_p(self, tree):
         """ Get the log probability of the tree.
         """
@@ -28,35 +27,35 @@ class BootstrapProposalDistribution(ProposalDistribution):
         # Particles t=2 ...        
         else:
             node = tree.labels[self.data_point.idx]
-            
+
             # Outlier
             if node == -1:
                 log_p = np.log(self.outlier_proposal_prob)
-            
+
             # Node in tree
             elif node in self.parent_tree.nodes:
                 num_nodes = len(self.parent_particle.tree_roots)
-                
+
                 log_p = np.log((1 - self.outlier_proposal_prob) / 2) - np.log(num_nodes)
-            
+
             # New node
             else:
                 old_num_roots = len(self.parent_particle.tree_roots)
-                
+
                 log_p = np.log((1 - self.outlier_proposal_prob) / 2)
-                
+
                 if old_num_roots > 0:
                     num_children = tree.get_number_of_children(node)
-                
+
                     log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
-        
+
         return log_p
 
     def sample(self):
         """ Sample a new tree from the proposal distribution.
         """
         u = self._rng.random()
-        
+
         # First particle
         if self.parent_particle is None:
             tree = Tree(self.data_point.grid_size)
@@ -68,7 +67,7 @@ class BootstrapProposalDistribution(ProposalDistribution):
 
             else:
                 tree.add_data_point_to_outliers(self.data_point)
-        
+
         # Particles t=2 ...
         # Only outliers in tree
         elif len(self.parent_tree.nodes) == 0:
@@ -77,7 +76,7 @@ class BootstrapProposalDistribution(ProposalDistribution):
 
             else:
                 tree = self._propose_outlier()
-        
+
         # Nodes in the tree        
         else:
             if u < (1 - self.outlier_proposal_prob) / 2:
@@ -105,7 +104,7 @@ class BootstrapProposalDistribution(ProposalDistribution):
     def _propose_new_node(self):
         num_roots = len(self.parent_particle.tree_roots)
 
-        num_children = self._rng.integers(0, num_roots+1)
+        num_children = self._rng.integers(0, num_roots + 1)
 
         children = self._rng.choice(self.parent_particle.tree_roots, num_children, replace=False)
 

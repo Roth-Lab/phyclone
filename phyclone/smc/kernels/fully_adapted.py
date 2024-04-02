@@ -16,10 +16,6 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
     def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, parent_tree=None):
         super().__init__(data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree)
 
-        # self.tree_dist = self.kernel.tree_dist
-        #
-        # self.perm_dist = self.kernel.perm_dist
-
         self._init_dist()
 
     def log_p(self, tree):

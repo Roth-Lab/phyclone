@@ -82,8 +82,6 @@ class ProposalDistribution(object):
     def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, parent_tree=None):
         self.data_point = data_point
 
-        # self.kernel = kernel
-
         self.tree_dist = kernel.tree_dist
 
         self.perm_dist = kernel.perm_dist

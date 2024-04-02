@@ -4,7 +4,6 @@ from phyclone.tree import Tree
 
 
 class Particle(object):
-    # __slots__ = 'log_w', 'parent_particle', 'tree', 'data', '_tree'
 
     def __init__(self, log_w, parent_particle, tree, tree_dist, perm_dist):
         self._built_tree = deque(maxlen=1)
