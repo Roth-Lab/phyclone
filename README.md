@@ -1,48 +1,43 @@
-# Overview
-
+PhyClone
+=========
+Accurate Bayesian reconstruction of cancer phylogenies from bulk sequencing.
 An implementation of the forest structured Chinese restaurant process with a Dirichlet prior on the node parameters.
 
-Documentation is sparse currently.
-See the examples/ folder for the current interface. 
+--------
 
-examples/basic.py - Uses the PG sampler which proposes a complete tree change.
-examples/subtree.py - Uses the PG sampler which only changes a sub-tree.
+## Overview
+1. [PhyClone Installation](#installation)
+2. [Input File Formats](#input-files)
+   * [Main input format](#main-input-format)
+   * [Cluster input format](#cluster-file-format)
+3. [Running PhyClone: Basic Usage](#running-phyclone)
+-------
 
 ## Installation
 
-PhyClone is currently in development so the following proceedure has a few steps.
+PhyClone is currently in development so the following procedure has a few steps.
 
-1. Ensure you have a working `conda` installation.
-You can do this by installing [Miniconda](https://conda.io/miniconda.html)
+1. Ensure you have a working `conda` or (preferably) `mamba` installation.
+You can do this by installing [Miniforge](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html)
 
-2. Get the latest PhyClone code from the [git repository](https://github.com/aroth85/phyclone).
+2. Get the latest PhyClone code from the [git repository](https://github.com/elhurtado/phyclone_dev).
 ```
-git checkout git@github.com:aroth85/phyclone.git
+git clone git@github.com:elhurtado/phyclone_dev.git
 ```
 
-3. Install the required dependencies using conda.
+3. Install the required dependencies using mamba/conda.
 We will create a new `conda` environment with the dependencies.
 From inside the checked out PhyClone repository folder run the following.
 ```
-conda create -n phyclone --file requirements.txt --yes
+mamba env create --file environment.yaml --yes
 ```
 
 4. Activate the `conda` environment.
 ```
-source activate phyclone
+mamba activate phyclone
 ```
-> Note: You will have to do this whenver you open a new terminal and want to run PhyClone. 
-
-5. Install PhyClone
-From inside the checked out PhyClone repository folder run the following.
-```
-python setup.py install
-```
-or if you want to develop the code and have the changes take effect
-```
-python setup.py develop
-```
-> Note: Changes to the CLI may require re-running this step even in develop mode.
+> [!NOTE]
+> You will have to do this whenever you open a new terminal and want to run PhyClone. 
 
 5. If everything worked PhyClone should be available on the command line.
 ```
@@ -51,15 +46,30 @@ phyclone --help
 
 ## Usage
 
-### Input format
+### Input files
+
+PhyClone analysis has two possible input files:
+- [main input file](#main-input-format) (**Required**)
+- [cluster file](#cluster-file-format)
+
+> [!CAUTION]
+> While PhyClone analysis can be minimally run with only the main input.tsv file, it is **strongly
+recommended** to provide a cluster file as well.
+
+---------
+#### Main input format
 
 To run a PhyClone analysis you will need to prepare an input file.
 The file should be in tab delimited tidy data frame format and have the following columns.
-> Note: There is an example file in examples/data/mixing.tsv
+
+> [!TIP]
+> There is an example file in [examples/data/mixing.tsv](examples/data/mixing.tsv)
 
 1. mutation_id - Unique identifier for the mutation. 
 This is free form but should match across all samples.
-> Note: PhyClone will remove any mutations without entries for all detected samples.
+
+> [!WARNING]
+> PhyClone will remove any mutations without entries for all detected samples.
 If you have mutations with no data in some samples set their counts to 0.
 
 2. sample_id - Unique identifier for the sample.
@@ -78,12 +88,52 @@ For autosome this will be two and male sex chromosome one.
 You can include the following optional columns.
 
 1. tumour_content - The tumour content (cellularity) of the sample.
-Default value is 1.0 if column is not present. 
-> Note: In principle this could be different for each mutations/sample.
-However it most cases it should be the same for all mutations in a sample.
+Default value is 1.0 if column is not present.
+> [!NOTE]
+> In principle this could be different for each mutation/sample.
+However, in most cases it should be the same for all mutations in a sample.
 
 2. error_rate - Sequencing error rate.
 Default value is 0.001 if column is not present. 
+
+------------------
+
+#### Cluster file format
+
+> [!IMPORTANT]
+> Though not strictly required to run PhyClone, this file is **strongly recommended**.
+
+> [!TIP]
+> While any mutation pre-clustering method can be used, we recommend 
+> [PyClone-VI](https://github.com/Roth-Lab/pyclone-vi). Both due to its established 
+> strong performance, and its output format which can be fed directly into PhyClone *'as-is'*.
+
+The file should be in tab delimited tidy data frame format and have the following columns.
+
+1. mutation_id - Unique identifier for the mutation. 
+
+    This is free form but should match across all samples and **must** match the identifiers provided
+    in the [main input file](#main-input-format).
+
+
+2. sample_id - Unique identifier for the sample.
+
+
+3. cluster_id - Cluster that the mutation has been assigned to.
+
+You can include the following optional column:
+
+4. outlier_prob - (Prior) probability that the cluster/mutation is an outlier.
+    
+    Default value is made equal to the current analysis `--outlier-prob` option if column is not present. 
+
+> [!NOTE]
+> The `--outlier-prob` option carries a default value of 0.0
+
+> [!TIP]
+> There is an example file in [examples/data/mixing_clusters.tsv](examples/data/mixing_clusters.tsv)
+
+-----------------
 
 ### Running PhyClone
 
@@ -100,12 +150,16 @@ which will take the file `INPUT.tsv` as described above and write the trace file
 The `-n` command can be used to control the number of iterations of sampling to perform.
 
 The `-b` command can be used to control the number of burnin iterations to perform.
-> Note: burnin is done using a heuristic strategy of unconditional SMC.
+
+> [!NOTE]
+> Burnin is done using a heuristic strategy of unconditional SMC.
 All samples from the burnin are discarded as they will not target the posterior.
 
 The `-d` command can be used to select the emission density.
 As in PyClone the `binomial` and `beta-binomial` densities are available.
-> Note: Unlike PyClone, PhyClone does not estimate the precision parameter of the Beta-Binomial.
+
+> [!IMPORTANT]
+> Unlike PyClone, PhyClone does not estimate the precision parameter of the Beta-Binomial.
 This parameter can be set with the --precision flag.
 
 To build the final results of PhyClone you can run the `consensus` command as follows.
