@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "PhyClone"
+version = "0.3.0"
+description='A method for inferring clonal phylogenies from bulk SNV data.'
+authors = [
+    {name = "Andrew Roth", email = "aroth@bccrc.ca"},
+    {name = "Emilia Hurtado"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numba",
+    "numpy",
+    "scipy",
+    "biopython",
+    "click",
+    "matplotlib",
+    "xxhash",
+    "networkx",
+    "pandas",
+    "scikit-learn"
+]
+classifiers = [
+    "Private :: Do Not Upload",
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)"
+]
+
+[project.urls]
+Repository = "https://github.com/elhurtado/phyclone_dev.git"
+
+[project.scripts]
+phyclone = "phyclone.cli:main"
+
