@@ -15,7 +15,6 @@ from phyclone.tree import Tree
 
 
 def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None, map_type='frequency'):
-    # set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
@@ -55,8 +54,6 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
 
 
 def write_topology_report(in_file, out_file):
-    # set_num_threads(1)
-
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
@@ -64,24 +61,13 @@ def write_topology_report(in_file, out_file):
 
     data = results["data"]
 
-    # data_arr = np.array(list(data))
-
-    # data_index_dict = dict(
-    #     zip(np.arange(len(data_arr)), [data_point.idx for data_point in data_arr])
-    # )
-    #
-    # parent_child_arr = np.zeros((len(data_arr), len(data_arr)))
-
     for i, x in enumerate(results["trace"]):
         curr_tree = Tree.from_dict(data, x["tree"])
-        # count_parent_child_relationships(curr_tree, data_index_dict, parent_child_arr)
         count_topology(topologies, x, i, curr_tree)
 
     df = create_topology_dataframe(topologies)
     df = df.sort_values(by="count", ascending=False)
     df.to_csv(out_file, index=False, sep="\t")
-
-    # _create_parent_child_out_files(data_arr, out_file, parent_child_arr, results)
 
 
 def _create_parent_child_out_files(data_arr, out_file, parent_child_arr, results):
@@ -191,7 +177,6 @@ def write_consensus_results(
     consensus_threshold=0.5,
     weight_type="counts"
 ):
-    # set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 

@@ -89,7 +89,6 @@ def clade_probabilities(trees, weighted=False, log_p_list=None):
         tree_clades = get_clades(tree)
         for clade in tree_clades:
             if weighted:
-                # clades_counter[clade] += trees[tree]
                 clades_counter[clade] += log_p_list[i]
 
             else:
