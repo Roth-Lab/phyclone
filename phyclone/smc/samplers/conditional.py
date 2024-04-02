@@ -23,7 +23,9 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
         node_map = {}
 
-        new_tree = Tree(tree.grid_size, tree.memo_logs)
+        new_tree = Tree(tree.grid_size)
+
+        parent_tree = None
 
         for data_point in self.data_points:
             new_tree = new_tree.copy()
@@ -50,15 +52,17 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
             parent_particle = constrained_path[-1]
 
-            proposal_dist = self.kernel.get_proposal_distribution(data_point, parent_particle)
+            proposal_dist = self.kernel.get_proposal_distribution(data_point, parent_particle, parent_tree)
 
             log_q = proposal_dist.log_p(new_tree)
 
-            particle = self.kernel.create_particle(data_point, log_q, parent_particle, new_tree)
+            particle = self.kernel.create_particle(log_q, parent_particle, new_tree)
 
             constrained_path.append(particle)
 
-        assert nx.is_isomorphic(tree.graph, particle.tree.graph)
+            parent_tree = new_tree
+
+        assert nx.is_isomorphic(tree.graph, new_tree.graph)
 
         return constrained_path
 
@@ -83,7 +87,6 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
             log_uniform_weight = -np.log(self.num_particles)
 
-            # multiplicities = np.random.multinomial(self.num_particles - 1, self.swarm.weights)
             multiplicities = self._rng.multinomial(self.num_particles - 1, self.swarm.weights)
 
             assert not np.isneginf(self.constrained_path[self.iteration + 1].log_w)

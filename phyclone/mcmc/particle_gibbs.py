@@ -1,11 +1,7 @@
-# import random
-
-import phyclone.math_utils
+import phyclone.utils.math
 import phyclone.smc.samplers
 import phyclone.smc.swarm
-import phyclone.smc.utils
-
-# import numpy as np
+from phyclone.smc.utils import RootPermutationDistribution
 
 
 class ParticleGibbsTreeSampler(object):
@@ -31,9 +27,8 @@ class ParticleGibbsTreeSampler(object):
     def sample_swarm(self, tree):
         """ Sample a new SMC swarm
         """
-        perm_dist = phyclone.smc.utils.RootPermutationDistribution()
 
-        data_sigma = perm_dist.sample(tree, self._rng)
+        data_sigma = RootPermutationDistribution.sample(tree, self._rng)
 
         sampler = phyclone.smc.samplers.ConditionalSMCSampler(
             tree,
@@ -48,7 +43,7 @@ class ParticleGibbsTreeSampler(object):
     def _sample_tree_from_swarm(self, swarm):
         """ Given an SMC swarm sample a tree
         """
-        particle_idx = phyclone.math_utils.discrete_rvs(swarm.weights, self._rng)
+        particle_idx = phyclone.utils.math.discrete_rvs(swarm.weights, self._rng)
 
         particle = swarm.particles[particle_idx]
 
@@ -66,7 +61,6 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
             if label != -1:
                 nodes.append(label)
 
-        # subtree_root_child = random.choice(nodes)
         subtree_root_child = self._rng.choice(nodes)
 
         subtree_root = tree.get_parent(subtree_root_child)
@@ -91,14 +85,14 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
     # TODO: Check that this targets the correct distribution.
     # Specifically do we need a term for the random choice of node.
     def _correct_weights(self, parent, swarm, tree):
-        """ Correct weights so target is the distribtuion on the full tree
+        """ Correct weights so target is the distribution on the full tree
         """
         new_swarm = phyclone.smc.swarm.ParticleSwarm()
 
         for p, w in zip(swarm.particles, swarm.unnormalized_log_weights):
             subtree = p.tree
 
-            w -= self.kernel.tree_dist.log_p_one(subtree)
+            w -= p.log_p_one
 
             new_tree = tree.copy()
 
@@ -109,9 +103,9 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
 
             new_tree.update()
 
-            w += self.kernel.tree_dist.log_p_one(new_tree)
-
             p.tree = new_tree
+
+            w += p.log_p_one
 
             new_swarm.add_particle(w, p)
 

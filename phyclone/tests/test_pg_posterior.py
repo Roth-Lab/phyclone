@@ -2,7 +2,7 @@ import unittest
 
 from collections import defaultdict, Counter
 
-from phyclone.consensus import get_clades
+from phyclone.tree.utils import get_clades
 from phyclone.mcmc import ParticleGibbsTreeSampler
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
@@ -10,10 +10,6 @@ from phyclone.tests.exact_posterior import get_exact_posterior
 from phyclone.smc.utils import RootPermutationDistribution
 
 import phyclone.tests.simulate as simulate
-
-from math import inf
-from phyclone.math_utils import simple_log_factorial
-from numpy import full
 
 import numpy as np
 from numba import set_num_threads
@@ -26,9 +22,6 @@ class BaseTest(object):
 
         def __init__(self, method_name: str = ...):
             super().__init__(method_name)
-            self.factorial_arr = None
-
-            self.memo_logs = None
 
             self._rng = np.random.default_rng(12345)
 
@@ -88,24 +81,15 @@ class BaseTest(object):
 
             self.tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
 
-            factorial_arr = full(6, -inf)
-            simple_log_factorial(5, factorial_arr)
-
-            memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
-
             kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=0, perm_dist=perm_dist,
-                                memo_logs=memo_logs, rng=self._rng)
-
-            self.factorial_arr = factorial_arr
-
-            self.memo_logs = memo_logs
+                                rng=self._rng)
 
             return ParticleGibbsTreeSampler(kernel, self._rng)
 
         def _run_exact_posterior_test(self, data, burnin=100, num_iters=1000):
             pred_probs = self._run_sampler(data, burnin=burnin * self.run_scale, num_iters=num_iters * self.run_scale)
 
-            true_probs = get_exact_posterior(data, self.tree_dist, self.memo_logs)
+            true_probs = get_exact_posterior(data, self.tree_dist)
 
             self._test_posterior(pred_probs, true_probs)
 
@@ -113,7 +97,7 @@ class BaseTest(object):
 
             test_counts = Counter()
 
-            tree = Tree.get_single_node_tree(data, self.memo_logs)
+            tree = Tree.get_single_node_tree(data)
 
             for i in range(-burnin, num_iters):
                 if i % 10 == 0:

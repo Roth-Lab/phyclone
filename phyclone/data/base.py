@@ -24,6 +24,16 @@ class DataPoint(object):
 
         self.outlier_marginal_prob = np.sum(log_sum_exp(self.value + log_prior, axis=1))
 
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        self_key = self.name
+
+        other_key = other.name
+
+        return self_key == other_key
+
     @property
     def grid_size(self):
         return self.shape

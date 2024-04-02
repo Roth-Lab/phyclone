@@ -5,38 +5,28 @@ import numpy as np
 import pandas as pd
 
 import phyclone.data.base
-import phyclone.math_utils
-from phyclone.exceptions import MajorCopyNumberError
+from phyclone.utils.math import log_normalize, log_beta_binomial_pdf, log_sum_exp, log_binomial_pdf
+from phyclone.utils.exceptions import MajorCopyNumberError
 
 
-def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400,
-              mitochondrial=False):
-    pyclone_data, samples = load_pyclone_data(file_name, mitochondrial)
+def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400):
+    pyclone_data, samples = load_pyclone_data(file_name)
 
     if cluster_file is None:
         data = []
 
         for idx, (mut, val) in enumerate(pyclone_data.items()):
             out_probs = compute_outlier_prob(outlier_prob, 1)
-            data_point = phyclone.data.base.DataPoint(
-                idx,
-                val.to_likelihood_grid(density, grid_size, precision=precision),
-                name=mut,
-                outlier_prob=out_probs[0],
-                outlier_prob_not=out_probs[1]
-            )
+            data_point = phyclone.data.base.DataPoint(idx,
+                                                      val.to_likelihood_grid(density, grid_size, precision=precision),
+                                                      name=mut, outlier_prob=out_probs[0],
+                                                      outlier_prob_not=out_probs[1])
 
             data.append(data_point)
 
     else:
-        cluster_df = pd.read_csv(cluster_file, sep="\t")
+        cluster_df = _setup_cluster_df(cluster_file, outlier_prob)
 
-        if 'outlier_prob' not in cluster_df.columns:
-            print('Cluster level outlier probability column not found. Setting values to {p}'.format(p=outlier_prob))
-            cluster_df.loc[:, 'outlier_prob'] = outlier_prob
-
-        cluster_df = cluster_df[["mutation_id", "cluster_id", "outlier_prob"]].drop_duplicates()
-        
         cluster_sizes = cluster_df["cluster_id"].value_counts().to_dict()
 
         clusters = cluster_df.set_index("mutation_id")["cluster_id"].to_dict()
@@ -45,29 +35,39 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
         
         print("Using input clustering with {} clusters".format(cluster_df["cluster_id"].nunique()))
 
-        raw_data = defaultdict(list)
-
-        for mut, val in pyclone_data.items():
-            raw_data[clusters[mut]].append(val.to_likelihood_grid(density, grid_size, precision=precision))
-
-        data = []
-
-        for idx, cluster_id in enumerate(sorted(raw_data.keys())):
-            val = np.sum(np.array(raw_data[cluster_id]), axis=0)
-            cluster_outlier_prob = cluster_outlier_probs[cluster_id]
-            out_probs = compute_outlier_prob(cluster_outlier_prob, cluster_sizes[cluster_id])
-
-            data_point = phyclone.data.base.DataPoint(
-                idx,
-                val,
-                name="{}".format(cluster_id),
-                outlier_prob=out_probs[0],
-                outlier_prob_not=out_probs[1]
-            )
-
-            data.append(data_point)
+        data = _create_clustered_data_arr(cluster_outlier_probs, cluster_sizes, clusters, density, grid_size,
+                                          precision, pyclone_data)
 
     return data, samples
+
+
+def _create_clustered_data_arr(cluster_outlier_probs, cluster_sizes, clusters, density, grid_size, precision,
+                               pyclone_data):
+    raw_data = defaultdict(list)
+    for mut, val in pyclone_data.items():
+        raw_data[clusters[mut]].append(val.to_likelihood_grid(density, grid_size, precision=precision))
+    data = []
+    for idx, cluster_id in enumerate(sorted(raw_data.keys())):
+        val = np.sum(np.array(raw_data[cluster_id]), axis=0)
+        cluster_outlier_prob = cluster_outlier_probs[cluster_id]
+        out_probs = compute_outlier_prob(cluster_outlier_prob, cluster_sizes[cluster_id])
+
+        data_point = phyclone.data.base.DataPoint(idx, val, name="{}".format(cluster_id),
+                                                  outlier_prob=out_probs[0], outlier_prob_not=out_probs[1])
+
+        data.append(data_point)
+    return data
+
+
+def _setup_cluster_df(cluster_file, outlier_prob):
+    cluster_df = pd.read_csv(cluster_file, sep="\t")
+    if 'outlier_prob' not in cluster_df.columns:
+        print('Cluster level outlier probability column not found. Setting values to {p}'.format(p=outlier_prob))
+        cluster_df.loc[:, 'outlier_prob'] = outlier_prob
+    if outlier_prob == 0:
+        cluster_df.loc[:, 'outlier_prob'] = outlier_prob
+    cluster_df = cluster_df[["mutation_id", "cluster_id", "outlier_prob"]].drop_duplicates()
+    return cluster_df
 
 
 def compute_outlier_prob(outlier_prob, cluster_size):
@@ -79,15 +79,8 @@ def compute_outlier_prob(outlier_prob, cluster_size):
         return res, res_not
 
 
-def load_pyclone_data(file_name, mitochondrial):
-    df = pd.read_table(file_name)
-
-    if len(df.columns) == 1:
-        df = pd.read_csv(file_name)
-
-    set_mitochondrial_copy_numbers(df, mitochondrial)
-
-    df['sample_id'] = df['sample_id'].astype(str)
+def load_pyclone_data(file_name):
+    df = _create_raw_data_df(file_name)
 
     samples = sorted(df['sample_id'].unique())
 
@@ -96,24 +89,39 @@ def load_pyclone_data(file_name, mitochondrial):
 
     mutations = sorted(df['mutation_id'].unique())
 
+    print('Num mutations: {}'.format(len(mutations)))
+
+    _process_required_cols_on_df(df, samples)
+
+    data = _create_loaded_pyclone_data_dict(df, mutations, samples)
+
+    return data, samples
+
+
+def _process_required_cols_on_df(df, samples):
     if len(samples) > 10:
         print('Num Samples: {}'.format(len(samples)))
         print('Samples: {}...'.format(' '.join(samples[:4])))
     else:
         print('Samples: {}'.format(' '.join(samples)))
-
-    print('Num mutations: {}'.format(len(mutations)))
-
     if 'error_rate' not in df.columns:
         df.loc[:, 'error_rate'] = 1e-3
-
     if 'tumour_content' not in df.columns:
         print('Tumour content column not found. Setting values to 1.0.')
 
         df.loc[:, 'tumour_content'] = 1.0
 
-    data = OrderedDict()
 
+def _create_raw_data_df(file_name):
+    df = pd.read_table(file_name)
+    if len(df.columns) == 1:
+        df = pd.read_csv(file_name)
+    df['sample_id'] = df['sample_id'].astype(str)
+    return df
+
+
+def _create_loaded_pyclone_data_dict(df, mutations, samples):
+    data = OrderedDict()
     for name in mutations:
         mut_df = df[df['mutation_id'] == name]
 
@@ -140,19 +148,7 @@ def load_pyclone_data(file_name, mitochondrial):
             )
 
         data[name] = DataPoint(samples, sample_data_points)
-
-    return data, samples
-
-
-def set_mitochondrial_copy_numbers(df, mitochondrial):
-    if mitochondrial:
-        print('Data is marked as mitochondrial, setting copy number columns to haploid settings.')
-        if 'major_cn' not in df.columns:
-            df['major_cn'] = 1
-        if 'minor_cn' not in df.columns:
-            df['minor_cn'] = 0
-        if 'normal_cn' not in df.columns:
-            df['normal_cn'] = 1
+    return data
 
 
 def get_major_cn_prior(major_cn, minor_cn, normal_cn, error_rate=1e-3):
@@ -191,7 +187,7 @@ def get_major_cn_prior(major_cn, minor_cn, normal_cn, error_rate=1e-3):
 
     mu = np.array(mu, dtype=float)
 
-    log_pi = phyclone.math_utils.log_normalize(np.array(log_pi, dtype=float))
+    log_pi = log_normalize(np.array(log_pi, dtype=float))
 
     return cn, mu, log_pi
 
@@ -286,9 +282,9 @@ def log_pyclone_beta_binomial_pdf(data, f, s):
 
         b = s - a
 
-        ll[c] = data.log_pi[c] + phyclone.math_utils.log_beta_binomial_pdf(data.a + data.b, data.b, a, b)
+        ll[c] = data.log_pi[c] + log_beta_binomial_pdf(data.a + data.b, data.b, a, b)
 
-    return phyclone.math_utils.log_sum_exp(ll)
+    return log_sum_exp(ll)
 
 
 @numba.jit(nopython=True)
@@ -318,6 +314,6 @@ def log_pyclone_binomial_pdf(data, f):
 
         e_vaf /= norm_const
 
-        ll[c] = data.log_pi[c] + phyclone.math_utils.log_binomial_pdf(data.a + data.b, data.b, e_vaf)
+        ll[c] = data.log_pi[c] + log_binomial_pdf(data.a + data.b, data.b, e_vaf)
 
-    return phyclone.math_utils.log_sum_exp(ll)
+    return log_sum_exp(ll)

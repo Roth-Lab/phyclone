@@ -3,36 +3,40 @@ from sklearn.metrics import homogeneity_completeness_v_measure
 import networkx as nx
 import numpy as np
 
-from phyclone.concentration import GammaPriorConcentrationSampler
-from phyclone.consensus import get_consensus_tree
+from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
+from phyclone.process_trace.consensus import get_consensus_tree
 from phyclone.mcmc.gibbs_mh import PruneRegraphSampler
 from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler
 from phyclone.smc.kernels import FullyAdaptedKernel
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 
 from toy_data import load_test_data
-from phyclone.math_utils import simple_log_factorial
+from phyclone.utils.math import simple_log_factorial
 from math import inf
+from phyclone.run import instantiate_and_seed_RNG
 
-data, true_tree = load_test_data(cluster_size=2, single_sample=True)
+rng = instantiate_and_seed_RNG(1234, None)
+
+data, true_tree = load_test_data(rng, cluster_size=2, single_sample=True)
 
 factorial_arr = np.full(len(data)+1, -inf)
 simple_log_factorial(len(data), factorial_arr)
 
 tree = Tree.get_single_node_tree(data)
 
-conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
+conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
 
 tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
 
-mh_sampler = PruneRegraphSampler(tree_dist)
+mh_sampler = PruneRegraphSampler(tree_dist, rng=rng)
 
-kernel = FullyAdaptedKernel(tree_dist, outlier_proposal_prob=0.1)
+kernel = FullyAdaptedKernel(tree_dist, outlier_proposal_prob=0.1, rng=rng)
 
 pg_sampler = ParticleGibbsTreeSampler(
     kernel,
     num_particles=10,
-    resample_threshold=0.5
+    resample_threshold=0.5,
+    rng=rng
 )
 
 num_iters = 100

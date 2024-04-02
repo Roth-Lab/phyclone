@@ -1,8 +1,34 @@
-import numba
 import numpy as np
 import time
 from functools import lru_cache, wraps
 import xxhash
+import pickle
+from os.path import join, dirname
+from itertools import count
+from collections import deque
+
+
+def read_pickle(file):
+    with open(file, 'rb') as f:
+        loaded = pickle.load(f)
+    return loaded
+
+
+def write_pickle(obj, filename):
+    with open(filename, 'wb') as f:
+        pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def save_numpy_rng(out_file, rng):
+    rng_pickle_fn = join(dirname(out_file), 'numpy_bit_generator.pkl')
+    state = rng.bit_generator
+    write_pickle(state, rng_pickle_fn)
+
+
+def get_iterator_length(iterable):
+    counter = count()
+    deque(zip(iterable, counter), maxlen=0)
+    return next(counter)
 
 
 class Timer:
@@ -66,6 +92,9 @@ class NumpyArrayListHasher:
     def __eq__(self, __value: object) -> bool:
         return __value.h == self.h
 
+    def clear_inputs(self):
+        self.values = None
+
 
 def list_of_np_cache(*args, **kwargs):
     def decorator(function):
@@ -77,9 +106,9 @@ def list_of_np_cache(*args, **kwargs):
         @lru_cache(*args, **kwargs)
         def cached_wrapper(hashable_set, *args, **kwargs):
             array = np.array(hashable_set.values, order='C')
+            hashable_set.clear_inputs()
             return function(array, *args, **kwargs)
 
-        # copy lru_cache attributes over too
         wrapper.cache_info = cached_wrapper.cache_info
         wrapper.cache_clear = cached_wrapper.cache_clear
 
@@ -92,13 +121,17 @@ class NumpyTwoArraysHasher:
     def __init__(self, arr_1, arr_2) -> None:
         self.input_1 = arr_1
         self.input_2 = arr_2
-        self.h = (xxhash.xxh3_64_hexdigest(arr_1), xxhash.xxh3_64_hexdigest(arr_2))
+        self.h = frozenset([xxhash.xxh3_64_hexdigest(arr_1), xxhash.xxh3_64_hexdigest(arr_2)])
 
     def __hash__(self) -> int:
         return hash(self.h)
 
     def __eq__(self, __value: object) -> bool:
         return __value.h == self.h
+
+    def clear_inputs(self):
+        self.input_1 = None
+        self.input_2 = None
 
 
 def two_np_arr_cache(*args, **kwargs):
@@ -112,9 +145,9 @@ def two_np_arr_cache(*args, **kwargs):
         def cached_wrapper(hashable_obj, *args, **kwargs):
             arr_1 = hashable_obj.input_1
             arr_2 = hashable_obj.input_2
+            hashable_obj.clear_inputs()
             return function(arr_1, arr_2, *args, **kwargs)
 
-        # copy lru_cache attributes over too
         wrapper.cache_info = cached_wrapper.cache_info
         wrapper.cache_clear = cached_wrapper.cache_clear
 

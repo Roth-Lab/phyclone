@@ -6,27 +6,15 @@ Created on 8 Dec 2016
 import math
 import numba
 import numpy as np
-import random
+from functools import lru_cache
 
-
-# def bernoulli_rvs(p=0.5):
-#     return (random.random() < p)
-#
-#
-# def discrete_rvs(p):
-#     p = p / np.sum(p)
-#
-#     return np.random.multinomial(1, p).argmax()
 
 def bernoulli_rvs(rng: np.random.Generator, p=0.5):
-    # return (random.random() < p)
     return rng.random() < p
 
 
 def discrete_rvs(p, rng):
     p = p / np.sum(p)
-
-    # return np.random.multinomial(1, p).argmax()
     return rng.multinomial(1, p).argmax()
 
 
@@ -69,6 +57,46 @@ def exp_normalize(log_p):
 
 
 @numba.jit(cache=True, nopython=True)
+def lse(log_x):
+    inf_check = np.all(np.isinf(log_x))
+    if inf_check:
+        return log_x[0]
+
+    x = log_x[np.isfinite(log_x)]
+    ans = x[0]
+
+    for i in range(1, len(x)):
+        curr = x[i]
+        if ans > curr:
+            max_value = ans
+            min_value = curr
+        else:
+            max_value = curr
+            min_value = ans
+        ans = max_value + np.log1p(np.exp(min_value - max_value))
+
+    return ans
+
+
+@numba.jit(cache=True, nopython=True)
+def lse_accumulate(log_x, out_arr):
+    len_arr = len(log_x)
+    t = log_x[0]
+    out_arr[0] = t
+    for i in range(1, len_arr):
+        curr = log_x[i]
+        if t > curr:
+            max_value = t
+            min_value = curr
+        else:
+            max_value = curr
+            min_value = t
+        t = max_value + np.log1p(np.exp(min_value - max_value))
+        out_arr[i] = t
+    return out_arr
+
+
+@numba.jit(cache=True, nopython=True)
 def log_sum_exp(log_X):
     """ Given a list of values in log space, log_X. Compute exp(log_X[0] + log_X[1] + ... log_X[n])
 
@@ -108,6 +136,11 @@ def log_beta(a, b):
 @numba.jit(cache=True, nopython=True)
 def log_factorial(x):
     return log_gamma(x + 1)
+
+
+@lru_cache(maxsize=None)
+def cached_log_factorial(x):
+    return log_factorial(x)
 
 
 @numba.jit(cache=True, nopython=True)
@@ -166,3 +199,32 @@ def log_binomial_pdf(n, x, p):
 @numba.jit(cache=True, nopython=True)
 def log_beta_binomial_pdf(n, x, a, b):
     return log_binomial_coefficient(n, x) + log_beta_binomial_likelihood(n, x, a, b)
+
+
+@numba.jit(cache=True, nopython=True)
+def conv_log(log_x, log_y, ans):
+    """ Convolve in log space.
+    """
+    nx = len(log_x)
+
+    log_y = log_y[::-1]
+    n = nx
+
+    for k in range(1, n + 1):
+        sub_ans = None
+        for j in range(k):
+            curr = log_x[j] + log_y[n - (k - j)]
+            if sub_ans is None:
+                sub_ans = curr
+            else:
+                if sub_ans > curr:
+                    max_val = sub_ans
+                    min_val = curr
+                else:
+                    max_val = curr
+                    min_val = sub_ans
+                sub_ans = max_val + np.log1p(np.exp(min_val - max_val))
+
+        ans[k - 1] = sub_ans
+
+    return ans

@@ -1,13 +1,14 @@
 import networkx as nx
 import numpy as np
-import random
+# import random
 import scipy.stats as stats
 
 from phyclone.data.base import DataPoint
 from phyclone.tree import Tree
+from phyclone.data.pyclone import compute_outlier_prob
 
 
-def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, shuffle=True, single_sample=False):
+def load_test_data(rng, cluster_size=5, depth=1000, grid_size=101, outlier_size=2, shuffle=True, single_sample=False):
     """ Simulate a toy Binomial data set.
 
     True tree: (4,(3,2(1,0)))
@@ -15,9 +16,9 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, sh
     3        2
         1        0
     """
-    random.seed(0)
-
-    np.random.seed(0)
+    # random.seed(0)
+    #
+    # np.random.seed(0)
 
     def compute_log_likelihood(x, d, grid_size=grid_size):
         eps = 1e-10
@@ -75,13 +76,15 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, sh
             data_point = []
 
             for p in params:
-                d = stats.poisson.rvs(depth)
+                d = stats.poisson.rvs(depth, random_state=rng)
 
-                x = stats.binom.rvs(d, p)
+                x = stats.binom.rvs(d, p, random_state=rng)
 
                 data_point.append(compute_log_likelihood(x, d))
 
-            data.append(DataPoint(idx, np.array(data_point), outlier_prob=outlier_prob))
+            out_probs = compute_outlier_prob(outlier_prob, n)
+            data.append(DataPoint(idx, np.array(data_point), outlier_prob=out_probs[0],
+                                  outlier_prob_not=out_probs[1]))
 
             if node == 5:
                 tree.add_data_point_to_outliers(data[-1])
@@ -92,6 +95,6 @@ def load_test_data(cluster_size=5, depth=1000, grid_size=101, outlier_size=2, sh
             idx += 1
     
     if shuffle:
-        np.random.shuffle(data)
+        rng.shuffle(data)
 
     return data, tree

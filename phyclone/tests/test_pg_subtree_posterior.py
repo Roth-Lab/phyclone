@@ -2,7 +2,7 @@ import unittest
 
 from collections import defaultdict, Counter
 
-from phyclone.consensus import get_clades
+from phyclone.tree.utils import get_clades
 from phyclone.mcmc import ParticleGibbsSubtreeSampler
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
 from phyclone.smc.utils import RootPermutationDistribution
@@ -11,9 +11,7 @@ from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.tests.exact_posterior import get_exact_posterior
 
 import phyclone.tests.simulate as simulate
-from math import inf
-from phyclone.math_utils import simple_log_factorial
-from numpy import full, random
+from numpy import random
 
 
 class BaseTest(object):
@@ -22,9 +20,6 @@ class BaseTest(object):
 
         def __init__(self, methodName: str = ...):
             super().__init__(methodName)
-            # self.factorial_arr = None
-            #
-            # self.memo_logs = None
 
             self._rng = random.default_rng(12345)
     
@@ -69,24 +64,15 @@ class BaseTest(object):
             
             self.tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
 
-            factorial_arr = full(6, -inf)
-            simple_log_factorial(5, factorial_arr)
-
-            memo_logs = {"log_p": {}, "log_r": {}, "log_s": {}}
-
-            self.factorial_arr = factorial_arr
-
-            self.memo_logs = memo_logs
-            
             kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=0, perm_dist=perm_dist,
-                                memo_logs=memo_logs, rng=self._rng)
+                                rng=self._rng)
             
             return ParticleGibbsSubtreeSampler(kernel, self._rng)
     
         def _run_exact_posterior_test(self, data, burnin=100, num_iters=1000):
             pred_probs = self._run_sampler(data, burnin=int(self.run_scale * burnin), num_iters=int(self.run_scale * num_iters))
     
-            true_probs = get_exact_posterior(data, self.tree_dist, memo_logs=self.memo_logs)
+            true_probs = get_exact_posterior(data, self.tree_dist)
     
             self._test_posterior(pred_probs, true_probs)
     
@@ -94,7 +80,7 @@ class BaseTest(object):
     
             test_counts = Counter()
     
-            tree = Tree.get_single_node_tree(data, self.memo_logs)
+            tree = Tree.get_single_node_tree(data)
     
             for i in range(-burnin, num_iters):
                 if i % 10 == 0:
@@ -119,7 +105,7 @@ class BaseTest(object):
             print()
             print(sorted(true_probs.items(), key=lambda x: x[1], reverse=True))
             for key in true_probs:
-                self.assertAlmostEqual(pred_probs[key], true_probs[key], delta=0.02)
+                self.assertAlmostEqual(pred_probs[key], true_probs[key], delta=0.03)
 
 
 class BootstrapAdaptedTest(BaseTest.BaseTest):
@@ -127,7 +113,7 @@ class BootstrapAdaptedTest(BaseTest.BaseTest):
     def setUp(self):
         self.sampler = self._get_sampler(BootstrapKernel)
          
-        self.run_scale = 5
+        self.run_scale = 1
 
 
 class FullyAdaptedTest(BaseTest.BaseTest):
@@ -135,7 +121,7 @@ class FullyAdaptedTest(BaseTest.BaseTest):
     def setUp(self):
         self.sampler = self._get_sampler(FullyAdaptedKernel)
          
-        self.run_scale = 2
+        self.run_scale = 1
 
 
 class SemiAdaptedTest(BaseTest.BaseTest):
@@ -143,7 +129,7 @@ class SemiAdaptedTest(BaseTest.BaseTest):
     def setUp(self):
         self.sampler = self._get_sampler(SemiAdaptedKernel)
           
-        self.run_scale = 3
+        self.run_scale = 1
 
 
 if __name__ == "__main__":

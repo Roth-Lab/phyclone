@@ -4,10 +4,7 @@ Created on 9 Aug 2017
 @author: Andrew Roth
 '''
 import numpy as np
-# import random
-
-from phyclone.math_utils import log_factorial, log_binomial_coefficient, log_multinomial_coefficient
-from copy import deepcopy
+from phyclone.utils.math import log_factorial, log_binomial_coefficient, log_multinomial_coefficient
 
 
 class RootPermutationDistribution(object):
@@ -24,7 +21,7 @@ class RootPermutationDistribution(object):
             for node in roots:
                 count += RootPermutationDistribution.log_count(tree, source=node)
 
-                subtree_sizes.append(len(tree.get_subtree_data(node)))
+                subtree_sizes.append(tree.get_subtree_data_len(node))
 
             # Bridge shuffle root nodes
             count += log_multinomial_coefficient(subtree_sizes)
@@ -46,13 +43,13 @@ class RootPermutationDistribution(object):
             for child in children:
                 count += RootPermutationDistribution.log_count(tree, source=child)
 
-                subtree_sizes.append(len(tree.get_subtree_data(child)))
+                subtree_sizes.append(tree.get_subtree_data_len(child))
 
             # Bridge shuffle
             count += log_multinomial_coefficient(subtree_sizes)
 
             # Permute the source data
-            count += log_factorial(len(tree.get_data(source)))
+            count += log_factorial(tree.get_data_len(source))
 
         return count
 
@@ -76,7 +73,6 @@ class RootPermutationDistribution(object):
             # Bridge shuffle outliers and tree data
             outliers = list(tree.outliers)
 
-            # random.shuffle(outliers)
             rng.shuffle(outliers)
 
             sigma = interleave_lists([sigma, outliers], rng)
@@ -95,7 +91,6 @@ class RootPermutationDistribution(object):
             # Permute source data
             source_sigma = tree.get_data(source)
 
-            # random.shuffle(source_sigma)
             rng.shuffle(source_sigma)
 
             sigma.extend(source_sigma)
@@ -104,18 +99,13 @@ class RootPermutationDistribution(object):
 
 
 def interleave_lists(lists, rng):
-    # result = []
 
     sentinels = []
 
     for i, l in enumerate(lists):
         sentinels.extend(np.ones(len(l), dtype=int) * i)
 
-    # random.shuffle(sentinels)
     rng.shuffle(sentinels)
-
-    # for idx in sentinels:
-    #     result.append(lists[idx].pop(0))
 
     result = [lists[idx].pop(0) for idx in sentinels]
 

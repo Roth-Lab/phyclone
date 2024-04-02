@@ -45,7 +45,7 @@ class AbstractSMCSampler(object):
 
         else:
             # Enforce that the sum of the tree is one and add auxillary term for permutation
-            return particle.log_w - self.kernel.tree_dist.log_p(particle.tree) + self.kernel.tree_dist.log_p_one(particle.tree)
+            return particle.log_w - particle.log_p + particle.log_p_one
 
     def _init_swarm(self):
         """ Initialize `self.swarm` by adding first data point.

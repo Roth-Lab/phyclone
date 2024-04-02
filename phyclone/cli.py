@@ -1,6 +1,7 @@
 import click
 
-import phyclone.run
+from phyclone.process_trace import write_map_results, write_consensus_results, write_topology_report
+from phyclone.run import run as run_prog
 
 
 @click.command(
@@ -9,7 +10,7 @@ import phyclone.run
 @click.option(
     "-i", "--in-file",
     required=True,
-    type=click.Path(resolve_path=True),
+    type=click.Path(resolve_path=True, exists=True),
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file."""
 )
 @click.option(
@@ -35,15 +36,16 @@ import phyclone.run
     help="""Consensus threshold to keep an SNV."""
 )
 @click.option(
-    "--weighted-consensus/--no-topology-report",
-    default=True,
+    "-w", "--weight-type",
+    default="counts",
+    type=click.Choice(["counts", "corrected-counts", "joint-likelihood"]),
     show_default=True,
-    help="Whether the consensus tree should be computed using weighted trees."
+    help="""Which measure to use as the consensus tree weights. Counts is the same as an unweighted consensus."""
 )
 def consensus(**kwargs):
     """ Build consensus results.
     """
-    phyclone.run.write_consensus_results(**kwargs)
+    write_consensus_results(**kwargs)
 
 
 @click.command(
@@ -52,7 +54,7 @@ def consensus(**kwargs):
 @click.option(
     "-i", "--in-file",
     required=True,
-    type=click.Path(resolve_path=True),
+    type=click.Path(resolve_path=True, exists=True),
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file."""
 )
 @click.option(
@@ -70,10 +72,17 @@ def consensus(**kwargs):
     default=None,
     type=click.Path(resolve_path=True)
 )
+@click.option(
+    "--map-type",
+    default="frequency",
+    type=click.Choice(["joint-likelihood", "frequency"]),
+    show_default=True,
+    help="""Which measure to use as for MAP computation."""
+)
 def map(**kwargs):
     """ Build MAP results.
     """
-    phyclone.run.write_map_results(**kwargs)
+    write_map_results(**kwargs)
 
 
 # =========================================================================
@@ -86,7 +95,7 @@ def map(**kwargs):
 @click.option(
     "-i", "--in-file",
     required=True,
-    type=click.Path(resolve_path=True),
+    type=click.Path(resolve_path=True, exists=True),
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file."""
 )
 @click.option(
@@ -97,7 +106,7 @@ def map(**kwargs):
 def topology_report(**kwargs):
     """ Build topology report.
     """
-    phyclone.run.write_topology_report(**kwargs)
+    write_topology_report(**kwargs)
 
 
 # =========================================================================
@@ -142,15 +151,9 @@ def topology_report(**kwargs):
     help="""Thinning parameter for storing entries in trace. Default is 1."""
 )
 @click.option(
-    "--num-threads",
-    default=1,
-    type=int,
-    help="""Number of parallel threads for sampling. Default is 1."""
-)
-@click.option(
     "-c", "--cluster-file",
     default=None,
-    type=click.Path(resolve_path=True),
+    type=click.Path(resolve_path=True, exists=True),
     help="""Path to file with pre-computed cluster assignments of mutations is located."""
 )
 @click.option(
@@ -163,29 +166,20 @@ def topology_report(**kwargs):
 @click.option(
     "-l", "--outlier-prob",
     default=0,
-    type=float,
+    type=click.FloatRange(0.0, 1.0, clamp=True),
     show_default=True,
     help="""Prior probability data points are outliers and don't fit tree. Default is 0.0"""
 )
 @click.option(
     "-p", "--proposal",
-    default="fully-adapted",
+    default="semi-adapted",
     type=click.Choice(["bootstrap", "fully-adapted", "semi-adapted"]),
     show_default=True,
     help="""
     Proposal distribution to use for PG sampling.
     Fully adapted is the most computationally expensive but also likely to lead to the best performance per iteration.
     For large datasets it may be necessary to use one of the other proposals.
-    Default is fully-adapted.
     """
-)
-@click.option(
-    "-s",
-    "--subtree-update-prob",
-    default=0.0,
-    type=float,
-    show_default=True,
-    help="""Probability of updating a subtree (instead of whole tree) using PG sampler. Default is 0.0"""
 )
 @click.option(
     "-t",
@@ -202,15 +196,9 @@ def topology_report(**kwargs):
     help="Whether the concentration parameter should be updated during sampling."
 )
 @click.option(
-    "--mitochondrial/--not-mitochondrial",
-    default=False,
-    show_default=True,
-    help="Whether the analysis is mitochondrial or not."
-)
-@click.option(
     "--concentration-value",
     default=1.0,
-    type=float,
+    type=click.FloatRange(0.0, 1.0, clamp=True),
     show_default=True,
     help="""The (initial) concentration of the Dirichlet process. Higher values will encourage more clusters, 
     lower values have the opposite effect. Default is 1.0."""
@@ -272,10 +260,22 @@ def topology_report(**kwargs):
     type=int,
     help="""Set random seed so results can be reproduced. By default a random seed is chosen."""
 )
+@click.option(
+    "--rng-pickle",
+    default=None,
+    type=click.Path(exists=True, resolve_path=True),
+    help="""Set numpy random generator from pickled instance, supersedes seed if also provided."""
+)
+@click.option(
+    "--save-rng/--no-save-rng",
+    default=True,
+    show_default=True,
+    help="Whether the numpy RNG BitGenerator should be pickled for reproducibility."
+)
 def run(**kwargs):
     """ Run a new PhyClone analysis.
     """
-    phyclone.run.run(**kwargs)
+    run_prog(**kwargs)
 
 
 # =========================================================================

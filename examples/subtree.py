@@ -3,35 +3,37 @@ from sklearn.metrics import homogeneity_completeness_v_measure
 import networkx as nx
 import numpy as np
 
-from phyclone.concentration import GammaPriorConcentrationSampler
-from phyclone.consensus import get_consensus_tree
-from phyclone.map import get_map_node_ccfs
-from phyclone.math_utils import discrete_rvs
+from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
+from phyclone.process_trace.consensus import get_consensus_tree
+from phyclone.process_trace.map import get_map_node_ccfs
+from phyclone.utils.math import discrete_rvs
 from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler, ParticleGibbsSubtreeSampler
 from phyclone.smc.samplers import SMCSampler
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.smc.utils import RootPermutationDistribution
-from phyclone.metrics import partition_metric
+from examples.metrics import partition_metric
 
 import phyclone.mcmc.gibbs_mh as mh
 
 from toy_data import load_test_data
+from phyclone.run import instantiate_and_seed_RNG
 
 
-def main():
+def main(seed=1234):
+    rng = instantiate_and_seed_RNG(seed, None)
     subtree = True
     kernel_type = "fully-adapted"
     
-    data, true_tree = load_test_data(cluster_size=5, depth=int(5e1), outlier_size=1, single_sample=False)
+    data, true_tree = load_test_data(rng, cluster_size=5, depth=int(5e1), outlier_size=1, single_sample=False)
 
-    conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01)
+    conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
 
     tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
     
-    mh_sampler_1 = mh.PruneRegraphSampler(tree_dist)
+    mh_sampler_1 = mh.PruneRegraphSampler(tree_dist, rng=rng)
 
-    mh_sampler_2 = mh.DataPointSampler(tree_dist, outliers=True)
+    mh_sampler_2 = mh.DataPointSampler(tree_dist, outliers=True, rng=rng)
     
     if kernel_type == "bootstrap":
         kernel_cls = BootstrapKernel
@@ -45,18 +47,18 @@ def main():
     else:
         raise Exception("Unknown kernel type: {}".format(kernel_type))
 
-    kernel = kernel_cls(tree_dist, outlier_proposal_prob=0.1)
+    kernel = kernel_cls(tree_dist, outlier_proposal_prob=0.1, rng=rng)
 
-    tree = init_tree(data, kernel=None, mcmc_samplers=[mh_sampler_1, mh_sampler_2])
+    tree = init_tree(data, kernel=None, mcmc_samplers=[mh_sampler_1, mh_sampler_2], rng=rng)
     
     if subtree:
         pg_sampler = ParticleGibbsSubtreeSampler(
-            kernel, num_particles=20, resample_threshold=0.5
+            kernel, rng=rng, num_particles=20, resample_threshold=0.5
         )        
        
     else:
         pg_sampler = ParticleGibbsTreeSampler(
-            kernel, num_particles=20, resample_threshold=0.5
+            kernel, rng=rng, num_particles=20, resample_threshold=0.5
         )
 
     print("Starting sampling")
@@ -125,7 +127,7 @@ def main():
     print()
 
 
-def init_tree(data, kernel=None, mcmc_samplers=[]):
+def init_tree(data, rng, kernel=None, mcmc_samplers=[]):
     tree = Tree.get_single_node_tree(data)
     
     if kernel is None:
@@ -133,13 +135,13 @@ def init_tree(data, kernel=None, mcmc_samplers=[]):
 
     for i in range(1):
         print(i)
-        data_sigma = RootPermutationDistribution.sample(tree)
+        data_sigma = RootPermutationDistribution.sample(tree, rng=rng)
 
         smc_sampler = SMCSampler(data_sigma, kernel, num_particles=20, resample_threshold=0.5)
 
         swarm = smc_sampler.sample()
 
-        idx = discrete_rvs(swarm.weights)
+        idx = discrete_rvs(swarm.weights, rng=rng)
 
         tree = swarm.particles[idx].tree
 
