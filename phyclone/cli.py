@@ -4,6 +4,10 @@ from phyclone.process_trace import write_map_results, write_consensus_results, w
 from phyclone.run import run as run_prog
 
 
+# =========================================================================
+# Consensus Tree Output
+# =========================================================================
+
 @click.command(
     context_settings={"max_content_width": 120}
 )
@@ -47,6 +51,9 @@ def consensus(**kwargs):
     """
     write_consensus_results(**kwargs)
 
+# =========================================================================
+# MAP Tree Output
+# =========================================================================
 
 @click.command(
     context_settings={"max_content_width": 120}
