@@ -86,7 +86,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
                 tree = self._propose_outlier()
 
             # Existing node
-            elif self.outlier_proposal_prob < u < (1 - self.outlier_proposal_prob) / 2:
+            elif self.outlier_proposal_prob < u < (((1 - self.outlier_proposal_prob) / 2) + self.outlier_proposal_prob):
                 tree = self._propose_existing_node()
 
             # New node
