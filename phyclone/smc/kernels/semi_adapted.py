@@ -23,32 +23,51 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         """
         node = tree.labels[self.data_point.idx]
 
-        # First particle or all outliers
         if self._empty_tree():
-            if node == -1:
-                log_p = np.log(self.outlier_proposal_prob)
-
-            else:
-                log_p = np.log(1 - self.outlier_proposal_prob)
+            log_p = self._get_log_p(tree)
 
         else:
-            # Outlier
-            if node == -1:
-                log_p = np.log(self.outlier_proposal_prob)
 
             # Existing node
-            elif node in self.parent_particle.tree_nodes:
-                log_p = np.log((1 - self.outlier_proposal_prob) / 2) + self._get_log_p(tree)
+            if node in self.parent_particle.tree_nodes or node == -1:
+                log_p = np.log(0.5) + self._get_log_p(tree)
 
             # New node
             else:
                 old_num_roots = len(self.parent_particle.tree_roots)
 
-                log_p = np.log((1 - self.outlier_proposal_prob) / 2)
+                log_p = np.log(0.5)
 
                 num_children = tree.get_number_of_children(node)
 
                 log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
+
+        # First particle or all outliers
+        # if self._empty_tree():
+        #     if node == -1:
+        #         log_p = np.log(self.outlier_proposal_prob)
+        #
+        #     else:
+        #         log_p = np.log(1 - self.outlier_proposal_prob)
+        #
+        # else:
+        #     # Outlier
+        #     if node == -1:
+        #         log_p = np.log(self.outlier_proposal_prob)
+        #
+        #     # Existing node
+        #     elif node in self.parent_particle.tree_nodes:
+        #         log_p = np.log((1 - self.outlier_proposal_prob) / 2) + self._get_log_p(tree)
+        #
+        #     # New node
+        #     else:
+        #         old_num_roots = len(self.parent_particle.tree_roots)
+        #
+        #         log_p = np.log((1 - self.outlier_proposal_prob) / 2)
+        #
+        #         num_children = tree.get_number_of_children(node)
+        #
+        #         log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
 
         return log_p
 
@@ -61,64 +80,136 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     def sample(self):
         """ Sample a new tree from the proposal distribution.
         """
-        u = self._rng.random()
-
-        self._set_parent_tree(None)
-
         if self._empty_tree():
-            # First particle
-            if self.parent_particle is None:
-                tree = Tree(self.data_point.grid_size)
-
-            else:
-                tree = self.parent_tree.copy()
-
-            if u < self.outlier_proposal_prob:
-                tree.add_data_point_to_outliers(self.data_point)
-
-            else:
-                tree.create_root_node(children=[], data=[self.data_point])
-
-        # Particles t=2 ...
+            tree = self._propose_existing_node()
         else:
-            # Outlier
-            if u < self.outlier_proposal_prob:
-                tree = self._propose_outlier()
+            u = self._rng.random()
 
-            # Existing node
-            elif self.outlier_proposal_prob < u < (((1 - self.outlier_proposal_prob) / 2) + self.outlier_proposal_prob):
+            if u < 0.5:
                 tree = self._propose_existing_node()
-
-            # New node
             else:
                 tree = self._propose_new_node()
+
+        # u = self._rng.random()
+        #
+        # self._set_parent_tree(None)
+        #
+        # if self._empty_tree():
+        #     # First particle
+        #     if self.parent_particle is None:
+        #         tree = Tree(self.data_point.grid_size)
+        #
+        #     else:
+        #         tree = self.parent_tree.copy()
+        #
+        #     if u < self.outlier_proposal_prob:
+        #         tree.add_data_point_to_outliers(self.data_point)
+        #
+        #     else:
+        #         tree.create_root_node(children=[], data=[self.data_point])
+        #
+        # # Particles t=2 ...
+        # else:
+        #     # Outlier
+        #     if u < self.outlier_proposal_prob:
+        #         tree = self._propose_outlier()
+        #
+        #     # Existing node
+        #     elif self.outlier_proposal_prob < u < (((1 - self.outlier_proposal_prob) / 2) + self.outlier_proposal_prob):
+        #         tree = self._propose_existing_node()
+        #
+        #     # New node
+        #     else:
+        #         tree = self._propose_new_node()
 
         return tree
 
     def _init_dist(self):
         self._log_p = {}
 
-        if not self._empty_tree():
-            trees = []
+        # if not self._empty_tree():
+        #     trees = []
+        #
+        #     nodes = self.parent_particle.tree_roots
+        #
+        #     for node in nodes:
+        #         tree = self.parent_tree.copy()
+        #
+        #         tree.add_data_point_to_node(self.data_point, node)
+        #
+        #         tree_holder = TreeHolder(tree, self.tree_dist)
+        #
+        #         trees.append(tree_holder)
 
-            nodes = self.parent_particle.tree_roots
+        trees = self._get_existing_node_trees()
 
-            for node in nodes:
+        if self.outlier_proposal_prob > 0:
+            trees.append(self._get_outlier_tree())
+
+        # if self.parent_particle is None:
+        #     tree = Tree(self.data_point.grid_size)
+        #
+        #     tree.create_root_node(children=[], data=[self.data_point])
+        #     tree_particle = TreeHolder(tree, self.tree_dist)
+        #
+        #     trees.append(tree_particle)
+        # elif self._empty_tree():
+        #     tree = self.parent_tree.copy()
+        #     tree.create_root_node(children=[], data=[self.data_point])
+        #     tree_particle = TreeHolder(tree, self.tree_dist)
+        #
+        #     trees.append(tree_particle)
+        if self._empty_tree():
+            if self.parent_particle is None:
+                tree = Tree(self.data_point.grid_size)
+            else:
                 tree = self.parent_tree.copy()
 
-                tree.add_data_point_to_node(self.data_point, node)
+            tree.create_root_node(children=[], data=[self.data_point])
+            tree_particle = TreeHolder(tree, self.tree_dist)
 
-                tree_holder = TreeHolder(tree, self.tree_dist)
+            trees.append(tree_particle)
 
-                trees.append(tree_holder)
+        log_q = np.array([x.log_p for x in trees])
 
-            log_q = np.array([x.log_p for x in trees])
+        log_q = log_normalize(log_q)
 
-            log_q = log_normalize(log_q)
-
-            self._log_p = dict(zip(trees, log_q))
+        self._log_p = dict(zip(trees, log_q))
 
         self.parent_tree = None
+
+    def _get_existing_node_trees(self):
+        """ Enumerate all trees obtained by adding the data point to an existing node.
+        """
+        trees = []
+
+        if self.parent_particle is None:
+            return trees
+
+        nodes = self.parent_particle.tree_roots
+
+        for node in nodes:
+            tree = self.parent_tree.copy()
+            tree.add_data_point_to_node(self.data_point, node)
+            tree_particle = TreeHolder(tree, self.tree_dist)
+            trees.append(tree_particle)
+
+        return trees
+
+    def _get_outlier_tree(self):
+        """ Get the tree obtained by adding data point as outlier
+        """
+        if self.parent_particle is None:
+            tree = Tree(self.data_point.grid_size)
+
+        else:
+            tree = self.parent_tree.copy()
+
+        tree.add_data_point_to_outliers(self.data_point)
+
+        tree_particle = TreeHolder(tree, self.tree_dist)
+
+        return tree_particle
 
     def _propose_existing_node(self):
         q = np.exp(list(self._log_p.values()))
@@ -140,7 +231,8 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         children = self._rng.choice(self.parent_particle.tree_roots, num_children, replace=False)
 
-        tree = self.parent_tree.copy()
+        # tree = self.parent_tree.copy()
+        tree = self.parent_particle.tree
 
         tree.create_root_node(children=children, data=[self.data_point])
 
