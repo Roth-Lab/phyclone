@@ -21,13 +21,13 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
     data = results["data"]
 
     if map_type == 'frequency':
-        topologies = []
+        topologies = dict()
 
         for i, x in enumerate(results["trace"]):
             curr_tree = Tree.from_dict(data, x["tree"])
             count_topology(topologies, x, i, curr_tree)
 
-        df = create_topology_dataframe(topologies)
+        df = create_topology_dataframe(topologies.values())
         df = df.sort_values(by="count", ascending=False)
 
         map_iter = df['iter'].iloc[0]
@@ -57,7 +57,7 @@ def write_topology_report(in_file, out_file):
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
-    topologies = []
+    topologies = dict()
 
     data = results["data"]
 
@@ -65,7 +65,7 @@ def write_topology_report(in_file, out_file):
         curr_tree = Tree.from_dict(data, x["tree"])
         count_topology(topologies, x, i, curr_tree)
 
-    df = create_topology_dataframe(topologies)
+    df = create_topology_dataframe(topologies.values())
     df = df.sort_values(by="count", ascending=False)
     df.to_csv(out_file, index=False, sep="\t")
 
@@ -114,21 +114,17 @@ def count_parent_child_relationships(curr_tree, data_index_dict, parent_child_ar
 
 
 def count_topology(topologies, x, i, x_top):
-    found = False
-    for topology in topologies:
-        top = topology["topology"]
-        if top == x_top:
-            topology["count"] += 1
-            curr_log_p_one = x["log_p_one"]
-            if curr_log_p_one > topology["log_p_joint_max"]:
-                topology["log_p_joint_max"] = curr_log_p_one
-                topology["iter"] = i
-            found = True
-            break
-    if not found:
+    if x_top in topologies:
+        topology = topologies[x_top]
+        topology["count"] += 1
+        curr_log_p_one = x["log_p_one"]
+        if curr_log_p_one > topology["log_p_joint_max"]:
+            topology["log_p_joint_max"] = curr_log_p_one
+            topology["iter"] = i
+            topology["topology"] = x_top
+    else:
         log_mult = x_top.multiplicity
-        topologies.append(
-            {
+        topologies[x_top] = {
                 "topology": x_top,
                 "count": 1,
                 "log_p_joint_max": x["log_p_one"],
@@ -136,7 +132,6 @@ def count_topology(topologies, x, i, x_top):
                 "multiplicity": np.exp(log_mult),
                 "log_multiplicity": log_mult,
             }
-        )
 
 
 def _create_results_output_files(
@@ -182,7 +177,7 @@ def write_consensus_results(
 
     data = results["data"]
 
-    topologies = []
+    topologies = dict()
     trees = []
     probs = []
 
@@ -196,7 +191,7 @@ def write_consensus_results(
             curr_tree = Tree.from_dict(data, x["tree"])
             count_topology(topologies, x, i, curr_tree)
 
-        for topology in topologies:
+        for topology in topologies.values():
             curr_tree = topology["topology"]
             curr_prob = np.log(topology["count"]) - topology["log_multiplicity"]
             trees.append(curr_tree)
