@@ -21,11 +21,8 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
     data = results["data"]
 
     if map_type == 'frequency':
-        topologies = dict()
 
-        for i, x in enumerate(results["trace"]):
-            curr_tree = Tree.from_dict(data, x["tree"])
-            count_topology(topologies, x, i, curr_tree)
+        topologies = create_topology_dict_from_trace(data, results["trace"])
 
         df = create_topology_dataframe(topologies.values())
         df = df.sort_values(by="count", ascending=False)
@@ -53,17 +50,21 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
     )
 
 
+def create_topology_dict_from_trace(data, trace):
+    topologies = dict()
+    for i, x in enumerate(trace):
+        curr_tree = Tree.from_dict(data, x["tree"])
+        count_topology(topologies, x, i, curr_tree)
+    return topologies
+
+
 def write_topology_report(in_file, out_file):
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
-    topologies = dict()
-
     data = results["data"]
 
-    for i, x in enumerate(results["trace"]):
-        curr_tree = Tree.from_dict(data, x["tree"])
-        count_topology(topologies, x, i, curr_tree)
+    topologies = create_topology_dict_from_trace(data, results["trace"])
 
     df = create_topology_dataframe(topologies.values())
     df = df.sort_values(by="count", ascending=False)
@@ -177,7 +178,6 @@ def write_consensus_results(
 
     data = results["data"]
 
-    topologies = dict()
     trees = []
     probs = []
 
@@ -187,9 +187,7 @@ def write_consensus_results(
         weighted_consensus = False
         trees = [Tree.from_dict(data, x["tree"]) for x in results["trace"]]
     elif weight_type == "corrected-counts":
-        for i, x in enumerate(results["trace"]):
-            curr_tree = Tree.from_dict(data, x["tree"])
-            count_topology(topologies, x, i, curr_tree)
+        topologies = create_topology_dict_from_trace(data, results["trace"])
 
         for topology in topologies.values():
             curr_tree = topology["topology"]
