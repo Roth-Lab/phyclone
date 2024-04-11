@@ -86,7 +86,6 @@ class Tree(object):
 
     @property
     def leafs(self):
-        # return [x for x in self.nodes if len(self.get_children(x)) == 0]
         return [x for x in self.nodes if self.get_number_of_children(x) == 0]
 
     @property
@@ -144,12 +143,6 @@ class Tree(object):
 
         for idx, node in tree_dict["labels"].items():
             new.add_data_point_to_node(data[idx], node, build_add=True)
-            # new._data[node].append(data[idx])
-            #
-            # if node != -1:
-            #     new._graph.nodes[node]["log_p"] += data[idx].value
-            #
-            #     new._graph.nodes[node]["log_R"] += data[idx].value
 
         new.update()
 
