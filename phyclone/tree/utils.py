@@ -1,7 +1,7 @@
 import numpy as np
 import numba
 from phyclone.utils import two_np_arr_cache, list_of_np_cache
-from phyclone.utils.math import conv_log
+from phyclone.utils.math import conv_log, fft_convolve_two_children
 
 
 @list_of_np_cache(maxsize=4096)
@@ -57,9 +57,13 @@ def _comp_log_d_internals(child_log_R_values, num_children):
 
 @two_np_arr_cache(maxsize=4096)
 def _convolve_two_children(child_1, child_2):
-    num_dims = child_1.shape[0]
-    res_arr = np.empty_like(child_1)
-    _conv_two_children_jit(child_1, child_2, num_dims, res_arr)
+    grid_size = child_1.shape[-1]
+    if grid_size < 1000:
+        num_dims = child_1.shape[0]
+        res_arr = np.empty_like(child_1)
+        _conv_two_children_jit(child_1, child_2, num_dims, res_arr)
+    else:
+        res_arr = fft_convolve_two_children(child_1, child_2)
     return res_arr
 
 

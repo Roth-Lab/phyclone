@@ -7,6 +7,7 @@ import math
 import numba
 import numpy as np
 from functools import lru_cache
+from scipy.signal import fftconvolve
 
 
 def bernoulli_rvs(rng: np.random.Generator, p=0.5):
@@ -203,7 +204,7 @@ def log_beta_binomial_pdf(n, x, a, b):
 
 @numba.jit(cache=True, nopython=True)
 def conv_log(log_x, log_y, ans):
-    """ Convolve in log space.
+    """ Direct convolution in log space.
     """
     n = len(log_x)
 
@@ -227,3 +228,29 @@ def conv_log(log_x, log_y, ans):
         ans[k - 1] = np.log(sub_ans) + max_val
 
     return ans
+
+
+def fft_convolve_two_children(child_1, child_2):
+    """ FFT convolution
+    """
+    child_1_maxes = np.max(child_1, axis=-1, keepdims=True)
+
+    child_2_maxes = np.max(child_2, axis=-1, keepdims=True)
+
+    child_1_norm = np.exp(child_1 - child_1_maxes)
+
+    child_2_norm = np.exp(child_2 - child_2_maxes)
+
+    result = fftconvolve(child_1_norm, child_2_norm, axes=[-1])
+
+    result = result[..., :child_1_norm.shape[-1]]
+
+    result[result <= 0] = 1e-100
+
+    result = np.log(result, order='C', dtype=np.float64)
+
+    result += child_2_maxes
+
+    result += child_1_maxes
+
+    return result
