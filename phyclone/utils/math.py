@@ -205,32 +205,18 @@ def log_beta_binomial_pdf(n, x, a, b):
 def conv_log(log_x, log_y, ans):
     """ Convolve in log space.
     """
-    nx = len(log_x)
+    n = len(log_x)
 
     log_y = log_y[::-1]
-    n = nx
 
     for k in range(1, n + 1):
-        # sub_ans = None
-        max_val = None
+        max_val = -np.inf
         v_arr = np.empty(k)
         for j in range(k):
             curr = log_x[j] + log_y[n - (k - j)]
             v_arr[j] = curr
-            if max_val is None:
+            if curr > max_val:
                 max_val = curr
-            else:
-                if curr > max_val:
-                    max_val = curr
-                #     min_val = curr
-                # else:
-                #     max_val = curr
-                #     min_val = sub_ans
-                # sub_ans = max_val + np.log1p(np.exp(min_val - max_val))
-
-        # sub_ans = 0
-        # for val in v_arr:
-        #     sub_ans += np.exp(val - max_val)
 
         v_arr -= max_val
 
@@ -241,62 +227,3 @@ def conv_log(log_x, log_y, ans):
         ans[k - 1] = np.log(sub_ans) + max_val
 
     return ans
-# def conv_log(log_x, log_y, ans):
-#     """ Convolve in log space.
-#     """
-#     nx = len(log_x)
-#
-#     log_y = log_y[::-1]
-#     n = nx
-#
-#     for k in range(1, n + 1):
-#         # sub_ans = None
-#         max_val = None
-#         v_arr = np.empty(k)
-#         for j in range(k):
-#             curr = log_x[j] + log_y[n - (k - j)]
-#             v_arr[j] = curr
-#             if max_val is None:
-#                 max_val = curr
-#             else:
-#                 if curr > max_val:
-#                     max_val = curr
-#                 #     min_val = curr
-#                 # else:
-#                 #     max_val = curr
-#                 #     min_val = sub_ans
-#                 # sub_ans = max_val + np.log1p(np.exp(min_val - max_val))
-#
-#         sub_ans = 0
-#         for val in v_arr:
-#             sub_ans += np.exp(val - max_val)
-#
-#         ans[k - 1] = np.log(sub_ans) + max_val
-#
-#     return ans
-# def conv_log(log_x, log_y, ans):
-#     """ Convolve in log space.
-#     """
-#     nx = len(log_x)
-#
-#     log_y = log_y[::-1]
-#     n = nx
-#
-#     for k in range(1, n + 1):
-#         sub_ans = None
-#         for j in range(k):
-#             curr = log_x[j] + log_y[n - (k - j)]
-#             if sub_ans is None:
-#                 sub_ans = curr
-#             else:
-#                 if sub_ans > curr:
-#                     max_val = sub_ans
-#                     min_val = curr
-#                 else:
-#                     max_val = curr
-#                     min_val = sub_ans
-#                 sub_ans = max_val + np.log1p(np.exp(min_val - max_val))
-#
-#         ans[k - 1] = sub_ans
-#
-#     return ans
