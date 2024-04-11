@@ -44,7 +44,7 @@ class Tree(object):
         node = tree.create_root_node([])
 
         for data_point in data:
-            tree.add_data_point_to_node(data_point, node, build_add=True)
+            tree._internal_add_data_point_to_node(True, data_point, node)
 
         tree.update()
 
@@ -142,7 +142,7 @@ class Tree(object):
             new._add_node(node)
 
         for idx, node in tree_dict["labels"].items():
-            new.add_data_point_to_node(data[idx], node, build_add=True)
+            new._internal_add_data_point_to_node(True, data[idx], node)
 
         new.update()
 
@@ -151,12 +151,13 @@ class Tree(object):
     def to_dict(self):
         return {"graph": nx.to_dict_of_dicts(self._graph), "labels": self.labels}
 
-    def add_data_point_to_node(self, data_point, node, build_add=False):
-        if not build_add:
-            assert data_point.idx not in self.labels.keys()
+    def add_data_point_to_node(self, data_point, node):
+        assert data_point.idx not in self.labels.keys()
 
+        self._internal_add_data_point_to_node(False, data_point, node)
+
+    def _internal_add_data_point_to_node(self, build_add, data_point, node):
         self._data[node].append(data_point)
-
         if node != -1:
             self._graph.nodes[node]["log_p"] += data_point.value
 
