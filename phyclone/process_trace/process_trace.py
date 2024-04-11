@@ -12,9 +12,11 @@ from phyclone.process_trace.consensus import get_consensus_tree
 from phyclone.process_trace.map import get_map_node_ccfs
 from phyclone.utils.math import exp_normalize
 from phyclone.tree import Tree
+from numba import set_num_threads
 
 
 def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None, map_type='frequency'):
+    set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
@@ -59,6 +61,7 @@ def create_topology_dict_from_trace(data, trace):
 
 
 def write_topology_report(in_file, out_file):
+    set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
@@ -173,6 +176,7 @@ def write_consensus_results(
     consensus_threshold=0.5,
     weight_type="counts"
 ):
+    set_num_threads(1)
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 

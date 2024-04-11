@@ -15,6 +15,7 @@ from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer, read_pickle, save_numpy_rng
 from phyclone.data.pyclone import load_data
+from numba import set_num_threads
 
 
 def run(
@@ -38,6 +39,7 @@ def run(
         resample_threshold=0.5,
         seed=None,
         thin=1,
+        num_threads=1,
         rng_pickle=None,
         save_rng=True):
 
@@ -49,6 +51,8 @@ def run(
     data, samples = load_data(
         in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
         precision=precision)
+
+    set_numba_run_threads(num_threads, samples)
 
     tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
 
@@ -72,6 +76,14 @@ def run(
                                 num_samples_prune_regraph, print_freq, samplers, samples, thin, timer, tree, tree_dist)
 
     create_main_run_output(cluster_file, out_file, results)
+
+
+def set_numba_run_threads(num_threads, samples):
+    # guarding against bad user inputs
+    num_threads = max(1, num_threads)
+    # don't use more threads than there are samples, numba goes slower
+    threads_to_use = min(num_threads, len(samples))
+    set_num_threads(threads_to_use)
 
 
 def _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,

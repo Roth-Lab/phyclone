@@ -67,9 +67,9 @@ def _convolve_two_children(child_1, child_2):
     return res_arr
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(cache=True, nopython=True, parallel=True)
 def _conv_two_children_jit(child_1, child_2, num_dims, res_arr):
-    for i in range(num_dims):
+    for i in numba.prange(num_dims):
         conv_log(child_1[i, :], child_2[i, :], res_arr[i, :])
 
 
