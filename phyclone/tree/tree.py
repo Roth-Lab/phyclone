@@ -44,7 +44,9 @@ class Tree(object):
         node = tree.create_root_node([])
 
         for data_point in data:
-            tree.add_data_point_to_node(data_point, node)
+            tree.add_data_point_to_node(data_point, node, build_add=True)
+
+        tree.update()
 
         return tree
 
@@ -141,12 +143,13 @@ class Tree(object):
             new._add_node(node)
 
         for idx, node in tree_dict["labels"].items():
-            new._data[node].append(data[idx])
-
-            if node != -1:
-                new._graph.nodes[node]["log_p"] += data[idx].value
-
-                new._graph.nodes[node]["log_R"] += data[idx].value
+            new.add_data_point_to_node(data[idx], node, build_add=True)
+            # new._data[node].append(data[idx])
+            #
+            # if node != -1:
+            #     new._graph.nodes[node]["log_p"] += data[idx].value
+            #
+            #     new._graph.nodes[node]["log_R"] += data[idx].value
 
         new.update()
 
@@ -155,8 +158,9 @@ class Tree(object):
     def to_dict(self):
         return {"graph": nx.to_dict_of_dicts(self._graph), "labels": self.labels}
 
-    def add_data_point_to_node(self, data_point, node):
-        assert data_point.idx not in self.labels.keys()
+    def add_data_point_to_node(self, data_point, node, build_add=False):
+        if not build_add:
+            assert data_point.idx not in self.labels.keys()
 
         self._data[node].append(data_point)
 
@@ -165,22 +169,14 @@ class Tree(object):
 
             self._graph.nodes[node]["log_R"] += data_point.value
 
-            self._update_path_to_root(self.get_parent(node))
+            if not build_add:
+                self._update_path_to_root(self.get_parent(node))
 
     def add_data_point_to_outliers(self, data_point):
         self._data[-1].append(data_point)
 
     def add_subtree(self, subtree, parent=None):
-        first_label = (
-            max(
-                self.nodes
-                + subtree.nodes
-                + [
-                    -1,
-                ]
-            )
-            + 1
-        )
+        first_label = (max(self.nodes + subtree.nodes + [-1,]) + 1)
 
         node_map = {}
 
@@ -413,4 +409,7 @@ class Tree(object):
         else:
             log_s = compute_log_S(child_log_r_values)
 
-        self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order="C")
+        if "log_R" in self._graph.nodes[node]:
+            self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, out=self._graph.nodes[node]["log_R"], order="C")
+        else:
+            self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order="C")
