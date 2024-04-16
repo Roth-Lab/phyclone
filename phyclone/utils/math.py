@@ -211,14 +211,12 @@ def conv_log(log_x, log_y, ans):
     log_y = log_y[::-1]
 
     for k in range(1, n + 1):
-        max_val = -np.inf
         v_arr = np.empty(k)
         for j in range(k):
             curr = log_x[j] + log_y[n - (k - j)]
             v_arr[j] = curr
-            if curr > max_val:
-                max_val = curr
 
+        max_val = np.max(v_arr)
         v_arr -= max_val
 
         v_arr = np.exp(v_arr, v_arr)

@@ -6,6 +6,7 @@ import numpy as np
 from phyclone.utils.math import log_factorial
 from phyclone.tree.utils import compute_log_S, get_clades
 from phyclone.utils import get_iterator_length
+import itertools
 
 
 class Tree(object):
@@ -60,13 +61,7 @@ class Tree(object):
 
     @property
     def data(self):
-        result = []
-
-        for node in self._data:
-            result.extend(self._data[node])
-
-        result = sorted(result, key=lambda x: x.idx)
-
+        result = sorted(itertools.chain.from_iterable(self._data.values()), key=lambda x: x.idx)
         return result
 
     @property
@@ -76,12 +71,7 @@ class Tree(object):
 
     @property
     def labels(self):
-        result = {}
-
-        for node, node_data in self.node_data.items():
-            for data_point in node_data:
-                result[data_point.idx] = node
-
+        result = {dp.idx: k for k, l in self.node_data.items() for dp in l}
         return result
 
     @property
