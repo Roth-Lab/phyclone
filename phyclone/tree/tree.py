@@ -364,10 +364,7 @@ class Tree(object):
 
     def _add_node(self, node):
         self._graph.add_node(node)
-
-        self._graph.nodes[node]["log_p"] = np.ascontiguousarray(
-            np.ones(self.grid_size) * self._log_prior
-        )
+        self._graph.nodes[node]["log_p"] = np.full(self.grid_size, self._log_prior, order="C")
         self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size, order="C")
 
     def _update_path_to_root(self, source):
