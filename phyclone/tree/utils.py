@@ -31,28 +31,20 @@ def _sub_compute_S(log_D):
 
 
 def compute_log_D(child_log_R_values):
-    if len(child_log_R_values) == 0:
+    num_children = len(child_log_R_values)
+
+    if num_children == 0:
         return 0
 
-    log_D = _comp_log_d_split(child_log_R_values)
-
-    return log_D
-
-
-def _comp_log_d_split(child_log_R_values):
-    num_children = len(child_log_R_values)
     if num_children == 1:
         return child_log_R_values[0]
 
-    log_D = _comp_log_d_internals(child_log_R_values, num_children)
-    return log_D
-
-
-def _comp_log_d_internals(child_log_R_values, num_children):
     conv_res = _convolve_two_children(child_log_R_values[0], child_log_R_values[1])
     for j in range(2, num_children):
         conv_res = _convolve_two_children(child_log_R_values[j], conv_res)
-    return conv_res
+
+    log_D = conv_res
+    return log_D
 
 
 @two_np_arr_cache(maxsize=4096)
