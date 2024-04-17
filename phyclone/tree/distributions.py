@@ -1,5 +1,5 @@
 import numpy as np
-from phyclone.utils.math import log_factorial, log_sum_exp
+from phyclone.utils.math import log_sum_exp, cached_log_factorial
 
 
 class FSCRPDistribution(object):
@@ -8,8 +8,16 @@ class FSCRPDistribution(object):
     def __init__(self, alpha):
         self.alpha = alpha
 
-    def log_p(self, tree, tree_node_data=None):
+    @property
+    def alpha(self):
+        return self._alpha
 
+    @alpha.setter
+    def alpha(self, alpha):
+        self._alpha = alpha
+        self.log_alpha = np.log(alpha)
+
+    def log_p(self, tree, tree_node_data=None):
         if tree_node_data is None:
             tree_node_data = tree.node_data
 
@@ -18,15 +26,18 @@ class FSCRPDistribution(object):
         # CRP prior
         num_nodes = tree.get_number_of_nodes()
 
-        log_p += num_nodes * np.log(self.alpha)
+        # log_p += num_nodes * np.log(self.alpha)
+        log_p += num_nodes * self.log_alpha
 
-        for node, node_data in tree_node_data.items():
-            if node == -1:
-                continue
+        # for node, node_data in tree_node_data.items():
+        #     if node == -1:
+        #         continue
+        #
+        #     num_data_points = len(node_data)
+        #
+        #     log_p += cached_log_factorial(num_data_points - 1)
 
-            num_data_points = len(node_data)
-
-            log_p += log_factorial(num_data_points - 1)
+        log_p += sum(cached_log_factorial(len(v) - 1) for k, v in tree_node_data.items() if k != -1)
 
         # Uniform prior on toplogies
         log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
