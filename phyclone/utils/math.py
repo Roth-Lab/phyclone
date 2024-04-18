@@ -202,7 +202,7 @@ def log_beta_binomial_pdf(n, x, a, b):
     return log_binomial_coefficient(n, x) + log_beta_binomial_likelihood(n, x, a, b)
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(cache=True, nopython=True, fastmath=True)
 def conv_log(log_x, log_y, ans):
     """ Direct convolution in log space.
     """
@@ -212,16 +212,20 @@ def conv_log(log_x, log_y, ans):
 
     for k in range(1, n + 1):
         v_arr = np.empty(k)
+        max_val = -np.inf
         for j in range(k):
             curr = log_x[j] + log_y[n - (k - j)]
             v_arr[j] = curr
+            if curr > max_val:
+                max_val = curr
 
-        max_val = np.max(v_arr)
         v_arr -= max_val
 
-        v_arr = np.exp(v_arr, v_arr)
+        np.exp(v_arr, v_arr)
 
-        sub_ans = v_arr.sum()
+        sub_ans = 0
+        for i in range(k):
+            sub_ans += v_arr[i]
 
         ans[k - 1] = np.log(sub_ans) + max_val
 
@@ -252,3 +256,23 @@ def fft_convolve_two_children(child_1, child_2):
     result += child_1_maxes
 
     return result
+
+
+def non_log_conv(child_log_R, prev_log_D_n):
+    """ Compute the recursion over D using the numpy.
+    """
+    log_R_max = child_log_R.max()
+
+    log_D_max = prev_log_D_n.max()
+
+    R_norm = np.exp(child_log_R - log_R_max)
+
+    D_norm = np.exp(prev_log_D_n - log_D_max)
+
+    result = np.convolve(R_norm, D_norm)
+
+    result = result[:len(child_log_R)]
+
+    result[result <= 0] = 1e-100
+
+    return np.log(result) + log_D_max + log_R_max

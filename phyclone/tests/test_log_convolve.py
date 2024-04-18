@@ -1,27 +1,27 @@
 import numpy as np
 import unittest
 from phyclone.tree.utils import _convolve_two_children
-from phyclone.utils.math import conv_log
+from phyclone.utils.math import conv_log, non_log_conv
 
 
-def numpy_reliant_non_log_conv(child_log_R, prev_log_D_n):
-    """ Compute the recursion over D using the numpy.
-    """
-    log_R_max = child_log_R.max()
-
-    log_D_max = prev_log_D_n.max()
-
-    R_norm = np.exp(child_log_R - log_R_max)
-
-    D_norm = np.exp(prev_log_D_n - log_D_max)
-
-    result = np.convolve(R_norm, D_norm)
-
-    result = result[:len(child_log_R)]
-
-    result[result <= 0] = 1e-100
-
-    return np.log(result) + log_D_max + log_R_max
+# def numpy_reliant_non_log_conv(child_log_R, prev_log_D_n):
+#     """ Compute the recursion over D using the numpy.
+#     """
+#     log_R_max = child_log_R.max()
+# 
+#     log_D_max = prev_log_D_n.max()
+# 
+#     R_norm = np.exp(child_log_R - log_R_max)
+# 
+#     D_norm = np.exp(prev_log_D_n - log_D_max)
+# 
+#     result = np.convolve(R_norm, D_norm)
+# 
+#     result = result[:len(child_log_R)]
+# 
+#     result[result <= 0] = 1e-100
+# 
+#     return np.log(result) + log_D_max + log_R_max
 
 
 class Test(unittest.TestCase):
@@ -34,7 +34,7 @@ class Test(unittest.TestCase):
         child_2 = np.log(child_2_no_log)
         actual = conv_log(child_1, child_2, np.zeros_like(child_1))
 
-        expected = numpy_reliant_non_log_conv(child_1, child_2)
+        expected = non_log_conv(child_1, child_2)
 
         np.testing.assert_allclose(actual, expected)
 
@@ -59,7 +59,7 @@ class Test(unittest.TestCase):
         child_2 = np.log(child_2_no_log)
         actual = conv_log(child_1, child_2, np.zeros_like(child_1))
 
-        expected = numpy_reliant_non_log_conv(child_1, child_2)
+        expected = non_log_conv(child_1, child_2)
 
         np.testing.assert_allclose(actual, expected)
 
@@ -69,7 +69,7 @@ class Test(unittest.TestCase):
         child_2 = np.full(grid_size, -np.log(grid_size))
         actual = conv_log(child_1, child_2, np.zeros_like(child_1))
 
-        expected = numpy_reliant_non_log_conv(child_1, child_2)
+        expected = non_log_conv(child_1, child_2)
 
         np.testing.assert_allclose(actual, expected)
 
@@ -81,7 +81,7 @@ class Test(unittest.TestCase):
         actual = conv_log(child_1, child_2, np.zeros_like(child_1))
         actual_rev = conv_log(child_2, child_1, np.zeros_like(child_1))
 
-        expected = numpy_reliant_non_log_conv(child_1, child_2)
+        expected = non_log_conv(child_1, child_2)
 
         np.testing.assert_allclose(actual, expected)
         np.testing.assert_allclose(actual_rev, actual)
@@ -96,7 +96,7 @@ class Test(unittest.TestCase):
         actual = _convolve_two_children(child_1_two_d, child_2_two_d)
         actual_rev = _convolve_two_children(child_2_two_d, child_1_two_d)
 
-        expected = np.atleast_2d(numpy_reliant_non_log_conv(child_1, child_2))
+        expected = np.atleast_2d(non_log_conv(child_1, child_2))
 
         num_hits = _convolve_two_children.cache_info().hits
         cache_size = _convolve_two_children.cache_info().currsize
