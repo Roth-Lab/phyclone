@@ -404,10 +404,6 @@ class OldTree(object):
 class Test(unittest.TestCase):
 
     def setUp(self):
-        # grid_size = (1, 10)
-
-        # self.tree = Tree(grid_size)
-
         self.outlier_prob = 0.0
 
         self._rng = np.random.default_rng(12345)
@@ -547,6 +543,68 @@ class Test(unittest.TestCase):
         actual_tree = Tree.from_dict(data, expected_dict)
 
         self.assertEqual(expected_tree, actual_tree)
+
+    def test_getting_subtree_from_linear(self):
+        n = 100
+        p = 1.0
+
+        data = self._create_data_points(6, n, p)
+
+        expected_tree = OldTree.get_single_node_tree(data[:2])
+
+        expected_tree_roots = expected_tree.roots
+
+        exp_n_1 = expected_tree.create_root_node(children=expected_tree_roots, data=data[2:4])
+
+        expected_tree_roots = expected_tree.roots
+
+        exp_n_2 = expected_tree.create_root_node(children=[exp_n_1], data=data[4:])
+
+        expected_dict = expected_tree.to_dict()
+
+        actual_tree = Tree.from_dict(data, expected_dict)
+
+        self.assertEqual(expected_tree, actual_tree)
+
+        subtree = actual_tree.get_subtree(exp_n_1)
+
+        exp_subtree = expected_tree.get_subtree(exp_n_1)
+
+        actual_dict2 = subtree.to_dict()
+
+        expected_dict2 = exp_subtree.to_dict()
+
+        self.assertDictEqual(actual_dict2, expected_dict2)
+
+    def test_getting_subtree_from_cherry(self):
+        n = 100
+        p = 1.0
+
+        data = self._create_data_points(6, n, p)
+
+        expected_tree = OldTree.get_single_node_tree(data[:2])
+
+        exp_n_1 = expected_tree.create_root_node(children=[], data=data[2:4])
+
+        expected_tree_roots = expected_tree.roots
+
+        exp_n_2 = expected_tree.create_root_node(children=expected_tree_roots, data=data[4:])
+
+        expected_dict = expected_tree.to_dict()
+
+        actual_tree = Tree.from_dict(data, expected_dict)
+
+        self.assertEqual(expected_tree, actual_tree)
+
+        subtree = actual_tree.get_subtree(exp_n_2)
+
+        exp_subtree = expected_tree.get_subtree(exp_n_2)
+
+        actual_dict2 = subtree.to_dict()
+
+        expected_dict2 = exp_subtree.to_dict()
+
+        self.assertDictEqual(actual_dict2, expected_dict2)
 
     def _create_data_point(self, idx, n, p):
         return simulate_binomial_data(idx, n, p, self._rng, self.outlier_prob)

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from copy import copy
 
 import networkx as nx
 import numpy as np
@@ -154,9 +155,6 @@ class Tree(object):
     @staticmethod
     def from_dict(data, tree_dict):
         new = Tree(data[0].grid_size)
-
-        # new._graph = nx.DiGraph(tree_dict["graph"])
-        # new._graph = nx.DiGraph(tree_dict["graph"])
 
         data = dict(zip([x.idx for x in data], data))
 
@@ -344,20 +342,61 @@ class Tree(object):
 
         new = Tree(self.grid_size)
 
-        subtree_graph = nx.dfs_tree(self._graph, subtree_root)
+        subtree_root_idx = self._node_indices[subtree_root]
 
-        new._graph = nx.compose(new._graph, subtree_graph)
+        subtree_graph_node_indices = [subtree_root_idx] + list(rx.descendants(self._graph, subtree_root_idx))
 
-        new._graph.add_edge("root", subtree_root)
+        subtree_graph = self._graph.subgraph(subtree_graph_node_indices, preserve_attrs=True)
 
-        for node in new.nodes:
+        new_root_idx = new._node_indices["root"]
+
+        sub_num_nodes = subtree_graph.num_nodes() - 1
+
+        new._graph.compose(subtree_graph, {new_root_idx: (sub_num_nodes, None)})
+
+        for node_idx in new._graph.node_indices():
+            new._graph[node_idx] = copy(new._graph[node_idx])
+            node = new._graph[node_idx].node_id
             new._data[node] = list(self._data[node])
 
-            new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
+            new._node_indices[node] = node_idx
+            new._node_indices_rev[node_idx] = node
+
+        # subtree_graph = nx.dfs_tree(self._graph, subtree_root)
+        #
+        # new._graph = nx.compose(new._graph, subtree_graph)
+        #
+        # new._graph.add_edge("root", subtree_root)
+        #
+        # for node in new.nodes:
+        #     new._data[node] = list(self._data[node])
+        #
+        #     new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
 
         new.update()
 
         return new
+
+    # def get_subtree(self, subtree_root):
+    #     if subtree_root == "root":
+    #         return self.copy()
+    #
+    #     new = Tree(self.grid_size)
+    #
+    #     subtree_graph = nx.dfs_tree(self._graph, subtree_root)
+    #
+    #     new._graph = nx.compose(new._graph, subtree_graph)
+    #
+    #     new._graph.add_edge("root", subtree_root)
+    #
+    #     for node in new.nodes:
+    #         new._data[node] = list(self._data[node])
+    #
+    #         new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
+    #
+    #     new.update()
+    #
+    #     return new
 
     def get_subtree_data(self, node):
         data = self.get_data(node)
