@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools >= 61.0", "setuptools-rust"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -21,6 +21,7 @@ dependencies = [
     "matplotlib",
     "xxhash",
     "networkx",
+    "rustworkx",
     "pandas",
     "scikit-learn"
 ]

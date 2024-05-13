@@ -2,18 +2,19 @@ from collections import defaultdict
 
 import networkx as nx
 import numpy as np
-import rustworkx as rx
 
 from phyclone.utils.math import log_factorial
 from phyclone.tree.utils import compute_log_S, get_clades
 from phyclone.utils import get_iterator_length
 import itertools
-from dataclasses import dataclass
-from rustworkx.visit import DFSVisitor
-from typing import Union
 
 
-class Tree(object):
+import unittest
+from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
+from phyclone.tests.simulate import simulate_binomial_data
+
+
+class OldTree(object):
     def __init__(self, grid_size):
         self.grid_size = grid_size
 
@@ -21,12 +22,7 @@ class Tree(object):
 
         self._log_prior = -np.log(grid_size[1])
 
-        # self._graph = nx.DiGraph()
-        self._graph = rx.PyDiGraph()
-
-        self._node_indices = dict()
-
-        self._node_indices_rev = dict()
+        self._graph = nx.DiGraph()
 
         self._add_node("root")
 
@@ -49,7 +45,7 @@ class Tree(object):
         data: list
             Data points.
         """
-        tree = Tree(data[0].grid_size)
+        tree = OldTree(data[0].grid_size)
 
         node = tree.create_root_node([])
 
@@ -76,9 +72,7 @@ class Tree(object):
     @property
     def data_log_likelihood(self):
         """The log likelihood grid of the data for all values of the root node."""
-        # return self._graph.nodes["root"]["log_R"]
-        root_idx = self._node_indices["root"]
-        return self._graph[root_idx].log_R
+        return self._graph.nodes["root"]["log_R"]
 
     @property
     def labels(self):
@@ -112,8 +106,7 @@ class Tree(object):
         return result
 
     def get_number_of_nodes(self):
-        # return self._graph.number_of_nodes() - 1
-        return self._graph.num_nodes() - 1
+        return self._graph.number_of_nodes() - 1
 
     @property
     def node_data(self):
@@ -130,44 +123,18 @@ class Tree(object):
 
     @property
     def roots(self):
-        return self.get_children("root")
-        # return list(self._graph.successors("root"))
+        return list(self._graph.successors("root"))
 
-    # @staticmethod
-    # def from_dict(data, tree_dict):
-    #     new = Tree(data[0].grid_size)
-    #
-    #     # new._graph = nx.DiGraph(tree_dict["graph"])
-    #     new._graph = nx.DiGraph(tree_dict["graph"])
-    #
-    #     data = dict(zip([x.idx for x in data], data))
-    #
-    #     for node in new._graph.nodes:
-    #         new._add_node(node)
-    #
-    #     for idx, node in tree_dict["labels"].items():
-    #         new._internal_add_data_point_to_node(True, data[idx], node)
-    #
-    #     new.update()
-    #
-    #     return new
     @staticmethod
     def from_dict(data, tree_dict):
-        new = Tree(data[0].grid_size)
+        new = OldTree(data[0].grid_size)
 
-        # new._graph = nx.DiGraph(tree_dict["graph"])
-        # new._graph = nx.DiGraph(tree_dict["graph"])
+        new._graph = nx.DiGraph(tree_dict["graph"])
 
         data = dict(zip([x.idx for x in data], data))
 
-        for node in tree_dict["graph"].keys():
+        for node in new._graph.nodes:
             new._add_node(node)
-
-        for parent, children in tree_dict["graph"].items():
-            parent_idx = new._node_indices[parent]
-            for child in children.keys():
-                child_idx = new._node_indices[child]
-                new._graph.add_edge(parent_idx, child_idx, None)
 
         for idx, node in tree_dict["labels"].items():
             new._internal_add_data_point_to_node(True, data[idx], node)
@@ -177,13 +144,7 @@ class Tree(object):
         return new
 
     def to_dict(self):
-        # GraphToDictVisitor
-        vis = GraphToDictVisitor(self)
-        root_idx = self._node_indices["root"]
-        rx.dfs_search(self._graph, [root_idx], vis)
-        res = {"graph": vis.dict_of_dicts, "labels": self.labels}
-        return res
-        # return {"graph": nx.to_dict_of_dicts(self._graph), "labels": self.labels}
+        return {"graph": nx.to_dict_of_dicts(self._graph), "labels": self.labels}
 
     def add_data_point_to_node(self, data_point, node):
         assert data_point.idx not in self.labels.keys()
@@ -193,15 +154,9 @@ class Tree(object):
     def _internal_add_data_point_to_node(self, build_add, data_point, node):
         self._data[node].append(data_point)
         if node != -1:
-            # self._graph.nodes[node]["log_p"] += data_point.value
-            #
-            # self._graph.nodes[node]["log_R"] += data_point.value
+            self._graph.nodes[node]["log_p"] += data_point.value
 
-            node_idx = self._node_indices[node]
-
-            self._graph[node_idx].log_p += data_point.value
-
-            self._graph[node_idx].log_R += data_point.value
+            self._graph.nodes[node]["log_R"] += data_point.value
 
             if not build_add:
                 self._update_path_to_root(self.get_parent(node))
@@ -210,7 +165,7 @@ class Tree(object):
         self._data[-1].append(data_point)
 
     def add_subtree(self, subtree, parent=None):
-        first_label = (max(self.nodes + subtree.nodes + [-1, ]) + 1)
+        first_label = (max(self.nodes + subtree.nodes + [-1,]) + 1)
 
         node_map = {}
 
@@ -244,29 +199,21 @@ class Tree(object):
         data: list
             Data points to add to new node.
         """
-        # node = nx.number_of_nodes(self._graph) - 1
-        node = self._graph.num_nodes() - 1
+        node = nx.number_of_nodes(self._graph) - 1
 
         self._add_node(node)
-
-        node_idx = self._node_indices[node]
-
-        root_idx = self._node_indices["root"]
 
         for data_point in data:
             self._data[node].append(data_point)
 
-            # self._graph.nodes[node]["log_p"] += data_point.value
-            self._graph[node_idx].log_p += data_point.value
+            self._graph.nodes[node]["log_p"] += data_point.value
 
-        # self._graph.add_edge("root", node)
-        self._graph.add_edge(root_idx, node_idx, None)
+        self._graph.add_edge("root", node)
 
         for child in children:
-            child_idx = self._node_indices[child]
-            self._graph.remove_edge(root_idx, child_idx)
+            self._graph.remove_edge("root", child)
 
-            self._graph.add_edge(node_idx, child_idx, None)
+            self._graph.add_edge(node, child)
 
         self._update_path_to_root(node)
 
@@ -288,34 +235,23 @@ class Tree(object):
 
         new._graph = self._graph.copy()
 
-        new_graph = new._graph
+        for node in new._graph:
+            new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
 
-        for node_idx in new_graph.node_indices():
-            new._graph[node_idx] = new._graph[node_idx].copy()
-
-            # for node in new._graph:
-        #     new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
-        #
-        #     new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"].copy()
+            new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"].copy()
 
         return new
 
     def get_children(self, node):
-        # return list(self._graph.successors(node))
-        node_idx = self._node_indices[node]
-        return [child.node_id for child in self._graph.successors(node_idx)]
+        return list(self._graph.successors(node))
 
     def get_number_of_children(self, node):
-        # children = self._graph.successors(node)
-        # num_children = get_iterator_length(children)
-        node_idx = self._node_indices[node]
-        return len(self._graph.successors(node_idx))
+        children = self._graph.successors(node)
+        num_children = get_iterator_length(children)
+        return num_children
 
     def get_descendants(self, source="root"):
-        # return nx.descendants(self._graph, source=source)
-        source_idx = self._node_indices[source]
-        descs = rx.descendants(self._graph, source=source_idx)
-        return [self._graph[child].node_id for child in descs]
+        return nx.descendants(self._graph, source=source)
 
     def get_parent(self, node):
         if node == "root":
@@ -342,7 +278,7 @@ class Tree(object):
         if subtree_root == "root":
             return self.copy()
 
-        new = Tree(self.grid_size)
+        new = OldTree(self.grid_size)
 
         subtree_graph = nx.dfs_tree(self._graph, subtree_root)
 
@@ -394,9 +330,7 @@ class Tree(object):
         self._data[node].remove(data_point)
 
         if node != -1:
-            # self._graph.nodes[node]["log_p"] -= data_point.value
-            node_idx = self._node_indices[node]
-            self._graph[node_idx].log_p -= data_point.value
+            self._graph.nodes[node]["log_p"] -= data_point.value
 
             self._update_path_to_root(node)
 
@@ -420,29 +354,17 @@ class Tree(object):
             self._update_path_to_root(parent)
 
     def update(self):
-        vis = PostOrderNodeUpdater(self)
-        root_idx = self._node_indices["root"]
-        rx.dfs_search(self._graph, [root_idx], vis)
-        # for node in nx.dfs_postorder_nodes(self._graph, "root"):
-        #     self._update_node(node)
+        for node in nx.dfs_postorder_nodes(self._graph, "root"):
+            self._update_node(node)
 
     def _add_node(self, node):
-        # new_node = self._graph.add_node(node)
-        node_obj = TreeNode(np.full(self.grid_size, self._log_prior, order="C"),
-                            np.zeros(self.grid_size, order="C"),
-                            node)
-        new_node = self._graph.add_node(node_obj)
-        self._node_indices[node] = new_node
-        self._node_indices_rev[new_node] = node
-        # self._graph.nodes[node]["log_p"] = np.full(self.grid_size, self._log_prior, order="C")
-        # self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size, order="C")
+        self._graph.add_node(node)
+        self._graph.nodes[node]["log_p"] = np.full(self.grid_size, self._log_prior, order="C")
+        self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size, order="C")
 
     def _update_path_to_root(self, source):
         """Update recursion values for all nodes on the path between the source node and root inclusive."""
-        # paths = list(nx.all_simple_paths(self._graph, "root", source))
-        root_idx = self._node_indices["root"]
-        source_idx = self._node_indices[source]
-        paths = rx.all_simple_paths(self._graph, root_idx, source_idx)
+        paths = list(nx.all_simple_paths(self._graph, "root", source))
 
         if len(paths) == 0:
             assert source == "root"
@@ -453,88 +375,186 @@ class Tree(object):
 
         path = paths[0]
 
-        # assert path[-1] == source
-        #
-        # assert path[0] == "root"
-        assert self._node_indices_rev[path[-1]] == source
+        assert path[-1] == source
 
-        assert self._node_indices_rev[path[0]] == "root"
+        assert path[0] == "root"
 
         for source in reversed(path):
-            source_idx = self._node_indices_rev[source]
-            self._update_node(source_idx)
+            self._update_node(source)
 
     def _update_node(self, node):
-        node_idx = self._node_indices[node]
         child_log_r_values = [
-            child.log_R for child in self._graph.successors(node_idx)
+            self._graph.nodes[child]["log_R"] for child in self._graph.successors(node)
         ]
 
-        log_p = self._graph[node_idx].log_p
+        log_p = self._graph.nodes[node]["log_p"]
 
         if len(child_log_r_values) == 0:
-            self._graph[node_idx].log_R = log_p.copy()
+            self._graph.nodes[node]["log_R"] = log_p.copy()
             return
         else:
             log_s = compute_log_S(child_log_r_values)
 
-        # if "log_R" in self._graph.nodes[node]:
-        #     self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, out=self._graph.nodes[node]["log_R"], order="C")
-        # else:
-        #     self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order="C")
-
-        self._graph[node_idx].log_R = np.add(log_p, log_s, out=self._graph[node_idx].log_R, order="C")
+        if "log_R" in self._graph.nodes[node]:
+            self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, out=self._graph.nodes[node]["log_R"], order="C")
+        else:
+            self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order="C")
 
 
-@dataclass
-class TreeNode:
-    log_p: np.array
-    log_R: np.array
-    node_id: Union[str | int]
+class Test(unittest.TestCase):
 
-    def __copy__(self):
-        return TreeNode(self.log_p.copy(), self.log_R.copy(), self.node_id)
+    def setUp(self):
+        # grid_size = (1, 10)
 
+        # self.tree = Tree(grid_size)
 
-class PostOrderNodeUpdater(DFSVisitor):
+        self.outlier_prob = 0.0
 
-    def __init__(self, tree):
-        self.tree = tree
+        self._rng = np.random.default_rng(12345)
 
-    def finish_vertex(self, v, t):
-        node_id = self.tree._node_indices_rev[v]
-        self.tree._update_node(node_id)
+        self.tree_dist = FSCRPDistribution(1.0)
 
+        self.tree_joint_dist = TreeJointDistribution(self.tree_dist)
 
-class GraphToDictVisitor(DFSVisitor):
-    def __init__(self, tree):
-        self.tree = tree
-        # self.dict_of_dicts = dict()
-        self.dict_of_dicts = defaultdict(dict)
+    def test_single_node_tree_to_dict_representation(self):
+        n = 100
+        p = 1.0
 
-    def tree_edge(self, edge):
-        parent = edge[0]
-        child = edge[1]
+        data = self._create_data_points(4, n, p)
 
-        parent_idx = self.tree._node_indices_rev[parent]
-        child_idx = self.tree._node_indices_rev[child]
+        actual_tree = Tree.get_single_node_tree(data)
 
-        self.dict_of_dicts[parent_idx][child_idx] = {}
-        self.dict_of_dicts[child_idx] = {}
+        expected_tree = OldTree.get_single_node_tree(data)
 
+        actual_dict = actual_tree.to_dict()
 
-# class GraphToDictVisitor(DFSVisitor):
-#     def __init__(self, tree):
-#         self.tree = tree
-#         self.dict_of_dicts = defaultdict(dict)
-#
-#     def tree_edge(self, edge):
-#         parent = edge[0]
-#         child = edge[1]
-#
-#         parent_idx = self.tree._node_indices_rev[parent]
-#         child_idx = self.tree._node_indices_rev[child]
-#
-#         self.dict_of_dicts[parent_idx][child_idx] = self.dict_of_dicts[child_idx]
+        expected_dict = expected_tree.to_dict()
 
+        self.assertDictEqual(actual_dict, expected_dict)
 
+    def test_cherry_tree_to_dict_representation(self):
+        n = 100
+        p = 1.0
+
+        data = self._create_data_points(6, n, p)
+
+        actual_tree = Tree.get_single_node_tree(data[:2])
+
+        expected_tree = OldTree.get_single_node_tree(data[:2])
+
+        exp_n_1 = expected_tree.create_root_node(children=[], data=data[2:4])
+
+        act_n_1 = actual_tree.create_root_node(children=[], data=data[2:4])
+
+        expected_tree_roots = expected_tree.roots
+
+        actual_tree_roots = actual_tree.roots
+
+        exp_n_2 = expected_tree.create_root_node(children=expected_tree_roots, data=data[4:])
+
+        act_n_2 = actual_tree.create_root_node(children=actual_tree_roots, data=data[4:])
+
+        actual_dict = actual_tree.to_dict()
+
+        expected_dict = expected_tree.to_dict()
+
+        self.assertDictEqual(actual_dict, expected_dict)  # make the dicts
+
+    def test_linear_tree_to_dict_representation(self):
+        n = 100
+        p = 1.0
+
+        data = self._create_data_points(6, n, p)
+
+        actual_tree = Tree.get_single_node_tree(data[:2])
+
+        expected_tree = OldTree.get_single_node_tree(data[:2])
+
+        expected_tree_roots = expected_tree.roots
+
+        actual_tree_roots = actual_tree.roots
+
+        exp_n_1 = expected_tree.create_root_node(children=expected_tree_roots, data=data[2:4])
+
+        act_n_1 = actual_tree.create_root_node(children=actual_tree_roots, data=data[2:4])
+
+        expected_tree_roots = expected_tree.roots
+
+        actual_tree_roots = actual_tree.roots
+
+        exp_n_2 = expected_tree.create_root_node(children=[exp_n_1], data=data[4:])
+
+        act_n_2 = actual_tree.create_root_node(children=[act_n_1], data=data[4:])
+
+        actual_dict = actual_tree.to_dict()
+
+        expected_dict = expected_tree.to_dict()
+
+        self.assertDictEqual(actual_dict, expected_dict)  # make the dicts
+
+    def test_single_node_tree_from_dict_representation(self):
+        n = 100
+        p = 1.0
+
+        data = self._create_data_points(4, n, p)
+
+        expected_tree = OldTree.get_single_node_tree(data)
+
+        expected_dict = expected_tree.to_dict()
+
+        actual_tree = Tree.from_dict(data, expected_dict)
+
+        self.assertEqual(expected_tree, actual_tree)
+
+    def test_cherry_tree_from_dict_representation(self):
+        n = 100
+        p = 1.0
+
+        data = self._create_data_points(6, n, p)
+
+        expected_tree = OldTree.get_single_node_tree(data[:2])
+
+        exp_n_1 = expected_tree.create_root_node(children=[], data=data[2:4])
+
+        expected_tree_roots = expected_tree.roots
+
+        exp_n_2 = expected_tree.create_root_node(children=expected_tree_roots, data=data[4:])
+
+        expected_dict = expected_tree.to_dict()
+
+        actual_tree = Tree.from_dict(data, expected_dict)
+
+        self.assertEqual(expected_tree, actual_tree)
+
+    def test_linear_tree_from_dict_representation(self):
+        n = 100
+        p = 1.0
+
+        data = self._create_data_points(6, n, p)
+
+        expected_tree = OldTree.get_single_node_tree(data[:2])
+
+        expected_tree_roots = expected_tree.roots
+
+        exp_n_1 = expected_tree.create_root_node(children=expected_tree_roots, data=data[2:4])
+
+        expected_tree_roots = expected_tree.roots
+
+        exp_n_2 = expected_tree.create_root_node(children=[exp_n_1], data=data[4:])
+
+        expected_dict = expected_tree.to_dict()
+
+        actual_tree = Tree.from_dict(data, expected_dict)
+
+        self.assertEqual(expected_tree, actual_tree)
+
+    def _create_data_point(self, idx, n, p):
+        return simulate_binomial_data(idx, n, p, self._rng, self.outlier_prob)
+
+    def _create_data_points(self, size, n, p, start_idx=0):
+        result = []
+
+        for i in range(size):
+            result.append(self._create_data_point(i+start_idx, n, p))
+
+        return result
