@@ -106,9 +106,11 @@ class Tree(object):
 
     @property
     def nodes(self):
-        result = list(self._graph.nodes())
+        # result = list(self._graph.nodes())
+        #
+        # result.remove("root")
 
-        result.remove("root")
+        result = [node.node_id for node in self._graph.nodes() if node.node_id != "root"]
 
         return result
 
@@ -209,30 +211,77 @@ class Tree(object):
     def add_data_point_to_outliers(self, data_point):
         self._data[-1].append(data_point)
 
+
     def add_subtree(self, subtree, parent=None):
         first_label = (max(self.nodes + subtree.nodes + [-1, ]) + 1)
 
         node_map = {}
-
+        #
         subtree = subtree.copy()
-
+        #
         for new_node, old_node in enumerate(subtree.nodes, first_label):
             node_map[old_node] = new_node
 
             self._data[new_node] = subtree._data[old_node]
 
-        nx.relabel_nodes(subtree._graph, node_map, copy=False)
-
-        self._graph = nx.compose(self._graph, subtree.graph)
-
         # Connect subtree
         if parent is None:
             parent = "root"
 
-        for node in subtree.roots:
-            self._graph.add_edge(parent, node)
+        parent_idx = self._node_indices[parent]
+
+        subtree_root = subtree.roots[0]
+
+        subtree_dummy_root = subtree._node_indices["root"]
+
+        subtree._graph.remove_node(subtree_dummy_root)
+
+        node_map_idx = self._graph.compose(subtree._graph, {parent_idx: (subtree._node_indices[subtree_root], None)})
+
+        for subtree_idx, tree_idx in node_map_idx.items():
+            old_node_id = self._graph[tree_idx].node_id
+            self._graph[tree_idx].node_id = node_map[old_node_id]
+            self._node_indices[node_map[old_node_id]] = tree_idx
+            self._node_indices_rev[tree_idx] = node_map[old_node_id]
+
+        # nx.relabel_nodes(subtree._graph, node_map, copy=False)
+
+        # self._graph = nx.compose(self._graph, subtree.graph)
+        #
+        # # Connect subtree
+        # if parent is None:
+        #     parent = "root"
+        #
+        # for node in subtree.roots:
+        #     self._graph.add_edge(parent, node)
 
         self._update_path_to_root(parent)
+
+
+    # def add_subtree(self, subtree, parent=None):
+    #     first_label = (max(self.nodes + subtree.nodes + [-1, ]) + 1)
+    #
+    #     node_map = {}
+    #
+    #     subtree = subtree.copy()
+    #
+    #     for new_node, old_node in enumerate(subtree.nodes, first_label):
+    #         node_map[old_node] = new_node
+    #
+    #         self._data[new_node] = subtree._data[old_node]
+    #
+    #     nx.relabel_nodes(subtree._graph, node_map, copy=False)
+    #
+    #     self._graph = nx.compose(self._graph, subtree.graph)
+    #
+    #     # Connect subtree
+    #     if parent is None:
+    #         parent = "root"
+    #
+    #     for node in subtree.roots:
+    #         self._graph.add_edge(parent, node)
+    #
+    #     self._update_path_to_root(parent)
 
     def create_root_node(self, children=[], data=[]):
         """Create a new root node in the forest.
@@ -456,6 +505,16 @@ class Tree(object):
             #     indices_to_remove.append(self._node_indices[node.node_id])
             #     del self._data[node.node_id]
 
+            for node in subtree._graph.nodes():
+                node_id = node.node_id
+                if node_id == "root":
+                    continue
+                del self._data[node_id]
+                curr_idx = self._node_indices[node_id]
+                curr_rev_idx = self._node_indices_rev[curr_idx]
+                del self._node_indices[node_id]
+                del self._node_indices_rev[curr_idx]
+
             indices_to_remove = list(rx.descendants(self._graph, parent_idx))
 
             self._graph.remove_nodes_from(indices_to_remove)
@@ -513,7 +572,8 @@ class Tree(object):
         if len(paths) == 0:
             assert source == "root"
 
-            paths = [["root"]]
+            # paths = [["root"]]
+            paths = [[root_idx]]
 
         assert len(paths) == 1
 
@@ -522,6 +582,7 @@ class Tree(object):
         # assert path[-1] == source
         #
         # assert path[0] == "root"
+
         assert self._node_indices_rev[path[-1]] == source
 
         assert self._node_indices_rev[path[0]] == "root"
