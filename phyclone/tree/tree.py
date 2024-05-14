@@ -219,7 +219,6 @@ class Tree(object):
     def add_data_point_to_outliers(self, data_point):
         self._data[-1].append(data_point)
 
-
     def add_subtree(self, subtree, parent=None):
         first_label = (max(self.nodes + subtree.nodes + [-1, ]) + 1)
 
@@ -264,7 +263,6 @@ class Tree(object):
         #     self._graph.add_edge(parent, node)
 
         self._update_path_to_root(parent)
-
 
     # def add_subtree(self, subtree, parent=None):
     #     first_label = (max(self.nodes + subtree.nodes + [-1, ]) + 1)
@@ -413,9 +411,15 @@ class Tree(object):
 
         new_root_idx = new._node_indices["root"]
 
-        sub_num_nodes = subtree_graph.num_nodes() - 1
+        sub_root_idx = -1
 
-        new._graph.compose(subtree_graph, {new_root_idx: (sub_num_nodes, None)})
+        for sub_idx in subtree_graph.node_indices():
+            payload = subtree_graph[sub_idx]
+            if payload.node_id == subtree_root:
+                sub_root_idx = sub_idx
+                break
+
+        new._graph.compose(subtree_graph, {new_root_idx: (sub_root_idx, None)})
 
         for node_idx in new._graph.node_indices():
             new._graph[node_idx] = copy(new._graph[node_idx])
@@ -458,6 +462,29 @@ class Tree(object):
 
         return data
 
+    # def relabel_nodes(self):
+    #     node_map = {}
+    #
+    #     data = defaultdict(list)
+    #
+    #     data[-1] = self._data[-1]
+    #
+    #     new_node = 0
+    #
+    #     for old_node in nx.dfs_preorder_nodes(self._graph, source="root"):
+    #         if old_node == "root":
+    #             continue
+    #
+    #         node_map[old_node] = new_node
+    #
+    #         data[new_node] = self._data[old_node]
+    #
+    #         new_node += 1
+    #
+    #     self._data = data
+    #
+    #     self._graph = nx.relabel_nodes(self._graph, node_map)
+
     def relabel_nodes(self):
         node_map = {}
 
@@ -465,21 +492,30 @@ class Tree(object):
 
         data[-1] = self._data[-1]
 
-        new_node = 0
+        vis = PreOrderNodeRelabeller(self, data)
 
-        for old_node in nx.dfs_preorder_nodes(self._graph, source="root"):
-            if old_node == "root":
-                continue
+        root_idx = self._node_indices["root"]
 
-            node_map[old_node] = new_node
+        rx.dfs_search(self._graph, [root_idx], vis)
 
-            data[new_node] = self._data[old_node]
-
-            new_node += 1
+        # new_node = 0
+        #
+        # for old_node in nx.dfs_preorder_nodes(self._graph, source="root"):
+        #     if old_node == "root":
+        #         continue
+        #
+        #     node_map[old_node] = new_node
+        #
+        #     data[new_node] = self._data[old_node]
+        #
+        #     new_node += 1
 
         self._data = data
 
-        self._graph = nx.relabel_nodes(self._graph, node_map)
+        self._node_indices = vis.node_indices
+        self._node_indices_rev = vis.node_indices_rev
+
+        # self._graph = nx.relabel_nodes(self._graph, node_map)
 
     def remove_data_point_from_node(self, data_point, node):
         self._data[node].remove(data_point)
@@ -519,7 +555,6 @@ class Tree(object):
                     continue
                 del self._data[node_id]
                 curr_idx = self._node_indices[node_id]
-                curr_rev_idx = self._node_indices_rev[curr_idx]
                 del self._node_indices[node_id]
                 del self._node_indices_rev[curr_idx]
 
@@ -623,6 +658,7 @@ class Tree(object):
 
 class TreeNode(object):
     __slots__ = ("log_p", "log_r", "node_id")
+
     # log_p: np.array
     # log_r: np.array
     # node_id: Union[str | int]
@@ -639,6 +675,7 @@ class TreeNode(object):
 
 
 class PostOrderNodeUpdater(DFSVisitor):
+    __slots__ = "tree"
 
     def __init__(self, tree):
         self.tree = tree
@@ -649,9 +686,10 @@ class PostOrderNodeUpdater(DFSVisitor):
 
 
 class GraphToDictVisitor(DFSVisitor):
+    __slots__ = ("tree", "dict_of_dicts")
+
     def __init__(self, tree):
         self.tree = tree
-        # self.dict_of_dicts = dict()
         self.dict_of_dicts = defaultdict(dict)
 
     def tree_edge(self, edge):
@@ -663,6 +701,32 @@ class GraphToDictVisitor(DFSVisitor):
 
         self.dict_of_dicts[parent_idx][child_idx] = {}
         self.dict_of_dicts[child_idx] = {}
+
+
+class PreOrderNodeRelabeller(DFSVisitor):
+    __slots__ = ("tree", "data", "node_indices", "node_indices_rev", "orig_node_indices_rev", "graph", "orig_data")
+
+    def __init__(self, tree, data, start_idx=0):
+        self.tree = tree
+        self.data = data
+        self.orig_data = tree._data
+        self.node_indices = dict()
+        self.node_indices_rev = dict()
+        self.orig_node_indices_rev = tree._node_indices_rev
+        self.curr_idx = start_idx
+        self.graph = tree._graph
+
+    def discover_vertex(self, v, t):
+        node_id = self.orig_node_indices_rev[v]
+        if node_id != "root":
+            data_listing = self.orig_data[node_id]
+            node_id = self.curr_idx
+            self.curr_idx += 1
+            self.graph[v].node_id = node_id
+            self.data[node_id] = data_listing
+
+        self.node_indices[node_id] = v
+        self.node_indices_rev[v] = node_id
 
 # class GraphToDictVisitor(DFSVisitor):
 #     def __init__(self, tree):

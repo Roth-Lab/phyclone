@@ -55,6 +55,29 @@ class Test(unittest.TestCase):
         data = self._create_data_points(6, n, p)
         return data
 
+    def test_copy(self):
+        original_tree = self.build_cherry_tree(Tree)
+
+        copied_tree = original_tree.copy()
+
+        original_nodes = original_tree._graph.nodes()
+        copied_nodes = copied_tree._graph.nodes()
+
+        for orig_node, copied_node in zip(original_nodes, copied_nodes):
+            self.assertIsNot(orig_node, copied_node)
+            np.testing.assert_array_equal(copied_node.log_r, orig_node.log_r)
+            np.testing.assert_array_equal(copied_node.log_p, orig_node.log_p)
+            self.assertIsNot(copied_node.log_r, orig_node.log_r)
+            self.assertIsNot(copied_node.log_p, orig_node.log_p)
+            self.assertEqual(copied_node.node_id, orig_node.node_id)
+
+            copied_node.log_r += 1
+
+            self.assertFalse(np.array_equal(copied_node.log_r, orig_node.log_r))
+
+        self.assertEqual(copied_tree, original_tree)
+        self.assertIsNot(copied_tree, original_tree)
+
     def test_single_node_tree_to_dict_representation(self):
         n = 100
         p = 1.0
