@@ -159,6 +159,8 @@ class Tree(object):
         data = dict(zip([x.idx for x in data], data))
 
         for node in tree_dict["graph"].keys():
+            if node == "root":
+                continue
             new._add_node(node)
 
         for parent, children in tree_dict["graph"].items():
@@ -286,10 +288,12 @@ class Tree(object):
 
         new._graph = self._graph.copy()
 
-        new_graph = new._graph
+        new._node_indices = self._node_indices.copy()
 
-        for node_idx in new_graph.node_indices():
-            new._graph[node_idx] = new._graph[node_idx].copy()
+        new._node_indices_rev = self._node_indices_rev.copy()
+
+        for node_idx in new._graph.node_indices():
+            new._graph[node_idx] = copy(new._graph[node_idx])
 
             # for node in new._graph:
         #     new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
@@ -320,7 +324,9 @@ class Tree(object):
             return None
 
         else:
-            return list(self._graph.predecessors(node))[0]
+            node_idx = self._node_indices[node]
+            # return list(self._graph.predecessors(node_idx))[0]
+            return [pred.node_id for pred in self._graph.predecessors(node_idx)][0]
 
     def get_data(self, node):
         return list(self._data[node])
@@ -361,17 +367,6 @@ class Tree(object):
 
             new._node_indices[node] = node_idx
             new._node_indices_rev[node_idx] = node
-
-        # subtree_graph = nx.dfs_tree(self._graph, subtree_root)
-        #
-        # new._graph = nx.compose(new._graph, subtree_graph)
-        #
-        # new._graph.add_edge("root", subtree_root)
-        #
-        # for node in new.nodes:
-        #     new._data[node] = list(self._data[node])
-        #
-        #     new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
 
         new.update()
 
@@ -449,14 +444,46 @@ class Tree(object):
         else:
             assert len(subtree.roots) == 1
 
-            parent = self.get_parent(subtree.roots[0])
+            sub_root = subtree.roots[0]
 
-            self._graph.remove_nodes_from(subtree.nodes)
+            parent = self.get_parent(sub_root)
 
-            for node in subtree.nodes:
-                del self._data[node]
+            parent_idx = self._node_indices[parent]
 
+            # indices_to_remove = []
+            #
+            # for node in subtree._graph.nodes():
+            #     indices_to_remove.append(self._node_indices[node.node_id])
+            #     del self._data[node.node_id]
+
+            indices_to_remove = list(rx.descendants(self._graph, parent_idx))
+
+            self._graph.remove_nodes_from(indices_to_remove)
+
+            # parent = self.get_parent(subtree.roots[0])
+            #
+            # self._graph.remove_nodes_from(subtree.nodes)
+            #
+            # for node in subtree.nodes:
+            #     del self._data[node]
+            #
             self._update_path_to_root(parent)
+
+    # def remove_subtree(self, subtree):
+    #     if subtree == self:
+    #         self.__init__(self.grid_size)
+    #
+    #     else:
+    #         assert len(subtree.roots) == 1
+    #
+    #         parent = self.get_parent(subtree.roots[0])
+    #
+    #         self._graph.remove_nodes_from(subtree.nodes)
+    #
+    #         for node in subtree.nodes:
+    #             del self._data[node]
+    #
+    #         self._update_path_to_root(parent)
 
     def update(self):
         vis = PostOrderNodeUpdater(self)
@@ -561,7 +588,6 @@ class GraphToDictVisitor(DFSVisitor):
         self.dict_of_dicts[parent_idx][child_idx] = {}
         self.dict_of_dicts[child_idx] = {}
 
-
 # class GraphToDictVisitor(DFSVisitor):
 #     def __init__(self, tree):
 #         self.tree = tree
@@ -575,5 +601,3 @@ class GraphToDictVisitor(DFSVisitor):
 #         child_idx = self.tree._node_indices_rev[child]
 #
 #         self.dict_of_dicts[parent_idx][child_idx] = self.dict_of_dicts[child_idx]
-
-
