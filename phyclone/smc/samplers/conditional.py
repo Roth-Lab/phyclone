@@ -1,4 +1,5 @@
 import networkx as nx
+import rustworkx as rx
 import numpy as np
 
 from phyclone.smc.samplers.base import AbstractSMCSampler
@@ -62,7 +63,7 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
             parent_tree = new_tree
 
-        assert nx.is_isomorphic(tree.graph, new_tree.graph)
+        assert rx.is_isomorphic(tree.graph, new_tree.graph)
 
         return constrained_path
 

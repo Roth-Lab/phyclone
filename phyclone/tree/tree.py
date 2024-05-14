@@ -65,7 +65,10 @@ class Tree(object):
     def graph(self):
         result = self._graph.copy()
 
-        result.remove_node("root")
+        # result.remove_node("root")
+        root_idx = self._node_indices["root"]
+
+        result.remove_node(root_idx)
 
         return result
 
@@ -365,7 +368,7 @@ class Tree(object):
     def get_descendants(self, source="root"):
         # return nx.descendants(self._graph, source=source)
         source_idx = self._node_indices[source]
-        descs = rx.descendants(self._graph, source=source_idx)
+        descs = rx.descendants(self._graph, source_idx)
         return [self._graph[child].node_id for child in descs]
 
     def get_parent(self, node):
