@@ -6,7 +6,7 @@ import numpy as np
 from phyclone.tree.utils import get_clades
 from phyclone.utils.math import exp_normalize
 from phyclone.tree import Tree
-from test_rustworkx import OldTree
+from phyclone.tests.old_implementations import OldTree
 
 
 def get_exact_posterior(data, tree_dist, alpha=1.0):

@@ -110,7 +110,7 @@ def _run_main_sampler(concentration_update, data, max_time, num_iters, num_sampl
             for _ in range(num_samples_prune_regraph):
                 tree = prg_sampler.sample_tree(tree)
 
-            tree.relabel_nodes()
+            # tree.relabel_nodes()
 
             if concentration_update:
                 update_concentration_value(conc_sampler, tree, tree_dist)
@@ -174,7 +174,7 @@ def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regr
                 for _ in range(num_samples_prune_regraph):
                     tree = prg_sampler.sample_tree(tree)
 
-                tree.relabel_nodes()
+                # tree.relabel_nodes()
 
                 if timer.elapsed > max_time:
                     break

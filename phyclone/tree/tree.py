@@ -1,5 +1,6 @@
 from collections import defaultdict
 from copy import copy
+import matplotlib.pyplot as plt
 
 import networkx as nx
 import numpy as np
@@ -9,9 +10,9 @@ from phyclone.utils.math import log_factorial
 from phyclone.tree.utils import compute_log_S, get_clades
 from phyclone.utils import get_iterator_length
 import itertools
-from dataclasses import dataclass
 from rustworkx.visit import DFSVisitor
 from typing import Union
+from rustworkx.visualization import mpl_draw
 
 
 class Tree(object):
@@ -41,6 +42,11 @@ class Tree(object):
 
         return self_key == other_key
 
+    def quick_draw_tree(self):
+        mpl_draw(self._graph, labels=lambda node: str(node.node_id), with_labels=True)
+        plt.show()
+        plt.close()
+
     @staticmethod
     def get_single_node_tree(data):
         """Load a tree with all data points assigned single node.
@@ -65,7 +71,6 @@ class Tree(object):
     def graph(self):
         result = self._graph.copy()
 
-        # result.remove_node("root")
         root_idx = self._node_indices["root"]
 
         result.remove_node(root_idx)
@@ -80,9 +85,9 @@ class Tree(object):
     @property
     def data_log_likelihood(self):
         """The log likelihood grid of the data for all values of the root node."""
-        # return self._graph.nodes["root"]["log_R"]
+        # return self._graph.nodes["root"]["log_r"]
         root_idx = self._node_indices["root"]
-        return self._graph[root_idx].log_R
+        return self._graph[root_idx].log_r
 
     @property
     def labels(self):
@@ -200,13 +205,13 @@ class Tree(object):
         if node != -1:
             # self._graph.nodes[node]["log_p"] += data_point.value
             #
-            # self._graph.nodes[node]["log_R"] += data_point.value
+            # self._graph.nodes[node]["log_r"] += data_point.value
 
             node_idx = self._node_indices[node]
 
             self._graph[node_idx].log_p += data_point.value
 
-            self._graph[node_idx].log_R += data_point.value
+            self._graph[node_idx].log_r += data_point.value
 
             if not build_add:
                 self._update_path_to_root(self.get_parent(node))
@@ -350,7 +355,7 @@ class Tree(object):
             # for node in new._graph:
         #     new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
         #
-        #     new._graph.nodes[node]["log_R"] = self._graph.nodes[node]["log_R"].copy()
+        #     new._graph.nodes[node]["log_r"] = self._graph.nodes[node]["log_r"].copy()
 
         return new
 
@@ -563,7 +568,7 @@ class Tree(object):
         self._node_indices[node] = new_node
         self._node_indices_rev[new_node] = node
         # self._graph.nodes[node]["log_p"] = np.full(self.grid_size, self._log_prior, order="C")
-        # self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size, order="C")
+        # self._graph.nodes[node]["log_r"] = np.zeros(self.grid_size, order="C")
 
     def _update_path_to_root(self, source):
         """Update recursion values for all nodes on the path between the source node and root inclusive."""
@@ -597,33 +602,40 @@ class Tree(object):
     def _update_node(self, node):
         node_idx = self._node_indices[node]
         child_log_r_values = [
-            child.log_R for child in self._graph.successors(node_idx)
+            child.log_r for child in self._graph.successors(node_idx)
         ]
 
         log_p = self._graph[node_idx].log_p
 
         if len(child_log_r_values) == 0:
-            self._graph[node_idx].log_R = log_p.copy()
+            self._graph[node_idx].log_r = np.copy(log_p)
             return
         else:
             log_s = compute_log_S(child_log_r_values)
 
-        # if "log_R" in self._graph.nodes[node]:
-        #     self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, out=self._graph.nodes[node]["log_R"], order="C")
+        # if "log_r" in self._graph.nodes[node]:
+        #     self._graph.nodes[node]["log_r"] = np.add(log_p, log_s, out=self._graph.nodes[node]["log_r"], order="C")
         # else:
-        #     self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order="C")
+        #     self._graph.nodes[node]["log_r"] = np.add(log_p, log_s, order="C")
 
-        self._graph[node_idx].log_R = np.add(log_p, log_s, out=self._graph[node_idx].log_R, order="C")
+        self._graph[node_idx].log_r = np.add(log_p, log_s, out=self._graph[node_idx].log_r, order="C")
 
 
-@dataclass
-class TreeNode:
-    log_p: np.array
-    log_R: np.array
-    node_id: Union[str | int]
+class TreeNode(object):
+    __slots__ = ("log_p", "log_r", "node_id")
+    # log_p: np.array
+    # log_r: np.array
+    # node_id: Union[str | int]
+
+    def __init__(self, log_p: np.array, log_r: np.array, node_id: Union[str | int]):
+        self.log_p = log_p
+        self.log_r = log_r
+        self.node_id = node_id
 
     def __copy__(self):
-        return TreeNode(self.log_p.copy(), self.log_R.copy(), self.node_id)
+        return TreeNode(np.copy(self.log_p, order='C'),
+                        np.copy(self.log_r, order='C'),
+                        self.node_id)
 
 
 class PostOrderNodeUpdater(DFSVisitor):
