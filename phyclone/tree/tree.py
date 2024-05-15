@@ -259,11 +259,6 @@ class Tree(object):
 
         node_map_idx = self._graph.compose(subtree._graph, {parent_idx: (subtree._node_indices[subtree_root], None)})
 
-        # old_dict = self._data
-        # self._data = subtree._data | old_dict
-        #
-        # self.relabel_nodes()
-
         for old_idx, new_idx in node_map_idx.items():
             node_obj = self._graph[new_idx]
             node_name = node_obj.node_id
@@ -405,27 +400,6 @@ class Tree(object):
 
         return new
 
-    # def get_subtree(self, subtree_root):
-    #     if subtree_root == "root":
-    #         return self.copy()
-    #
-    #     new = Tree(self.grid_size)
-    #
-    #     subtree_graph = nx.dfs_tree(self._graph, subtree_root)
-    #
-    #     new._graph = nx.compose(new._graph, subtree_graph)
-    #
-    #     new._graph.add_edge("root", subtree_root)
-    #
-    #     for node in new.nodes:
-    #         new._data[node] = list(self._data[node])
-    #
-    #         new._graph.nodes[node]["log_p"] = self._graph.nodes[node]["log_p"].copy()
-    #
-    #     new.update()
-    #
-    #     return new
-
     def get_subtree_data(self, node):
         data = self.get_data(node)
 
@@ -511,7 +485,6 @@ class Tree(object):
         root_idx = self._node_indices["root"]
         source_idx = self._node_indices[source]
         paths = rx.all_simple_paths(self._graph, root_idx, source_idx)
-        paths = rx.all_simple_paths(self._graph, root_idx, source_idx)
 
         if len(paths) == 0:
             assert source == "root"
@@ -526,15 +499,10 @@ class Tree(object):
         assert self._node_indices_rev[path[0]] == "root"
 
         for source in reversed(path):
-            # source_idx = self._node_indices_rev[source]
-            # self._update_node(source_idx)
             self._update_node(source)
 
     def _update_node(self, node_idx):
-        # node_idx = self._node_indices[node]
-        child_log_r_values = [
-            child.log_r for child in self._graph.successors(node_idx)
-        ]
+        child_log_r_values = [child.log_r for child in self._graph.successors(node_idx)]
 
         log_p = self._graph[node_idx].log_p
 
@@ -571,24 +539,19 @@ class TreeNode(object):
 
 
 class PostOrderNodeUpdater(DFSVisitor):
-    # __slots__ = ("tree", "_node_indices_rev")
     __slots__ = "tree"
 
     def __init__(self, tree):
         self.tree = tree
-        # self._node_indices_rev = tree._node_indices_rev
 
     def finish_vertex(self, v, t):
         self.tree._update_node(v)
-        # node_id = self._node_indices_rev[v]
-        # self.tree._update_node(node_id)
 
 
 class GraphToDictVisitor(DFSVisitor):
     __slots__ = ("dict_of_dicts", "_node_indices_rev")
 
     def __init__(self, tree):
-        # self.tree = tree
         self.dict_of_dicts = defaultdict(dict)
         self._node_indices_rev = tree._node_indices_rev
 
@@ -607,7 +570,6 @@ class PreOrderNodeRelabeller(DFSVisitor):
     __slots__ = ("data", "node_indices", "node_indices_rev", "graph", "orig_data", "curr_idx")
 
     def __init__(self, tree, data, start_idx=0):
-        # self.tree = tree
         self.data = data
         self.orig_data = tree._data
         self.node_indices = dict()
