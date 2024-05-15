@@ -523,6 +523,15 @@ class TreeNode(object):
                         np.copy(self.log_r, order='C'),
                         self.node_id)
 
+    def __eq__(self, other):
+        log_p_compare = np.array_equal(self.log_p, other.log_p)
+        log_r_compare = np.array_equal(self.log_r, other.log_r)
+        # id_compare = self.node_id == other.node_id
+        return log_p_compare and log_r_compare
+
+    def to_dict(self):
+        return {"log_p": self.log_p, "log_R": self.log_r, "node_id": self.node_id}
+
 
 class PostOrderNodeUpdater(DFSVisitor):
     __slots__ = "tree"

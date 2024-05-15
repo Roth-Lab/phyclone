@@ -62,7 +62,7 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
             parent_tree = new_tree
 
-        assert rx.is_isomorphic(tree.graph, new_tree.graph)
+        assert rx.is_isomorphic(tree.graph, new_tree.graph, id_order=False)
 
         return constrained_path
 

@@ -10,6 +10,7 @@ import pandas as pd
 
 from phyclone.process_trace.consensus import get_consensus_tree
 from phyclone.process_trace.map import get_map_node_ccfs
+from phyclone.process_trace.utils import convert_rustworkx_to_networkx
 from phyclone.utils.math import exp_normalize
 from phyclone.tree import Tree
 from numba import set_num_threads
@@ -142,8 +143,10 @@ def _create_results_output_files(
     out_log_probs_file, out_table_file, out_tree_file, results, table, tree
 ):
     table.to_csv(out_table_file, index=False, sep="\t")
+    tree_graph = convert_rustworkx_to_networkx(tree._graph)
+    tree_graph.remove_node("root")
     Bio.Phylo.write(
-        get_bp_tree_from_graph(tree.graph), out_tree_file, "newick", plain=True
+        get_bp_tree_from_graph(tree_graph), out_tree_file, "newick", plain=True
     )
     if out_log_probs_file:
         log_probs_table = pd.DataFrame(
@@ -156,8 +159,10 @@ def create_topology_dataframe(topologies):
     for topology in topologies:
         tmp_str_io = StringIO()
         tree = topology["topology"]
+        tree_graph = convert_rustworkx_to_networkx(tree._graph)
+        tree_graph.remove_node("root")
         Bio.Phylo.write(
-            get_bp_tree_from_graph(tree.graph), tmp_str_io, "newick", plain=True
+            get_bp_tree_from_graph(tree_graph), tmp_str_io, "newick", plain=True
         )
         as_str = tmp_str_io.getvalue().rstrip()
         topology["topology"] = as_str
@@ -275,7 +280,7 @@ def get_tree_from_consensus_graph(data, graph):
         if len(list(graph.predecessors(node))) == 0:
             graph.add_edge("root", node)
 
-    tree = Tree.from_dict(data, {"graph": graph, "labels": labels})
+    tree = Tree.from_dict(data, {"graph": nx.to_dict_of_dicts(graph), "labels": labels})
 
     tree.update()
 
