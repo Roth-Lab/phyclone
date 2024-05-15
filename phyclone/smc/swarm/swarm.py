@@ -8,6 +8,7 @@ class ParticleSwarm(object):
 
     This class handles tracking particles, their weights and normalization.
     """
+    __slots__ = ('particles', '_log_norm_const', '_unnormalized_log_weights')
 
     def __init__(self):
         self.particles = []

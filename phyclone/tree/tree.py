@@ -13,6 +13,8 @@ from rustworkx.visualization import mpl_draw
 
 
 class Tree(object):
+    __slots__ = ("grid_size", "_data", "_log_prior", "_graph", "_node_indices", "_node_indices_rev")
+
     def __init__(self, grid_size):
         self.grid_size = grid_size
 

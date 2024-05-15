@@ -12,6 +12,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
     Considers all possible proposals and weight according to log probability.
     """
+    __slots__ = "_log_p"
 
     def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, parent_tree=None):
         super().__init__(data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree)
@@ -111,6 +112,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
 
 class FullyAdaptedKernel(Kernel):
+    __slots__ = "outlier_proposal_prob"
 
     def __init__(self, tree_prior_dist, rng, outlier_proposal_prob=0, perm_dist=None):
         super().__init__(tree_prior_dist, rng, perm_dist=perm_dist)

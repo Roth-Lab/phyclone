@@ -4,6 +4,7 @@ from phyclone.smc.utils import RootPermutationDistribution
 
 
 class UnconditionalSMCSampler(object):
+    __slots__ = ("kernel", "num_particles", "resample_threshold", "_rng")
 
     def __init__(self, kernel, num_particles=20, resample_threshold=0.5):
         self.kernel = kernel

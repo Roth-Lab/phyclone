@@ -7,6 +7,7 @@ class DataPointSampler(object):
 
     TODO: Confirm this is valid since we have a special condition to avoid creating empty nodes.
     """
+    __slots__ = ("tree_dist", "outliers", "_rng")
 
     def __init__(self, tree_dist, rng: np.random.Generator, outliers=False):
         self.tree_dist = tree_dist
@@ -69,6 +70,7 @@ class DataPointSampler(object):
 
 class PruneRegraphSampler(object):
     """Prune a subtree and regraph by Gibbs sampling possible attachment points"""
+    __slots__ = ("tree_dist", "_rng")
 
     def __init__(self, tree_dist, rng: np.random.Generator):
         self.tree_dist = tree_dist

@@ -10,6 +10,7 @@ import phyclone.smc.swarm
 class ConditionalSMCSampler(AbstractSMCSampler):
     """ SMC sampler which conditions a fixed path.
     """
+    __slots__ = "constrained_path"
 
     def __init__(self, current_tree, data_points, kernel, num_particles, resample_threshold=0.5):
         super().__init__(data_points, kernel, num_particles, resample_threshold=resample_threshold)

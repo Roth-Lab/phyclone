@@ -12,6 +12,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     Considers all possible choice of existing nodes and one option for a new node proposed at random. This
     should provide a computational advantage over the fully adapted proposal.
     """
+    __slots__ = "_log_p"
 
     def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, parent_tree=None):
         super().__init__(data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree)
@@ -152,6 +153,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
 
 class SemiAdaptedKernel(Kernel):
+    __slots__ = "outlier_proposal_prob"
 
     def __init__(self, tree_dist, rng, outlier_proposal_prob=0.0, perm_dist=None):
         super().__init__(tree_dist, rng, perm_dist=perm_dist)

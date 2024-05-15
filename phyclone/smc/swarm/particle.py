@@ -1,9 +1,10 @@
 from collections import deque
-
 from phyclone.tree import Tree
 
 
 class Particle(object):
+    __slots__ = ("_built_tree", "log_w", "parent_particle", "_tree_dist", "_perm_dist", "log_p", "log_pdf",
+                 "log_p_one", "_hash_val", "_tree", "tree_nodes", "tree_roots", "_data")
 
     def __init__(self, log_w, parent_particle, tree, tree_dist, perm_dist):
         self._built_tree = deque(maxlen=1)

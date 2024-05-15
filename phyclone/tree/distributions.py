@@ -4,6 +4,7 @@ from phyclone.utils.math import log_sum_exp, cached_log_factorial
 
 class FSCRPDistribution(object):
     """FSCRP prior distribution on trees."""
+    __slots__ = ("_alpha", "log_alpha")
 
     def __init__(self, alpha):
         self.alpha = alpha
@@ -46,6 +47,8 @@ class FSCRPDistribution(object):
 
 
 class TreeJointDistribution(object):
+    __slots__ = "prior"
+
     def __init__(self, prior):
         self.prior = prior
 

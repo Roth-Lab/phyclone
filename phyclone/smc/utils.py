@@ -8,6 +8,7 @@ from phyclone.utils.math import log_factorial, log_binomial_coefficient, log_mul
 
 
 class RootPermutationDistribution(object):
+    __slots__ = ()
 
     @staticmethod
     def log_count(tree, source=None):
