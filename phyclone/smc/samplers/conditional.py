@@ -1,4 +1,3 @@
-import networkx as nx
 import rustworkx as rx
 import numpy as np
 
