@@ -224,20 +224,22 @@ class Tree(object):
     def add_subtree(self, subtree, parent=None):
         first_label = (max(self.nodes + subtree.nodes + [-1, ]) + 1)
 
-        node_map = {}
+        # node_map = {}
         #
         subtree = subtree.copy()
         #
-        for new_node, old_node in enumerate(subtree.nodes, first_label):
-            node_map[old_node] = new_node
-
-            self._data[new_node] = subtree._data[old_node]
+        # for new_node, old_node in enumerate(subtree.nodes, first_label):
+        #     node_map[old_node] = new_node
+        #
+        #     self._data[new_node] = subtree._data[old_node]
 
         # Connect subtree
         if parent is None:
             parent = "root"
 
         parent_idx = self._node_indices[parent]
+
+        parent_node = self._graph[parent_idx]
 
         subtree_root = subtree.roots[0]
 
@@ -247,11 +249,21 @@ class Tree(object):
 
         node_map_idx = self._graph.compose(subtree._graph, {parent_idx: (subtree._node_indices[subtree_root], None)})
 
-        for subtree_idx, tree_idx in node_map_idx.items():
-            old_node_id = self._graph[tree_idx].node_id
-            self._graph[tree_idx].node_id = node_map[old_node_id]
-            self._node_indices[node_map[old_node_id]] = tree_idx
-            self._node_indices_rev[tree_idx] = node_map[old_node_id]
+        # for node in subtree.nodes():
+        #     node_id = node.node_id
+        #     idx =
+
+        # for subtree_idx, tree_idx in node_map_idx.items():
+        #     old_node_id = self._graph[tree_idx].node_id
+        #     self._node_indices_rev[tree_idx] = old_node_id
+        #     assert old_node_id not in self._data
+        #     self._data[old_node_id] = subtree._data[old_node_id]
+
+        # for subtree_idx, tree_idx in node_map_idx.items():
+        #     old_node_id = self._graph[tree_idx].node_id
+        #     self._graph[tree_idx].node_id = node_map[old_node_id]
+        #     self._node_indices[node_map[old_node_id]] = tree_idx
+        #     self._node_indices_rev[tree_idx] = node_map[old_node_id]
 
         # nx.relabel_nodes(subtree._graph, node_map, copy=False)
 
@@ -264,7 +276,14 @@ class Tree(object):
         # for node in subtree.roots:
         #     self._graph.add_edge(parent, node)
 
-        self._update_path_to_root(parent)
+        old_dict = self._data
+        self._data = subtree._data | old_dict
+
+        self.relabel_nodes()
+
+        self._update_path_to_root(parent_node.node_id)
+        # self.relabel_nodes()
+        # print('stopper')
 
     # def add_subtree(self, subtree, parent=None):
     #     first_label = (max(self.nodes + subtree.nodes + [-1, ]) + 1)
@@ -488,7 +507,7 @@ class Tree(object):
     #     self._graph = nx.relabel_nodes(self._graph, node_map)
 
     def relabel_nodes(self):
-        node_map = {}
+        # node_map = {}
 
         data = defaultdict(list)
 
@@ -545,6 +564,10 @@ class Tree(object):
 
             parent_idx = self._node_indices[parent]
 
+            parent_node = self._graph[parent_idx]
+
+            sub_root_idx = self._node_indices[sub_root]
+
             # indices_to_remove = []
             #
             # for node in subtree._graph.nodes():
@@ -553,14 +576,13 @@ class Tree(object):
 
             for node in subtree._graph.nodes():
                 node_id = node.node_id
-                if node_id == "root":
-                    continue
-                del self._data[node_id]
-                curr_idx = self._node_indices[node_id]
-                del self._node_indices[node_id]
-                del self._node_indices_rev[curr_idx]
+                if node_id != "root":
+                    del self._data[node_id]
+                    curr_idx = self._node_indices[node_id]
+                    del self._node_indices[node_id]
+                    del self._node_indices_rev[curr_idx]
 
-            indices_to_remove = list(rx.descendants(self._graph, parent_idx))
+            indices_to_remove = list(rx.descendants(self._graph, sub_root_idx)) + [sub_root_idx]
 
             self._graph.remove_nodes_from(indices_to_remove)
 
@@ -571,7 +593,9 @@ class Tree(object):
             # for node in subtree.nodes:
             #     del self._data[node]
             #
-            self._update_path_to_root(parent)
+            # self.relabel_nodes()
+            self._update_path_to_root(parent_node.node_id)
+            # self.relabel_nodes()
 
     # def remove_subtree(self, subtree):
     #     if subtree == self:
@@ -714,18 +738,20 @@ class PreOrderNodeRelabeller(DFSVisitor):
         self.orig_data = tree._data
         self.node_indices = dict()
         self.node_indices_rev = dict()
-        self.orig_node_indices_rev = tree._node_indices_rev
+        # self.orig_node_indices_rev = tree._node_indices_rev
         self.curr_idx = start_idx
         self.graph = tree._graph
 
     def discover_vertex(self, v, t):
-        node_id = self.orig_node_indices_rev[v]
+        node_id = self.graph[v].node_id
         if node_id != "root":
-            data_listing = self.orig_data[node_id]
+            old_node_id = node_id
+            # data_listing = self.orig_data[node_id]
             node_id = self.curr_idx
             self.curr_idx += 1
             self.graph[v].node_id = node_id
-            self.data[node_id] = data_listing
+            self.data[node_id] = self.orig_data[old_node_id]
+            # self.data[node_id] = data_listing
 
         self.node_indices[node_id] = v
         self.node_indices_rev[v] = node_id

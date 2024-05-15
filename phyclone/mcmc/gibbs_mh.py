@@ -68,7 +68,7 @@ class DataPointSampler(object):
 
 
 class PruneRegraphSampler(object):
-    """Prune a subtree and regraph by Gibbs sampling possible attachement points"""
+    """Prune a subtree and regraph by Gibbs sampling possible attachment points"""
 
     def __init__(self, tree_dist, rng: np.random.Generator):
         self.tree_dist = tree_dist
