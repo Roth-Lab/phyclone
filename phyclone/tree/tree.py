@@ -141,7 +141,9 @@ class Tree(object):
 
     @property
     def roots(self):
-        return self.get_children("root")
+        node_idx = self._node_indices["root"]
+        return [child.node_id for child in self._graph.successors(node_idx)]
+        # return self.get_children("root")
         # return list(self._graph.successors("root"))
 
     # @staticmethod
