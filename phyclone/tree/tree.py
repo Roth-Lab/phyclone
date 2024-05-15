@@ -134,15 +134,9 @@ class Tree(object):
     def roots(self):
         node_idx = self._node_indices["root"]
         return [child.node_id for child in self._graph.successors(node_idx)]
-    #
-    # def to_dict_old(self):
-    #     vis = GraphToDictVisitor(self)
-    #     root_idx = self._node_indices["root"]
-    #     rx.dfs_search(self._graph, [root_idx], vis)
-    #     res = {"graph": vis.dict_of_dicts, "labels": self.labels}
-    #     return res
 
     @staticmethod
+    @profile
     def from_dict(data, tree_dict):
         grid_size = data[0].grid_size
         new = Tree(grid_size)
@@ -158,12 +152,15 @@ class Tree(object):
 
             new_graph[root_idx] = new._graph.nodes()[0]
 
+            log_prior = new._log_prior
+            new_data = new._data
+
             for node, data_list in tree_dict["node_data"].items():
-                new._data[node] = list(data_list)
+                new_data[node] = list(data_list)
                 if node == -1:
                     continue
 
-                log_p = np.full(grid_size, new._log_prior, order="C")
+                log_p = np.full(grid_size, log_prior, order="C")
 
                 for dp in data_list:
                     log_p += dp.value
@@ -186,6 +183,7 @@ class Tree(object):
 
         return new
 
+    @profile
     def to_dict(self):
         node_data = {k: v.copy() for k, v in self._data.items() if k != "root"}
 
