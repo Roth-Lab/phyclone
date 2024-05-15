@@ -438,22 +438,6 @@ class Tree(object):
 
             self._update_path_to_root(parent_node.node_id)
 
-    # def remove_subtree(self, subtree):
-    #     if subtree == self:
-    #         self.__init__(self.grid_size)
-    #
-    #     else:
-    #         assert len(subtree.roots) == 1
-    #
-    #         parent = self.get_parent(subtree.roots[0])
-    #
-    #         self._graph.remove_nodes_from(subtree.nodes)
-    #
-    #         for node in subtree.nodes:
-    #             del self._data[node]
-    #
-    #         self._update_path_to_root(parent)
-
     def update(self):
         vis = PostOrderNodeUpdater(self)
         root_idx = self._node_indices["root"]
@@ -509,10 +493,6 @@ class Tree(object):
 class TreeNode(object):
     __slots__ = ("log_p", "log_r", "node_id")
 
-    # log_p: np.array
-    # log_r: np.array
-    # node_id: Union[str | int]
-
     def __init__(self, log_p: np.array, log_r: np.array, node_id: Union[str | int]):
         self.log_p = log_p
         self.log_r = log_r
@@ -534,39 +514,41 @@ class TreeNode(object):
 
 
 class PostOrderNodeUpdater(DFSVisitor):
-    __slots__ = "tree"
+    __slots__ = ("tree", "_node_indices_rev")
 
     def __init__(self, tree):
         self.tree = tree
+        self._node_indices_rev = tree._node_indices_rev
 
     def finish_vertex(self, v, t):
-        node_id = self.tree._node_indices_rev[v]
+        node_id = self._node_indices_rev[v]
         self.tree._update_node(node_id)
 
 
 class GraphToDictVisitor(DFSVisitor):
-    __slots__ = ("tree", "dict_of_dicts")
+    __slots__ = ("dict_of_dicts", "_node_indices_rev")
 
     def __init__(self, tree):
-        self.tree = tree
+        # self.tree = tree
         self.dict_of_dicts = defaultdict(dict)
+        self._node_indices_rev = tree._node_indices_rev
 
     def tree_edge(self, edge):
         parent = edge[0]
         child = edge[1]
 
-        parent_idx = self.tree._node_indices_rev[parent]
-        child_idx = self.tree._node_indices_rev[child]
+        parent_idx = self._node_indices_rev[parent]
+        child_idx = self._node_indices_rev[child]
 
         self.dict_of_dicts[parent_idx][child_idx] = {}
         self.dict_of_dicts[child_idx] = {}
 
 
 class PreOrderNodeRelabeller(DFSVisitor):
-    __slots__ = ("tree", "data", "node_indices", "node_indices_rev", "graph", "orig_data")
+    __slots__ = ("data", "node_indices", "node_indices_rev", "graph", "orig_data", "curr_idx")
 
     def __init__(self, tree, data, start_idx=0):
-        self.tree = tree
+        # self.tree = tree
         self.data = data
         self.orig_data = tree._data
         self.node_indices = dict()
