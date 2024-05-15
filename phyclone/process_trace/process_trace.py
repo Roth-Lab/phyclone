@@ -280,7 +280,7 @@ def get_tree_from_consensus_graph(data, graph):
         if len(list(graph.predecessors(node))) == 0:
             graph.add_edge("root", node)
 
-    tree = Tree.from_dict(data, {"graph": nx.to_dict_of_dicts(graph), "labels": labels})
+    tree = Tree.from_dict_nx(data, {"graph": nx.to_dict_of_dicts(graph), "labels": labels})
 
     tree.update()
 

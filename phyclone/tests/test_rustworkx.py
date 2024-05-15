@@ -78,6 +78,26 @@ class Test(unittest.TestCase):
         self.assertEqual(copied_tree, original_tree)
         self.assertIsNot(copied_tree, original_tree)
 
+    # def test_cherry_tree_to_dict_representation_v2(self):
+    #
+    #     data = self.build_six_datapoints()
+    #
+    #     expected_tree = self.build_cherry_tree(Tree, data)
+    #
+    #     actual_tree = self.build_cherry_tree(Tree, data)
+    #
+    #     actual_dict = actual_tree.to_dict()
+    #
+    #     expected_dict = expected_tree.to_dict_old()
+    #
+    #     expected_tree2 = Tree.from_dict_old(data, expected_dict)
+    #
+    #     actual_tree2 = Tree.from_dict(data, actual_dict)
+    #
+    #     self.assertEqual(actual_tree2, expected_tree)
+    #     self.assertEqual(actual_tree2, actual_tree)
+    #     self.assertEqual(actual_tree2, expected_tree2)
+
     def test_single_node_tree_to_dict_representation(self):
         n = 100
         p = 1.0

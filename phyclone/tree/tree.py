@@ -136,7 +136,7 @@ class Tree(object):
         return [child.node_id for child in self._graph.successors(node_idx)]
 
     @staticmethod
-    def from_dict(data, tree_dict):
+    def from_dict_nx(data, tree_dict):
         new = Tree(data[0].grid_size)
 
         data = dict(zip([x.idx for x in data], data))
@@ -158,12 +158,65 @@ class Tree(object):
         new.update()
 
         return new
+    #
+    # def to_dict_old(self):
+    #     vis = GraphToDictVisitor(self)
+    #     root_idx = self._node_indices["root"]
+    #     rx.dfs_search(self._graph, [root_idx], vis)
+    #     res = {"graph": vis.dict_of_dicts, "labels": self.labels}
+    #     return res
+
+    @staticmethod
+    def from_dict(data, tree_dict):
+        grid_size = data[0].grid_size
+        new = Tree(grid_size)
+
+        if len(tree_dict["graph"]) > 0:
+
+            new_graph = rx.PyDiGraph()
+
+            new_graph.extend_from_edge_list(tree_dict['graph'])
+
+            node_idxs = tree_dict['node_idx']
+            root_idx = node_idxs['root']
+
+            new_graph[root_idx] = new._graph.nodes()[0]
+
+            for node, data_list in tree_dict["node_data"].items():
+                new._data[node] = list(data_list)
+                if node == -1:
+                    continue
+
+                log_p = np.full(grid_size, new._log_prior, order="C")
+
+                for dp in data_list:
+                    log_p += dp.value
+
+                node_obj = TreeNode(log_p,
+                                    np.zeros(grid_size, order="C"),
+                                    node)
+                node_idx = node_idxs[node]
+                new_graph[node_idx] = node_obj
+
+            new._graph = new_graph
+            new._node_indices_rev = tree_dict['node_idx_rev'].copy()
+            new._node_indices = node_idxs.copy()
+
+        else:
+            for node, data_list in tree_dict["node_data"].items():
+                new._data[node] = list(data_list)
+
+        new.update()
+
+        return new
 
     def to_dict(self):
-        vis = GraphToDictVisitor(self)
-        root_idx = self._node_indices["root"]
-        rx.dfs_search(self._graph, [root_idx], vis)
-        res = {"graph": vis.dict_of_dicts, "labels": self.labels}
+        node_data = {k: v.copy() for k, v in self._data.items() if k != "root"}
+
+        res = {"graph": self._graph.edge_list(),
+               "node_idx": self._node_indices.copy(),
+               "node_idx_rev": self._node_indices_rev.copy(),
+               "node_data": node_data}
         return res
 
     def add_data_point_to_node(self, data_point, node):
@@ -457,6 +510,7 @@ class Tree(object):
         """Update recursion values for all nodes on the path between the source node and root inclusive."""
         root_idx = self._node_indices["root"]
         source_idx = self._node_indices[source]
+        paths = rx.all_simple_paths(self._graph, root_idx, source_idx)
         paths = rx.all_simple_paths(self._graph, root_idx, source_idx)
 
         if len(paths) == 0:
