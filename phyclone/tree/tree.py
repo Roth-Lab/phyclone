@@ -280,18 +280,14 @@ class Tree(object):
         return new
 
     def get_children(self, node):
-        # return list(self._graph.successors(node))
         node_idx = self._node_indices[node]
         return [child.node_id for child in self._graph.successors(node_idx)]
 
     def get_number_of_children(self, node):
-        # children = self._graph.successors(node)
-        # num_children = get_iterator_length(children)
         node_idx = self._node_indices[node]
         return len(self._graph.successors(node_idx))
 
     def get_descendants(self, source="root"):
-        # return nx.descendants(self._graph, source=source)
         source_idx = self._node_indices[source]
         descs = rx.descendants(self._graph, source_idx)
         return [self._graph[child].node_id for child in descs]
@@ -302,7 +298,6 @@ class Tree(object):
 
         else:
             node_idx = self._node_indices[node]
-            # return list(self._graph.predecessors(node_idx))[0]
             return [pred.node_id for pred in self._graph.predecessors(node_idx)][0]
 
     def get_data(self, node):
