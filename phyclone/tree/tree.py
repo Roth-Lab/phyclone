@@ -134,30 +134,6 @@ class Tree(object):
     def roots(self):
         node_idx = self._node_indices["root"]
         return [child.node_id for child in self._graph.successors(node_idx)]
-
-    @staticmethod
-    def from_dict_nx(data, tree_dict):
-        new = Tree(data[0].grid_size)
-
-        data = dict(zip([x.idx for x in data], data))
-
-        for node in tree_dict["graph"].keys():
-            if node == "root":
-                continue
-            new._add_node(node)
-
-        for parent, children in tree_dict["graph"].items():
-            parent_idx = new._node_indices[parent]
-            for child in children.keys():
-                child_idx = new._node_indices[child]
-                new._graph.add_edge(parent_idx, child_idx, None)
-
-        for idx, node in tree_dict["labels"].items():
-            new._internal_add_data_point_to_node(True, data[idx], node)
-
-        new.update()
-
-        return new
     #
     # def to_dict_old(self):
     #     vis = GraphToDictVisitor(self)

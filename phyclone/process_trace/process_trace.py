@@ -280,11 +280,35 @@ def get_tree_from_consensus_graph(data, graph):
         if len(list(graph.predecessors(node))) == 0:
             graph.add_edge("root", node)
 
-    tree = Tree.from_dict_nx(data, {"graph": nx.to_dict_of_dicts(graph), "labels": labels})
+    tree = from_dict_nx(data, {"graph": nx.to_dict_of_dicts(graph), "labels": labels})
 
     tree.update()
 
     return tree
+
+
+def from_dict_nx(data, tree_dict):
+    new = Tree(data[0].grid_size)
+
+    data = dict(zip([x.idx for x in data], data))
+
+    for node in tree_dict["graph"].keys():
+        if node == "root":
+            continue
+        new._add_node(node)
+
+    for parent, children in tree_dict["graph"].items():
+        parent_idx = new._node_indices[parent]
+        for child in children.keys():
+            child_idx = new._node_indices[child]
+            new._graph.add_edge(parent_idx, child_idx, None)
+
+    for idx, node in tree_dict["labels"].items():
+        new._internal_add_data_point_to_node(True, data[idx], node)
+
+    new.update()
+
+    return new
 
 
 def get_clone_table(data, samples, tree, clusters=None):
