@@ -42,7 +42,7 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
 
                 map_val = x["log_p_one"]
 
-    tree = Tree.from_dict(data, results["trace"][map_iter]["tree"])
+    tree = Tree.from_dict(results["trace"][map_iter]["tree"])
 
     clusters = results.get("clusters", None)
 
@@ -56,7 +56,7 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
 def create_topology_dict_from_trace(data, trace):
     topologies = dict()
     for i, x in enumerate(trace):
-        curr_tree = Tree.from_dict(data, x["tree"])
+        curr_tree = Tree.from_dict(x["tree"])
         count_topology(topologies, x, i, curr_tree)
     return topologies
 
@@ -194,7 +194,7 @@ def write_consensus_results(
 
     if weight_type == "counts":
         weighted_consensus = False
-        trees = [Tree.from_dict(data, x["tree"]) for x in results["trace"]]
+        trees = [Tree.from_dict(x["tree"]) for x in results["trace"]]
     elif weight_type == "corrected-counts":
         topologies = create_topology_dict_from_trace(data, results["trace"])
 
@@ -204,7 +204,7 @@ def write_consensus_results(
             trees.append(curr_tree)
             probs.append(curr_prob)
     else:
-        trees = [Tree.from_dict(data, x["tree"]) for x in results["trace"]]
+        trees = [Tree.from_dict(x["tree"]) for x in results["trace"]]
         probs = np.array([x["log_p_one"] for x in results["trace"]])
 
     if weighted_consensus:

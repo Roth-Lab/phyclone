@@ -152,7 +152,7 @@ class Test(unittest.TestCase):
 
         expected_dict = expected_tree.to_dict()
 
-        actual_tree = Tree.from_dict(data, expected_dict)
+        actual_tree = Tree.from_dict(expected_dict)
 
         self.assertEqual(expected_tree, actual_tree)
 
@@ -163,7 +163,7 @@ class Test(unittest.TestCase):
 
         expected_dict = expected_tree.to_dict()
 
-        actual_tree = Tree.from_dict(data, expected_dict)
+        actual_tree = Tree.from_dict(expected_dict)
 
         self.assertEqual(expected_tree, actual_tree)
 
@@ -175,7 +175,7 @@ class Test(unittest.TestCase):
 
         expected_dict = expected_tree.to_dict()
 
-        actual_tree = Tree.from_dict(data, expected_dict)
+        actual_tree = Tree.from_dict(expected_dict)
 
         self.assertEqual(expected_tree, actual_tree)
 
@@ -194,7 +194,7 @@ class Test(unittest.TestCase):
 
         expected_dict = expected_tree.to_dict()
 
-        actual_tree = Tree.from_dict(data, expected_dict)
+        actual_tree = Tree.from_dict(expected_dict)
 
         self.assertEqual(expected_tree, actual_tree)
 
@@ -221,7 +221,7 @@ class Test(unittest.TestCase):
 
         expected_dict = expected_tree.to_dict()
 
-        actual_tree = Tree.from_dict(data, expected_dict)
+        actual_tree = Tree.from_dict(expected_dict)
 
         self.assertEqual(expected_tree, actual_tree)
 
@@ -251,7 +251,7 @@ class Test(unittest.TestCase):
 
         expected_dict = expected_tree.to_dict()
 
-        actual_tree = Tree.from_dict(data, expected_dict)
+        actual_tree = Tree.from_dict(expected_dict)
 
         self.assertEqual(expected_tree, actual_tree)
 
@@ -285,7 +285,7 @@ class Test(unittest.TestCase):
 
         expected_dict = expected_tree.to_dict()
 
-        actual_tree = Tree.from_dict(data, expected_dict)
+        actual_tree = Tree.from_dict(expected_dict)
 
         self.assertEqual(expected_tree, actual_tree)
 
@@ -320,7 +320,7 @@ class Test(unittest.TestCase):
 
         expected_dict = expected_tree.to_dict()
 
-        actual_tree = Tree.from_dict(data, expected_dict)
+        actual_tree = Tree.from_dict(expected_dict)
 
         self.assertEqual(expected_tree, actual_tree)
 
@@ -359,7 +359,7 @@ class Test(unittest.TestCase):
 
         expected_dict = expected_tree.to_dict()
 
-        actual_tree = Tree.from_dict(data, expected_dict)
+        actual_tree = Tree.from_dict(expected_dict)
 
         self.assertEqual(expected_tree, actual_tree)
 

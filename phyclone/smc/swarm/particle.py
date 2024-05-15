@@ -4,7 +4,7 @@ from phyclone.tree import Tree
 
 class Particle(object):
     __slots__ = ("_built_tree", "log_w", "parent_particle", "_tree_dist", "_perm_dist", "log_p", "log_pdf",
-                 "log_p_one", "_hash_val", "_tree", "tree_nodes", "tree_roots", "_data")
+                 "log_p_one", "_hash_val", "_tree", "tree_nodes", "tree_roots")
 
     def __init__(self, log_w, parent_particle, tree, tree_dist, perm_dist):
         self._built_tree = deque(maxlen=1)
@@ -45,7 +45,7 @@ class Particle(object):
         new._built_tree = deque(maxlen=1)
         new.log_w = self.log_w
         new.parent_particle = self.parent_particle
-        new._data = self._data.copy()
+        # new._data = self._data.copy()
         new._tree_dist = self._tree_dist
         new._perm_dist = self._perm_dist
         new.log_p = self.log_p
@@ -62,11 +62,11 @@ class Particle(object):
 
     @tree.getter
     def tree(self):
-        return Tree.from_dict(self._data, self._tree)
+        return Tree.from_dict(self._tree)
 
     @tree.setter
     def tree(self, tree):
-        self._data = tree.data
+        # self._data = tree.data
         self.log_p = self._tree_dist.log_p(tree)
         if self._perm_dist is None:
             self.log_pdf = 0.0

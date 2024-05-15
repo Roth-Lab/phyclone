@@ -136,16 +136,18 @@ class Tree(object):
         return [child.node_id for child in self._graph.successors(node_idx)]
 
     @staticmethod
-    def from_dict(data, tree_dict):
-        grid_size = data[0].grid_size
+    def from_dict(tree_dict):
+        grid_size = tree_dict["grid_size"]
         new = Tree(grid_size)
 
         if len(tree_dict["graph"]) > 0:
 
             new_graph = new._graph
+            node_idxs = tree_dict['node_idx']
+            assert node_idxs["root"] == new._node_indices["root"]
+
             new_graph.extend_from_edge_list(tree_dict['graph'])
 
-            node_idxs = tree_dict['node_idx']
             log_prior = new._log_prior
             new_data = new._data
 
@@ -182,7 +184,8 @@ class Tree(object):
         res = {"graph": self._graph.edge_list(),
                "node_idx": self._node_indices.copy(),
                "node_idx_rev": self._node_indices_rev.copy(),
-               "node_data": node_data}
+               "node_data": node_data,
+               "grid_size": self.grid_size}
         return res
 
     def add_data_point_to_node(self, data_point, node):
@@ -228,7 +231,7 @@ class Tree(object):
         for old_idx, new_idx in node_map_idx.items():
             node_obj = self._graph[new_idx]
             node_name = node_obj.node_id
-            # assert node_name not in self._data
+            assert node_name not in self._data
             self._data[node_name] = subtree._data[node_name]
             self._node_indices[node_name] = new_idx
             self._node_indices_rev[new_idx] = node_name

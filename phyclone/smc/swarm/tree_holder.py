@@ -2,7 +2,7 @@ from phyclone.tree import Tree
 
 
 class TreeHolder(object):
-    __slots__ = ('_tree_dist', 'log_p', '_hash_val', '_data', '_tree')
+    __slots__ = ('_tree_dist', 'log_p', '_hash_val', '_tree')
 
     def __init__(self, tree, tree_dist):
 
@@ -35,10 +35,10 @@ class TreeHolder(object):
     @tree.setter
     def tree(self, tree):
         self.log_p = self._tree_dist.log_p(tree)
-        self._data = tree.data
+        # self._data = tree.data
         self._hash_val = hash(tree)
         self._tree = tree.to_dict()
 
     @tree.getter
     def tree(self):
-        return Tree.from_dict(self._data, self._tree)
+        return Tree.from_dict(self._tree)
