@@ -136,28 +136,22 @@ class Tree(object):
         return [child.node_id for child in self._graph.successors(node_idx)]
 
     @staticmethod
-    @profile
     def from_dict(data, tree_dict):
         grid_size = data[0].grid_size
         new = Tree(grid_size)
 
         if len(tree_dict["graph"]) > 0:
 
-            new_graph = rx.PyDiGraph()
-
+            new_graph = new._graph
             new_graph.extend_from_edge_list(tree_dict['graph'])
 
             node_idxs = tree_dict['node_idx']
-            root_idx = node_idxs['root']
-
-            new_graph[root_idx] = new._graph.nodes()[0]
-
             log_prior = new._log_prior
             new_data = new._data
 
             for node, data_list in tree_dict["node_data"].items():
                 new_data[node] = list(data_list)
-                if node == -1:
+                if node == -1 or node == "root":
                     continue
 
                 log_p = np.full(grid_size, log_prior, order="C")
@@ -171,7 +165,6 @@ class Tree(object):
                 node_idx = node_idxs[node]
                 new_graph[node_idx] = node_obj
 
-            new._graph = new_graph
             new._node_indices_rev = tree_dict['node_idx_rev'].copy()
             new._node_indices = node_idxs.copy()
 
@@ -183,7 +176,6 @@ class Tree(object):
 
         return new
 
-    @profile
     def to_dict(self):
         node_data = {k: v.copy() for k, v in self._data.items() if k != "root"}
 
