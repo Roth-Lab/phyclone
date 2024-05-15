@@ -470,11 +470,12 @@ class Tree(object):
         assert self._node_indices_rev[path[0]] == "root"
 
         for source in reversed(path):
-            source_idx = self._node_indices_rev[source]
-            self._update_node(source_idx)
+            # source_idx = self._node_indices_rev[source]
+            # self._update_node(source_idx)
+            self._update_node(source)
 
-    def _update_node(self, node):
-        node_idx = self._node_indices[node]
+    def _update_node(self, node_idx):
+        # node_idx = self._node_indices[node]
         child_log_r_values = [
             child.log_r for child in self._graph.successors(node_idx)
         ]
@@ -514,15 +515,17 @@ class TreeNode(object):
 
 
 class PostOrderNodeUpdater(DFSVisitor):
-    __slots__ = ("tree", "_node_indices_rev")
+    # __slots__ = ("tree", "_node_indices_rev")
+    __slots__ = "tree"
 
     def __init__(self, tree):
         self.tree = tree
-        self._node_indices_rev = tree._node_indices_rev
+        # self._node_indices_rev = tree._node_indices_rev
 
     def finish_vertex(self, v, t):
-        node_id = self._node_indices_rev[v]
-        self.tree._update_node(node_id)
+        self.tree._update_node(v)
+        # node_id = self._node_indices_rev[v]
+        # self.tree._update_node(node_id)
 
 
 class GraphToDictVisitor(DFSVisitor):
