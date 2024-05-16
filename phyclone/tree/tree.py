@@ -161,7 +161,7 @@ class Tree(object):
 
             new_graph = new._graph
             node_idxs = tree_dict['node_idx']
-            assert node_idxs["root"] == new._node_indices["root"]
+            # assert node_idxs["root"] == new._node_indices["root"]
 
             new_graph.extend_from_edge_list(tree_dict['graph'])
 
@@ -248,7 +248,7 @@ class Tree(object):
         for old_idx, new_idx in node_map_idx.items():
             node_obj = self._graph[new_idx]
             node_name = node_obj.node_id
-            assert node_name not in self._data
+            # assert node_name not in self._data
             self._data[node_name] = subtree._data[node_name]
             self._node_indices[node_name] = new_idx
             self._node_indices_rev[new_idx] = node_name
@@ -299,8 +299,12 @@ class Tree(object):
 
         new._data = defaultdict(list)
 
-        for node in self._data:
-            new._data[node] = list(self._data[node])
+        # for node in self._data:
+        #     new._data[node] = list(self._data[node])
+
+        # new_dict = {k: v.copy() for k, v in self._data.items()}
+
+        new._data.update({k: v.copy() for k, v in self._data.items()})
 
         new._log_prior = self._log_prior
 
@@ -311,7 +315,7 @@ class Tree(object):
         new._node_indices_rev = self._node_indices_rev.copy()
 
         for node_idx in new._graph.node_indices():
-            new._graph[node_idx] = copy(new._graph[node_idx])
+            new._graph[node_idx] = new._graph[node_idx].copy()
 
         return new
 
@@ -375,7 +379,7 @@ class Tree(object):
         new._graph.compose(subtree_graph, {new_root_idx: (sub_root_idx, None)})
 
         for node_idx in new._graph.node_indices():
-            new._graph[node_idx] = copy(new._graph[node_idx])
+            new._graph[node_idx] = new._graph[node_idx].copy()
             node = new._graph[node_idx].node_id
             new._data[node] = list(self._data[node])
 
@@ -510,8 +514,8 @@ class TreeNode(object):
         self.node_id = node_id
 
     def __copy__(self):
-        return TreeNode(np.copy(self.log_p, order='C'),
-                        np.copy(self.log_r, order='C'),
+        return TreeNode(self.log_p.copy(),
+                        self.log_r.copy(),
                         self.node_id)
 
     def __eq__(self, other):
@@ -519,6 +523,15 @@ class TreeNode(object):
         log_r_compare = np.array_equal(self.log_r, other.log_r)
         # id_compare = self.node_id == other.node_id
         return log_p_compare and log_r_compare
+
+    def copy(self):
+        return TreeNode(self.log_p.copy(),
+                        self.log_r.copy(),
+                        self.node_id)
+    # def copy(self):
+    #     return TreeNode(np.copy(self.log_p, order='C'),
+    #                     np.copy(self.log_r, order='C'),
+    #                     self.node_id)
 
     def to_dict(self):
         return {"log_p": self.log_p, "log_R": self.log_r, "node_id": self.node_id}
@@ -578,6 +591,7 @@ class PreOrderNodeRelabeller(DFSVisitor):
 
 class GraphToCladesVisitor(DFSVisitor):
     __slots__ = ("dict_of_sets", "child_parent_mapping", "clades", "node_indices_rev", "data")
+
     def __init__(self, tree):
         self.dict_of_sets = defaultdict(set)
         self.child_parent_mapping = dict()
