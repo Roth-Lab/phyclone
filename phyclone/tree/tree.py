@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rustworkx as rx
 
-from phyclone.tree.visitors import PostOrderNodeUpdater, PreOrderNodeRelabeller, GraphToCladesVisitor
+from phyclone.tree.visitors import PostOrderNodeUpdater, PreOrderNodeRelabeller, GraphToCladesVisitor, GraphToNewickVisitor
 from phyclone.utils.math import log_factorial
 from phyclone.tree.utils import compute_log_S
 import itertools
@@ -38,6 +38,12 @@ class Tree(object):
         other_key = (other.get_clades(), frozenset(other.outliers))
 
         return self_key == other_key
+
+    def to_newick_string(self):
+        vis = GraphToNewickVisitor(self)
+        root_idx = self._node_indices["root"]
+        rx.dfs_search(self._graph, [root_idx], vis)
+        return vis
 
     def get_clades(self):
         vis = GraphToCladesVisitor(self)

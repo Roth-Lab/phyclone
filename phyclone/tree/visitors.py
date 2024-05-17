@@ -71,3 +71,41 @@ class GraphToCladesVisitor(DFSVisitor):
 
             self.dict_of_sets[parent_idx].update(datalist)
             self.clades.add(frozenset(datalist))
+
+
+class GraphToNewickVisitor(DFSVisitor):
+    __slots__ = ("dict_of_lists", "child_parent_mapping", "parents", "node_indices_rev", "final_string")
+
+    def __init__(self, tree):
+        self.dict_of_lists = defaultdict(list)
+        self.child_parent_mapping = dict()
+        self.parents = set()
+        self.node_indices_rev = tree._node_indices_rev
+        self.final_string = None
+
+    def tree_edge(self, edge):
+        parent = edge[0]
+        child = edge[1]
+
+        parent_idx = self.node_indices_rev[parent]
+        child_idx = self.node_indices_rev[child]
+
+        self.child_parent_mapping[child_idx] = parent_idx
+        self.parents.add(parent_idx)
+
+    def finish_vertex(self, v, t):
+        node_idx = self.node_indices_rev[v]
+
+        if node_idx in self.parents:
+            curr_list = self.dict_of_lists[node_idx]
+            child_strings = ",".join(curr_list)
+            curr_node_string = '({child_strings}){node_idx}'.format(child_strings=child_strings, node_idx=node_idx)
+        else:
+            curr_node_string = '{node_idx}'.format(node_idx=node_idx)
+
+        if node_idx != "root":
+            parent_idx = self.child_parent_mapping[node_idx]
+            self.dict_of_lists[parent_idx].append(curr_node_string)
+        else:
+            self.final_string = curr_node_string + ";"
+
