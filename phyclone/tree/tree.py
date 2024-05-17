@@ -1,5 +1,5 @@
 from collections import defaultdict
-from copy import copy
+# from copy import copy
 import matplotlib.pyplot as plt
 import numpy as np
 import rustworkx as rx
