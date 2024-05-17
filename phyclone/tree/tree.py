@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rustworkx as rx
 
-from phyclone.tree.visitors import PostOrderNodeUpdater, PreOrderNodeRelabeller, GraphToCladesVisitor, GraphToNewickVisitor
+from phyclone.tree.visitors import (PostOrderNodeUpdater, PreOrderNodeRelabeller,
+                                    GraphToCladesVisitor, GraphToNewickVisitor)
 from phyclone.utils.math import log_factorial
 from phyclone.tree.utils import compute_log_S
 import itertools
@@ -43,7 +44,7 @@ class Tree(object):
         vis = GraphToNewickVisitor(self)
         root_idx = self._node_indices["root"]
         rx.dfs_search(self._graph, [root_idx], vis)
-        return vis
+        return vis.final_string
 
     def get_clades(self):
         vis = GraphToCladesVisitor(self)

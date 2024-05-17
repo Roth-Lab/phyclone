@@ -26,3 +26,8 @@ def convert_rustworkx_to_networkx(graph):
             nx_node.update(node.to_dict())
 
         return nx_graph
+
+
+def print_string_to_file(str_to_write, filename):
+    with open(filename, "w") as f:
+        print(str_to_write, file=f)

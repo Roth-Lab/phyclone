@@ -1,16 +1,15 @@
 import gzip
 import os
 import pickle
-from io import StringIO
-
-import Bio.Phylo
+# from io import StringIO
+# import Bio.Phylo
 import networkx as nx
 import numpy as np
 import pandas as pd
 
 from phyclone.process_trace.consensus import get_consensus_tree
 from phyclone.process_trace.map import get_map_node_ccfs
-from phyclone.process_trace.utils import convert_rustworkx_to_networkx
+from phyclone.process_trace.utils import print_string_to_file
 from phyclone.utils.math import exp_normalize
 from phyclone.tree import Tree
 from numba import set_num_threads
@@ -25,7 +24,7 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
 
     if map_type == 'frequency':
 
-        topologies = create_topology_dict_from_trace(data, results["trace"])
+        topologies = create_topology_dict_from_trace(results["trace"])
 
         df = create_topology_dataframe(topologies.values())
         df = df.sort_values(by="count", ascending=False)
@@ -53,7 +52,7 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
     )
 
 
-def create_topology_dict_from_trace(data, trace):
+def create_topology_dict_from_trace(trace):
     topologies = dict()
     for i, x in enumerate(trace):
         curr_tree = Tree.from_dict(x["tree"])
@@ -66,9 +65,9 @@ def write_topology_report(in_file, out_file):
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
-    data = results["data"]
+    # data = results["data"]
 
-    topologies = create_topology_dict_from_trace(data, results["trace"])
+    topologies = create_topology_dict_from_trace(results["trace"])
 
     df = create_topology_dataframe(topologies.values())
     df = df.sort_values(by="count", ascending=False)
@@ -143,11 +142,12 @@ def _create_results_output_files(
     out_log_probs_file, out_table_file, out_tree_file, results, table, tree
 ):
     table.to_csv(out_table_file, index=False, sep="\t")
-    tree_graph = convert_rustworkx_to_networkx(tree._graph)
-    tree_graph.remove_node("root")
-    Bio.Phylo.write(
-        get_bp_tree_from_graph(tree_graph), out_tree_file, "newick", plain=True
-    )
+    # tree_graph = convert_rustworkx_to_networkx(tree._graph)
+    # tree_graph.remove_node("root")
+    # Bio.Phylo.write(
+    #     get_bp_tree_from_graph(tree_graph), out_tree_file, "newick", plain=True
+    # )
+    print_string_to_file(tree.to_newick_string(), out_tree_file)
     if out_log_probs_file:
         log_probs_table = pd.DataFrame(
             results["trace"], columns=["iter", "time", "log_p_one"]
@@ -157,15 +157,16 @@ def _create_results_output_files(
 
 def create_topology_dataframe(topologies):
     for topology in topologies:
-        tmp_str_io = StringIO()
+        # tmp_str_io = StringIO()
         tree = topology["topology"]
-        tree_graph = convert_rustworkx_to_networkx(tree._graph)
-        tree_graph.remove_node("root")
-        Bio.Phylo.write(
-            get_bp_tree_from_graph(tree_graph), tmp_str_io, "newick", plain=True
-        )
-        as_str = tmp_str_io.getvalue().rstrip()
-        topology["topology"] = as_str
+        topology["topology"] = tree.to_newick_string()
+        # tree_graph = convert_rustworkx_to_networkx(tree._graph)
+        # tree_graph.remove_node("root")
+        # Bio.Phylo.write(
+        #     get_bp_tree_from_graph(tree_graph), tmp_str_io, "newick", plain=True
+        # )
+        # as_str = tmp_str_io.getvalue().rstrip()
+        # topology["topology"] = as_str
 
     df = pd.DataFrame(topologies)
     df["multiplicity_corrected_count"] = df["count"] / df["multiplicity"]
@@ -196,7 +197,7 @@ def write_consensus_results(
         weighted_consensus = False
         trees = [Tree.from_dict(x["tree"]) for x in results["trace"]]
     elif weight_type == "corrected-counts":
-        topologies = create_topology_dict_from_trace(data, results["trace"])
+        topologies = create_topology_dict_from_trace(results["trace"])
 
         for topology in topologies.values():
             curr_tree = topology["topology"]
@@ -232,33 +233,33 @@ def write_consensus_results(
     )
 
 
-def get_clades(tree, source=None):
-    if source is None:
-        roots = []
+# def get_clades(tree, source=None):
+#     if source is None:
+#         roots = []
+#
+#         for node in tree.nodes:
+#             if tree.in_degree(node) == 0:
+#                 roots.append(node)
+#
+#         children = []
+#         for node in roots:
+#             children.append(get_clades(tree, source=node))
+#
+#         clades = Bio.Phylo.BaseTree.Clade(name="root", clades=children)
+#
+#     else:
+#         children = []
+#
+#         for child in tree.successors(source):
+#             children.append(get_clades(tree, source=child))
+#
+#         clades = Bio.Phylo.BaseTree.Clade(name=str(source), clades=children)
+#
+#     return clades
 
-        for node in tree.nodes:
-            if tree.in_degree(node) == 0:
-                roots.append(node)
 
-        children = []
-        for node in roots:
-            children.append(get_clades(tree, source=node))
-
-        clades = Bio.Phylo.BaseTree.Clade(name="root", clades=children)
-
-    else:
-        children = []
-
-        for child in tree.successors(source):
-            children.append(get_clades(tree, source=child))
-
-        clades = Bio.Phylo.BaseTree.Clade(name=str(source), clades=children)
-
-    return clades
-
-
-def get_bp_tree_from_graph(tree):
-    return Bio.Phylo.BaseTree.Tree(root=get_clades(tree), rooted=True)
+# def get_bp_tree_from_graph(tree):
+#     return Bio.Phylo.BaseTree.Tree(root=get_clades(tree), rooted=True)
 
 
 def get_tree_from_consensus_graph(data, graph):
