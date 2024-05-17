@@ -1,13 +1,12 @@
 from collections import defaultdict
-# from copy import copy
 import matplotlib.pyplot as plt
 import numpy as np
 import rustworkx as rx
 
+from phyclone.tree.visitors import PostOrderNodeUpdater, PreOrderNodeRelabeller, GraphToCladesVisitor
 from phyclone.utils.math import log_factorial
 from phyclone.tree.utils import compute_log_S
 import itertools
-from rustworkx.visit import DFSVisitor
 from typing import Union
 from rustworkx.visualization import mpl_draw
 
@@ -29,16 +28,6 @@ class Tree(object):
         self._node_indices_rev = dict()
 
         self._add_node("root")
-
-    # def __hash__(self):
-    #     return hash((get_clades(self), frozenset(self.outliers)))
-    #
-    # def __eq__(self, other):
-    #     self_key = (get_clades(self), frozenset(self.outliers))
-    #
-    #     other_key = (get_clades(other), frozenset(other.outliers))
-    #
-    #     return self_key == other_key
 
     def __hash__(self):
         return hash((self.get_clades(), frozenset(self.outliers)))
@@ -299,11 +288,6 @@ class Tree(object):
 
         new._data = defaultdict(list)
 
-        # for node in self._data:
-        #     new._data[node] = list(self._data[node])
-
-        # new_dict = {k: v.copy() for k, v in self._data.items()}
-
         new._data.update({k: v.copy() for k, v in self._data.items()})
 
         new._log_prior = self._log_prior
@@ -528,99 +512,6 @@ class TreeNode(object):
         return TreeNode(self.log_p.copy(),
                         self.log_r.copy(),
                         self.node_id)
-    # def copy(self):
-    #     return TreeNode(np.copy(self.log_p, order='C'),
-    #                     np.copy(self.log_r, order='C'),
-    #                     self.node_id)
 
     def to_dict(self):
         return {"log_p": self.log_p, "log_R": self.log_r, "node_id": self.node_id}
-
-
-class PostOrderNodeUpdater(DFSVisitor):
-    __slots__ = "tree"
-
-    def __init__(self, tree):
-        self.tree = tree
-
-    def finish_vertex(self, v, t):
-        self.tree._update_node(v)
-
-
-class GraphToDictVisitor(DFSVisitor):
-    __slots__ = ("dict_of_dicts", "_node_indices_rev")
-
-    def __init__(self, tree):
-        self.dict_of_dicts = defaultdict(dict)
-        self._node_indices_rev = tree._node_indices_rev
-
-    def tree_edge(self, edge):
-        parent = edge[0]
-        child = edge[1]
-
-        parent_idx = self._node_indices_rev[parent]
-        child_idx = self._node_indices_rev[child]
-
-        self.dict_of_dicts[parent_idx][child_idx] = {}
-        self.dict_of_dicts[child_idx] = {}
-
-
-class PreOrderNodeRelabeller(DFSVisitor):
-    __slots__ = ("data", "node_indices", "node_indices_rev", "graph", "orig_data", "curr_idx")
-
-    def __init__(self, tree, data, start_idx=0):
-        self.data = data
-        self.orig_data = tree._data
-        self.node_indices = dict()
-        self.node_indices_rev = dict()
-        self.curr_idx = start_idx
-        self.graph = tree._graph
-
-    def discover_vertex(self, v, t):
-        node_id = self.graph[v].node_id
-        if node_id != "root":
-            old_node_id = node_id
-            node_id = self.curr_idx
-            self.curr_idx += 1
-            self.graph[v].node_id = node_id
-            self.data[node_id] = self.orig_data[old_node_id]
-
-        self.node_indices[node_id] = v
-        self.node_indices_rev[v] = node_id
-
-
-class GraphToCladesVisitor(DFSVisitor):
-    __slots__ = ("dict_of_sets", "child_parent_mapping", "clades", "node_indices_rev", "data")
-
-    def __init__(self, tree):
-        self.dict_of_sets = defaultdict(set)
-        self.child_parent_mapping = dict()
-        self.clades = set()
-        self.node_indices_rev = tree._node_indices_rev
-        self.data = tree._data
-
-    def discover_vertex(self, v, t):
-        node_idx = self.node_indices_rev[v]
-
-        datalist = self.data[node_idx]
-
-        mut_set = {dp.idx for dp in datalist}
-        self.dict_of_sets[node_idx] = mut_set
-
-    def tree_edge(self, edge):
-        parent = edge[0]
-        child = edge[1]
-
-        parent_idx = self.node_indices_rev[parent]
-        child_idx = self.node_indices_rev[child]
-        self.child_parent_mapping[child_idx] = parent_idx
-
-    def finish_vertex(self, v, t):
-        node_idx = self.node_indices_rev[v]
-
-        if node_idx != "root":
-            parent_idx = self.child_parent_mapping[node_idx]
-            datalist = self.dict_of_sets[node_idx]
-
-            self.dict_of_sets[parent_idx].update(datalist)
-            self.clades.add(frozenset(datalist))
