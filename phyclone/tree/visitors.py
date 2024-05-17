@@ -12,24 +12,6 @@ class PostOrderNodeUpdater(DFSVisitor):
         self.tree._update_node(v)
 
 
-class GraphToDictVisitor(DFSVisitor):
-    __slots__ = ("dict_of_dicts", "_node_indices_rev")
-
-    def __init__(self, tree):
-        self.dict_of_dicts = defaultdict(dict)
-        self._node_indices_rev = tree._node_indices_rev
-
-    def tree_edge(self, edge):
-        parent = edge[0]
-        child = edge[1]
-
-        parent_idx = self._node_indices_rev[parent]
-        child_idx = self._node_indices_rev[child]
-
-        self.dict_of_dicts[parent_idx][child_idx] = {}
-        self.dict_of_dicts[child_idx] = {}
-
-
 class PreOrderNodeRelabeller(DFSVisitor):
     __slots__ = ("data", "node_indices", "node_indices_rev", "graph", "orig_data", "curr_idx")
 
