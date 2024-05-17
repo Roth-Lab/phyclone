@@ -16,7 +16,6 @@ dependencies = [
     "numba",
     "numpy",
     "scipy",
-    "biopython",
     "click",
     "matplotlib",
     "xxhash",
