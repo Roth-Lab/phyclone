@@ -23,10 +23,12 @@ def compute_log_S(child_log_R_values):
 
 
 def _sub_compute_S(log_D):
-    log_S = np.zeros(log_D.shape, order='C')
+    # log_S = np.zeros(log_D.shape, order='C')
+    log_S = np.empty_like(log_D)
     num_dims = log_D.shape[0]
     for i in range(num_dims):
-        log_S[i, :] = np.logaddexp.accumulate(log_D[i, :])
+        # log_S[i, :] = np.logaddexp.accumulate(log_D[i, :])
+        np.logaddexp.accumulate(log_D[i, :], out=log_S[i, :])
     return log_S
 
 
