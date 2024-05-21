@@ -5,6 +5,10 @@ from phyclone.tree.utils import compute_log_S, _convolve_two_children
 
 # Utils for dev debugging and performance checking
 
+def clear_proposal_dist_caches():
+    _get_cached_semi_proposal_dist.cache_clear()
+    _get_cached_full_proposal_dist.cache_clear()
+
 def _cache_ratio(cache_obj):
     try:
         ratio = cache_obj.hits / (cache_obj.hits + cache_obj.misses)

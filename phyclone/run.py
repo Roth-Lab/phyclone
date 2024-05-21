@@ -16,6 +16,7 @@ from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer, read_pickle, save_numpy_rng
 from phyclone.data.pyclone import load_data
 from numba import set_num_threads
+from phyclone.utils.dev import clear_proposal_dist_caches
 
 
 def run(
@@ -101,6 +102,8 @@ def _run_main_sampler(concentration_update, data, max_time, num_iters, num_sampl
         with timer:
             if i % print_freq == 0:
                 print_stats(i, tree, tree_dist)
+
+            clear_proposal_dist_caches()
 
             tree = tree_sampler.sample_tree(tree)
 
