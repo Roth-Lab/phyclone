@@ -22,12 +22,14 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     def log_p(self, tree):
         """ Get the log probability of proposing the tree.
         """
-        node = tree.labels[self.data_point.idx]
+        # node = tree.labels[self.data_point.idx]
 
         if self._empty_tree():
             log_p = self._get_log_p(tree)
 
         else:
+
+            node = tree.labels[self.data_point.idx]
 
             # Existing node
             if node in self.parent_particle.tree_nodes or node == -1:
@@ -48,7 +50,10 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     def _get_log_p(self, tree):
         """ Get the log probability of the given tree. From stored dict, using TreeHolder intermediate.
         """
-        tree_particle = TreeHolder(tree, self.tree_dist)
+        if isinstance(tree, Tree):
+            tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
+        else:
+            tree_particle = tree
         return self._log_p[tree_particle]
 
     def sample(self):
@@ -80,7 +85,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
                 tree = self.parent_tree.copy()
 
             tree.create_root_node(children=[], data=[self.data_point])
-            tree_particle = TreeHolder(tree, self.tree_dist)
+            tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
 
             trees.append(tree_particle)
 
@@ -105,7 +110,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         for node in nodes:
             tree = self.parent_tree.copy()
             tree.add_data_point_to_node(self.data_point, node)
-            tree_particle = TreeHolder(tree, self.tree_dist)
+            tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
             trees.append(tree_particle)
 
         return trees
@@ -121,7 +126,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         tree.add_data_point_to_outliers(self.data_point)
 
-        tree_particle = TreeHolder(tree, self.tree_dist)
+        tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
 
         return tree_particle
 
@@ -136,7 +141,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         tree = list(self._log_p.keys())[idx]
 
-        return tree.tree
+        return tree
 
     def _propose_new_node(self):
         num_roots = len(self.parent_particle.tree_roots)

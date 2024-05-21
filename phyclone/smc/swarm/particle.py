@@ -69,7 +69,7 @@ class Particle(object):
     @tree.setter
     def tree(self, tree):
         if not isinstance(tree, TreeHolder):
-            tree = TreeHolder(tree, self._tree_dist)
+            tree = TreeHolder(tree, self._tree_dist, self._perm_dist)
         self.log_p = tree.log_p
         self.log_pdf = tree.log_pdf
         self.log_p_one = tree.log_p_one

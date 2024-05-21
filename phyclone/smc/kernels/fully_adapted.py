@@ -22,8 +22,13 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
     def log_p(self, tree):
         """ Get the log probability of the tree.
         """
-        tree_particle = TreeHolder(tree, self.tree_dist)
+        if isinstance(tree, Tree):
+            tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
+        else:
+            tree_particle = tree
         return self._log_p[tree_particle]
+        # tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
+        # return self._log_p[tree_particle]
 
     def sample(self):
         """ Sample a new tree from the proposal distribution.
@@ -34,7 +39,8 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
         tree = list(self._log_p.keys())[idx]
 
-        return tree.tree
+        # return tree.tree
+        return tree
 
     def _init_dist(self):
         self._log_p = {}
@@ -63,7 +69,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         for node in nodes:
             tree = self.parent_tree.copy()
             tree.add_data_point_to_node(self.data_point, node)
-            tree_particle = TreeHolder(tree, self.tree_dist)
+            tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
             trees.append(tree_particle)
 
         return trees
@@ -77,7 +83,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
             tree = Tree(self.data_point.grid_size)
 
             tree.create_root_node(children=[], data=[self.data_point])
-            tree_particle = TreeHolder(tree, self.tree_dist)
+            tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
 
             trees.append(tree_particle)
 
@@ -89,7 +95,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
                     tree = self.parent_tree.copy()
 
                     tree.create_root_node(children=children, data=[self.data_point])
-                    tree_particle = TreeHolder(tree, self.tree_dist)
+                    tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
 
                     trees.append(tree_particle)
 
@@ -106,7 +112,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
         tree.add_data_point_to_outliers(self.data_point)
 
-        tree_particle = TreeHolder(tree, self.tree_dist)
+        tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
 
         return [tree_particle]
 

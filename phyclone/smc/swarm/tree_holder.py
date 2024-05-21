@@ -3,13 +3,13 @@ from phyclone.tree import Tree
 
 class TreeHolder(object):
     __slots__ = ('_tree_dist', 'log_p', '_hash_val', '_tree', 'log_pdf', 'log_p_one', '_perm_dist',
-                 "tree_nodes", "tree_roots")
+                 "tree_nodes", "tree_roots", "labels")
 
-    def __init__(self, tree, tree_dist):
+    def __init__(self, tree, tree_dist, perm_dist):
 
         self._tree_dist = tree_dist
 
-        self._perm_dist = None
+        self._perm_dist = perm_dist
 
         self.log_p = 0
 
@@ -32,7 +32,7 @@ class TreeHolder(object):
         return self_key == other_key
 
     def copy(self):
-        return TreeHolder(self.tree, self._tree_dist)
+        return TreeHolder(self.tree, self._tree_dist, self._perm_dist)
         # TODO: re-write this? building tree unnecessarily here
 
     @property
@@ -57,6 +57,7 @@ class TreeHolder(object):
         self.tree_nodes = tree.nodes
         self._hash_val = hash(tree)
         self._tree = tree.to_dict()
+        self.labels = tree.labels
 
     @tree.getter
     def tree(self):
