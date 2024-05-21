@@ -13,7 +13,8 @@ from rustworkx.visualization import mpl_draw
 
 
 class Tree(object):
-    __slots__ = ("grid_size", "_data", "_log_prior", "_graph", "_node_indices", "_node_indices_rev")
+    __slots__ = ("grid_size", "_data", "_log_prior", "_graph", "_node_indices", "_node_indices_rev",
+                 "_last_node_added_to")
 
     def __init__(self, grid_size):
         self.grid_size = grid_size
@@ -27,6 +28,8 @@ class Tree(object):
         self._node_indices = dict()
 
         self._node_indices_rev = dict()
+
+        self._last_node_added_to = None
 
         self._add_node("root")
 
@@ -127,6 +130,10 @@ class Tree(object):
         result = [node.node_id for node in self._graph.nodes() if node.node_id != "root"]
         return result
 
+    @property
+    def node_last_added_to(self):
+        return self._last_node_added_to
+
     def get_number_of_nodes(self):
         return self._graph.num_nodes() - 1
 
@@ -187,6 +194,8 @@ class Tree(object):
             for node, data_list in tree_dict["node_data"].items():
                 new._data[node] = list(data_list)
 
+        new._last_node_added_to = tree_dict['node_last_added_to']
+
         new.update()
 
         return new
@@ -198,7 +207,8 @@ class Tree(object):
                "node_idx": self._node_indices.copy(),
                "node_idx_rev": self._node_indices_rev.copy(),
                "node_data": node_data,
-               "grid_size": self.grid_size}
+               "grid_size": self.grid_size,
+               "node_last_added_to": self._last_node_added_to}
         return res
 
     def add_data_point_to_node(self, data_point, node):
@@ -215,11 +225,14 @@ class Tree(object):
 
             self._graph[node_idx].log_r += data_point.value
 
+            self._last_node_added_to = node
+
             if not build_add:
                 self._update_path_to_root(self.get_parent(node))
 
     def add_data_point_to_outliers(self, data_point):
         self._data[-1].append(data_point)
+        self._last_node_added_to = -1
 
     def add_subtree(self, subtree, parent=None):
 
@@ -282,6 +295,8 @@ class Tree(object):
 
             self._graph.add_edge(node_idx, child_idx, None)
 
+        self._last_node_added_to = node
+
         self._update_path_to_root(node)
 
         return node
@@ -304,6 +319,8 @@ class Tree(object):
         new._node_indices = self._node_indices.copy()
 
         new._node_indices_rev = self._node_indices_rev.copy()
+
+        new._last_node_added_to = self._last_node_added_to
 
         for node_idx in new._graph.node_indices():
             new._graph[node_idx] = new._graph[node_idx].copy()

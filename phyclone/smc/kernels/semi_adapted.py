@@ -31,17 +31,27 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
             node = tree.labels[self.data_point.idx]
 
+            assert node == tree.node_last_added_to
+
             # Existing node
             if node in self.parent_particle.tree_nodes or node == -1:
                 log_p = np.log(0.5) + self._get_log_p(tree)
 
             # New node
             else:
+                # old_num_roots = len(self.parent_particle.tree_roots)
+                #
+                # log_p = np.log(0.5)
+                #
+                # num_children = tree.get_number_of_children(node)
+                #
+                # log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
                 old_num_roots = len(self.parent_particle.tree_roots)
 
                 log_p = np.log(0.5)
 
-                num_children = tree.get_number_of_children(node)
+                # num_children = tree.get_number_of_children(node)
+                num_children = tree.num_children_on_node_that_matters
 
                 log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
 
@@ -154,7 +164,11 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         tree.create_root_node(children=children, data=[self.data_point])
 
-        return tree
+        tree_container = TreeHolder(tree, self.tree_dist, self.perm_dist)
+
+        return tree_container
+
+        # return tree
 
 
 class SemiAdaptedKernel(Kernel):
