@@ -64,7 +64,6 @@ class Particle(object):
     @tree.getter
     def tree(self):
         return self._tree.tree
-        # return Tree.from_dict(self._tree)
 
     @tree.setter
     def tree(self, tree):
@@ -77,17 +76,6 @@ class Particle(object):
         self.tree_nodes = tree.tree_nodes.copy()
         self._hash_val = hash(tree)
         self._tree = tree
-        # self._data = tree.data
-        # self.log_p = self._tree_dist.log_p(tree)
-        # if self._perm_dist is None:
-        #     self.log_pdf = 0.0
-        # else:
-        #     self.log_pdf = self._perm_dist.log_pdf(tree)
-        # self.log_p_one = self._tree_dist.log_p_one(tree)
-        # self.tree_roots = tree.roots
-        # self.tree_nodes = tree.nodes
-        # self._hash_val = hash(tree)
-        # self._tree = tree.to_dict()
 
     @property
     def built_tree(self):

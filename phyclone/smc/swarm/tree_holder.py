@@ -39,12 +39,6 @@ class TreeHolder(object):
     def tree(self):
         return self._tree
 
-    # @tree.setter
-    # def tree(self, tree):
-    #     self.log_p = self._tree_dist.log_p(tree)
-    #     # self._data = tree.data
-    #     self._hash_val = hash(tree)
-    #     self._tree = tree.to_dict()
     @tree.setter
     def tree(self, tree):
         self.log_p = self._tree_dist.log_p(tree)
