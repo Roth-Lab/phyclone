@@ -173,15 +173,28 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         children = self._rng.choice(self.parent_particle.tree_roots, num_children, replace=False)
 
-        tree = self.parent_particle.tree
+        # tree = self.parent_particle.tree
+        #
+        # tree.create_root_node(children=children, data=[self.data_point])
+        #
+        # tree_container = TreeHolder(tree, self.tree_dist, self.perm_dist)
 
-        tree.create_root_node(children=children, data=[self.data_point])
-
-        tree_container = TreeHolder(tree, self.tree_dist, self.perm_dist)
+        tree_container = get_cached_new_tree(self.parent_particle, self.data_point, frozenset(children))
 
         return tree_container
 
         # return tree
+
+
+@lru_cache(maxsize=256)
+def get_cached_new_tree(parent_particle, data_point, children):
+    tree = parent_particle.tree
+
+    tree.create_root_node(children=children, data=[data_point])
+
+    tree_container = TreeHolder(tree, parent_particle._tree_dist, parent_particle._perm_dist)
+
+    return tree_container
 
 
 class SemiAdaptedKernel(Kernel):

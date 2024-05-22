@@ -1,5 +1,5 @@
 from phyclone.smc.kernels.fully_adapted import _get_cached_full_proposal_dist
-from phyclone.smc.kernels.semi_adapted import _get_cached_semi_proposal_dist
+from phyclone.smc.kernels.semi_adapted import _get_cached_semi_proposal_dist, get_cached_new_tree
 from phyclone.tree.utils import compute_log_S, _convolve_two_children
 
 
@@ -8,6 +8,10 @@ from phyclone.tree.utils import compute_log_S, _convolve_two_children
 def clear_proposal_dist_caches():
     _get_cached_semi_proposal_dist.cache_clear()
     _get_cached_full_proposal_dist.cache_clear()
+    # print('get_cached_new_tree cache info: {}, hit ratio: {}'.format(
+    #     get_cached_new_tree.cache_info(),
+    #     _cache_ratio(get_cached_new_tree.cache_info())))
+    get_cached_new_tree.cache_clear()
 
 def _cache_ratio(cache_obj):
     try:
