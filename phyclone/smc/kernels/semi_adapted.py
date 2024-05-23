@@ -36,14 +36,12 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
             # Existing node
             if node in self.parent_particle.tree_nodes or node == -1:
-                # log_p = np.log(0.5) + self._get_log_p(tree)
                 log_p = self.log_half + self._get_log_p(tree)
 
             # New node
             else:
                 old_num_roots = len(self.parent_particle.tree_roots)
 
-                # log_p = np.log(0.5)
                 log_p = self.log_half
 
                 num_children = tree.num_children_on_node_that_matters
@@ -94,11 +92,6 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
             trees.append(tree_particle)
 
-        # log_q = np.array([x.log_p for x in trees])
-        #
-        # log_q = log_normalize(log_q)
-        #
-        # self._log_p = dict(zip(trees, log_q))
         self._set_log_p_dist(trees)
 
         self.parent_tree = None
@@ -137,17 +130,10 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         return tree_particle
 
     def _propose_existing_node(self):
-        # q = np.exp(list(self._log_p.values()))
-        #
-        # assert abs(1 - sum(q)) < 1e-6
-        #
-        # q = q / sum(q)
-
         q = self._q_dist
 
         idx = self._rng.multinomial(1, q).argmax()
 
-        # tree = list(self._log_p.keys())[idx]
         tree = self._curr_trees[idx]
 
         return tree
@@ -179,20 +165,22 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         #
         # tree_container = TreeHolder(tree, self.tree_dist, self.perm_dist)
 
-        tree_container = get_cached_new_tree(self.parent_particle, self.data_point, frozenset(children))
+        tree_container = get_cached_new_tree(self.parent_particle,
+                                             self.data_point,
+                                             frozenset(children),
+                                             self.tree_dist,
+                                             self.perm_dist)
 
         return tree_container
 
-        # return tree
-
 
 @lru_cache(maxsize=256)
-def get_cached_new_tree(parent_particle, data_point, children):
+def get_cached_new_tree(parent_particle, data_point, children, tree_dist, perm_dist):
     tree = parent_particle.tree
 
     tree.create_root_node(children=children, data=[data_point])
 
-    tree_container = TreeHolder(tree, parent_particle._tree_dist, parent_particle._perm_dist)
+    tree_container = TreeHolder(tree, tree_dist, perm_dist)
 
     return tree_container
 

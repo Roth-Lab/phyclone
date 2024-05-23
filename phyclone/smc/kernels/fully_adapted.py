@@ -27,8 +27,6 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         else:
             tree_particle = tree
         return self._log_p[tree_particle]
-        # tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
-        # return self._log_p[tree_particle]
 
     def sample(self):
         """ Sample a new tree from the proposal distribution.
@@ -39,7 +37,6 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
 
         tree = list(self._log_p.keys())[idx]
 
-        # return tree.tree
         return tree
 
     def _init_dist(self):
@@ -124,16 +121,6 @@ class FullyAdaptedKernel(Kernel):
         super().__init__(tree_prior_dist, rng, perm_dist=perm_dist)
 
         self.outlier_proposal_prob = outlier_proposal_prob
-
-    def __hash__(self):
-        return hash(self.tree_dist.prior)
-
-    def __eq__(self, other):
-        self_key = self.tree_dist.prior
-
-        other_key = other.tree_dist.prior
-
-        return self_key == other_key
 
     def get_proposal_distribution(self, data_point, parent_particle, parent_tree=None):
         if parent_particle is not None:

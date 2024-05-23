@@ -13,6 +13,7 @@ def clear_proposal_dist_caches():
     #     _cache_ratio(get_cached_new_tree.cache_info())))
     get_cached_new_tree.cache_clear()
 
+
 def _cache_ratio(cache_obj):
     try:
         ratio = cache_obj.hits / (cache_obj.hits + cache_obj.misses)

@@ -9,6 +9,13 @@ class FSCRPDistribution(object):
     def __init__(self, alpha):
         self.alpha = alpha
 
+    def __eq__(self, other):
+        alpha_check = self.alpha == other.alpha
+        return alpha_check
+
+    def __hash__(self):
+        return hash(self.alpha)
+
     @property
     def alpha(self):
         return self._alpha
@@ -51,6 +58,12 @@ class TreeJointDistribution(object):
 
     def __init__(self, prior):
         self.prior = prior
+
+    def __eq__(self, other):
+        return self.prior == other.prior
+
+    def __hash__(self):
+        return hash(self.prior)
 
     def log_p(self, tree):
         """The log likelihood of the data marginalized over root node parameters."""

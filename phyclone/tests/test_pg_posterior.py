@@ -140,8 +140,6 @@ class FullyAdaptedTest(BaseTest.BaseTest):
 
         self.run_scale = 1
 
-        set_num_threads(1)
-
 
 class SemiAdaptedTest(BaseTest.BaseTest):
 
