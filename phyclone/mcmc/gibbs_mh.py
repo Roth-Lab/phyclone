@@ -92,7 +92,8 @@ class PruneRegraphSampler(object):
 
         p, _ = exp_normalize(log_p)
 
-        idx = discrete_rvs(p, self._rng)
+        # idx = discrete_rvs(p, self._rng)
+        idx = self._rng.multinomial(1, p).argmax()
 
         return trees[idx][1]
 
