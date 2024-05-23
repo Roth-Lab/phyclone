@@ -351,9 +351,10 @@ def get_labels_table(data, tree, clusters=None):
 
 
 def create_main_run_output(cluster_file, out_file, results):
-    if cluster_file is not None:
-        results["clusters"] = pd.read_csv(cluster_file, sep="\t")[
-            ["mutation_id", "cluster_id"]
-        ].drop_duplicates()
+    for chain_result in results.values():
+        if cluster_file is not None:
+            chain_result["clusters"] = pd.read_csv(cluster_file, sep="\t")[
+                ["mutation_id", "cluster_id"]
+            ].drop_duplicates()
     with gzip.GzipFile(out_file, mode="wb") as fh:
         pickle.dump(results, fh)
