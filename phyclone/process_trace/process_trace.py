@@ -18,32 +18,43 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
-    data = results["data"]
+    data = results[0]["data"]
+
+    chain_num = 0
 
     if map_type == 'frequency':
 
-        topologies = create_topology_dict_from_trace(results["trace"])
+        # topologies = create_topology_dict_from_trace(results["trace"])
+        topologies = create_topology_dict_from_trace(results)
 
         df = create_topology_dataframe(topologies.values())
         df = df.sort_values(by="count", ascending=False)
 
         map_iter = df['iter'].iloc[0]
+        chain_num = df['chain_num'].iloc[0]
     else:
         map_iter = 0
 
         map_val = float("-inf")
 
-        for i, x in enumerate(results["trace"]):
-            if x["log_p_one"] > map_val:
-                map_iter = i
+        # for i, x in enumerate(results["trace"]):
+        #     if x["log_p_one"] > map_val:
+        #         map_iter = i
+        #
+        #         map_val = x["log_p_one"]
+        for curr_chain_num, chain_results in results.items():
+            for i, x in enumerate(chain_results["trace"]):
+                if x["log_p_one"] > map_val:
+                    map_iter = i
 
-                map_val = x["log_p_one"]
+                    map_val = x["log_p_one"]
+                    chain_num = curr_chain_num
 
-    tree = Tree.from_dict(results["trace"][map_iter]["tree"])
+    tree = Tree.from_dict(results[chain_num]["trace"][map_iter]["tree"])
 
-    clusters = results.get("clusters", None)
+    clusters = results[0].get("clusters", None)
 
-    table = get_clone_table(data, results["samples"], tree, clusters=clusters)
+    table = get_clone_table(data, results[0]["samples"], tree, clusters=clusters)
 
     _create_results_output_files(
         out_log_probs_file, out_table_file, out_tree_file, results, table, tree
@@ -52,9 +63,11 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
 
 def create_topology_dict_from_trace(trace):
     topologies = dict()
-    for i, x in enumerate(trace):
-        curr_tree = Tree.from_dict(x["tree"])
-        count_topology(topologies, x, i, curr_tree)
+    for chain_num, chain_result in trace.items():
+        chain_trace = chain_result["trace"]
+        for i, x in enumerate(chain_trace):
+            curr_tree = Tree.from_dict(x["tree"])
+            count_topology(topologies, x, i, curr_tree, chain_num)
     return topologies
 
 
@@ -63,7 +76,8 @@ def write_topology_report(in_file, out_file):
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
-    topologies = create_topology_dict_from_trace(results["trace"])
+    # topologies = create_topology_dict_from_trace(results["trace"])
+    topologies = create_topology_dict_from_trace(results)
 
     df = create_topology_dataframe(topologies.values())
     df = df.sort_values(by="count", ascending=False)
@@ -113,7 +127,7 @@ def count_parent_child_relationships(curr_tree, data_index_dict, parent_child_ar
                     ] += 1
 
 
-def count_topology(topologies, x, i, x_top):
+def count_topology(topologies, x, i, x_top, chain_num=0):
     if x_top in topologies:
         topology = topologies[x_top]
         topology["count"] += 1
@@ -122,6 +136,7 @@ def count_topology(topologies, x, i, x_top):
             topology["log_p_joint_max"] = curr_log_p_one
             topology["iter"] = i
             topology["topology"] = x_top
+            topology["chain_num"] = chain_num
     else:
         log_mult = x_top.multiplicity
         topologies[x_top] = {
@@ -129,6 +144,7 @@ def count_topology(topologies, x, i, x_top):
                 "count": 1,
                 "log_p_joint_max": x["log_p_one"],
                 "iter": i,
+                "chain_num": chain_num,
                 "multiplicity": np.exp(log_mult),
                 "log_multiplicity": log_mult,
             }
@@ -169,7 +185,7 @@ def write_consensus_results(
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
-    data = results["data"]
+    data = results[0]["data"]
 
     trees = []
     probs = []
@@ -178,9 +194,12 @@ def write_consensus_results(
 
     if weight_type == "counts":
         weighted_consensus = False
-        trees = [Tree.from_dict(x["tree"]) for x in results["trace"]]
+        # trees = [Tree.from_dict(x["tree"]) for x in results["trace"]]
+        for chain_results in results.values():
+            trees.extend([Tree.from_dict(x["tree"]) for x in chain_results["trace"]])
     elif weight_type == "corrected-counts":
-        topologies = create_topology_dict_from_trace(results["trace"])
+        # topologies = create_topology_dict_from_trace(results["trace"])
+        topologies = create_topology_dict_from_trace(results)
 
         for topology in topologies.values():
             curr_tree = topology["topology"]
@@ -188,8 +207,10 @@ def write_consensus_results(
             trees.append(curr_tree)
             probs.append(curr_prob)
     else:
-        trees = [Tree.from_dict(x["tree"]) for x in results["trace"]]
-        probs = np.array([x["log_p_one"] for x in results["trace"]])
+        for chain_results in results.values():
+            trees.extend([Tree.from_dict(x["tree"]) for x in chain_results["trace"]])
+            probs.extend([x["log_p_one"] for x in chain_results["trace"]])
+            # chain_probs = np.array([x["log_p_one"] for x in chain_results["trace"]])
 
     if weighted_consensus:
         probs = np.array(probs)
@@ -205,9 +226,9 @@ def write_consensus_results(
 
     tree = get_tree_from_consensus_graph(data, graph)
 
-    clusters = results.get("clusters", None)
+    clusters = results[0].get("clusters", None)
 
-    table = get_clone_table(data, results["samples"], tree, clusters=clusters)
+    table = get_clone_table(data, results[0]["samples"], tree, clusters=clusters)
 
     table = pd.DataFrame(table)
 

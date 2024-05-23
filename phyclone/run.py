@@ -78,7 +78,6 @@ def run(
                 print("Finished chain", res_chain)
 
     create_main_run_output(cluster_file, out_file, results)
-    print('done I guess')
 
 
 def phyclone_go(burnin, concentration_update, concentration_value, data, max_time, num_iters, num_particles,
