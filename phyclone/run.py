@@ -57,9 +57,8 @@ def run(
 
     if num_threads == 1:
         results[0] = phyclone_go(burnin, concentration_update, concentration_value, data, max_time, num_iters,
-                                 num_particles,
-                                 num_samples_data_point, num_samples_prune_regraph, outlier_prob, print_freq, proposal,
-                                 resample_threshold, rng_main, samples, thin, 0)
+                                 num_particles, num_samples_data_point, num_samples_prune_regraph, outlier_prob,
+                                 print_freq, proposal, resample_threshold, rng_main, samples, thin, 0)
 
         print("Finished chain", 0)
 
@@ -78,7 +77,7 @@ def run(
             for future in as_completed(chain_results):
                 exception = future.exception()
                 if exception is not None:
-                    pass
+                    raise exception
                 else:
                     result = future.result()
                     res_chain = result["chain_num"]
