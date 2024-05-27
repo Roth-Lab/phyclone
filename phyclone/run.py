@@ -53,29 +53,37 @@ def run(
         in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
         precision=precision)
 
-    # set_numba_run_threads(num_threads, samples)
-
-    rng_list = rng_main.spawn(num_threads)
-
     results = {}
 
-    with ProcessPoolExecutor(max_workers=num_threads) as pool:
-        chain_results = [pool.submit(phyclone_go, burnin, concentration_update, concentration_value,
-                                     data, max_time, num_iters,
-                                     num_particles, num_samples_data_point,
-                                     num_samples_prune_regraph, outlier_prob,
-                                     print_freq, proposal, resample_threshold,
-                                     rng, samples, thin, chain_num) for chain_num, rng in enumerate(rng_list)]
+    if num_threads == 1:
+        results[0] = phyclone_go(burnin, concentration_update, concentration_value, data, max_time, num_iters,
+                                 num_particles,
+                                 num_samples_data_point, num_samples_prune_regraph, outlier_prob, print_freq, proposal,
+                                 resample_threshold, rng_main, samples, thin, 0)
 
-        for future in as_completed(chain_results):
-            exception = future.exception()
-            if exception is not None:
-                pass
-            else:
-                result = future.result()
-                res_chain = result["chain_num"]
-                results[res_chain] = result
-                print("Finished chain", res_chain)
+        print("Finished chain", 0)
+
+    else:
+
+        rng_list = rng_main.spawn(num_threads)
+
+        with ProcessPoolExecutor(max_workers=num_threads) as pool:
+            chain_results = [pool.submit(phyclone_go, burnin, concentration_update, concentration_value,
+                                         data, max_time, num_iters,
+                                         num_particles, num_samples_data_point,
+                                         num_samples_prune_regraph, outlier_prob,
+                                         print_freq, proposal, resample_threshold,
+                                         rng, samples, thin, chain_num) for chain_num, rng in enumerate(rng_list)]
+
+            for future in as_completed(chain_results):
+                exception = future.exception()
+                if exception is not None:
+                    pass
+                else:
+                    result = future.result()
+                    res_chain = result["chain_num"]
+                    results[res_chain] = result
+                    print("Finished chain", res_chain)
 
     create_main_run_output(cluster_file, out_file, results)
 
