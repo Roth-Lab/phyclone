@@ -158,10 +158,10 @@ def topology_report(**kwargs):
     help="""Thinning parameter for storing entries in trace. Default is 1."""
 )
 @click.option(
-    "--num-threads",
+    "--num-chains",
     default=1,
     type=int,
-    help="""Number of parallel threads for sampling. Default is 1."""
+    help="""Number of parallel chains for sampling. Default is 1."""
 )
 @click.option(
     "-c", "--cluster-file",

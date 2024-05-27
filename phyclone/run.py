@@ -15,7 +15,7 @@ from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer, read_pickle, save_numpy_rng
 from phyclone.data.pyclone import load_data
-from numba import set_num_threads
+# from numba import set_num_threads
 from phyclone.utils.dev import clear_proposal_dist_caches
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
@@ -41,7 +41,7 @@ def run(
         resample_threshold=0.5,
         seed=None,
         thin=1,
-        num_threads=1,
+        num_chains=1,
         rng_pickle=None,
         save_rng=True):
     rng_main = instantiate_and_seed_RNG(seed, rng_pickle)
@@ -55,7 +55,7 @@ def run(
 
     results = {}
 
-    if num_threads == 1:
+    if num_chains == 1:
         results[0] = phyclone_go(burnin, concentration_update, concentration_value, data, max_time, num_iters,
                                  num_particles, num_samples_data_point, num_samples_prune_regraph, outlier_prob,
                                  print_freq, proposal, resample_threshold, rng_main, samples, thin, 0)
@@ -64,9 +64,9 @@ def run(
 
     else:
 
-        rng_list = rng_main.spawn(num_threads)
+        rng_list = rng_main.spawn(num_chains)
 
-        with ProcessPoolExecutor(max_workers=num_threads) as pool:
+        with ProcessPoolExecutor(max_workers=num_chains) as pool:
             chain_results = [pool.submit(phyclone_go, burnin, concentration_update, concentration_value,
                                          data, max_time, num_iters,
                                          num_particles, num_samples_data_point,
@@ -108,12 +108,12 @@ def phyclone_go(burnin, concentration_update, concentration_value, data, max_tim
     return results
 
 
-def set_numba_run_threads(num_threads, samples):
-    # guarding against bad user inputs
-    num_threads = max(1, num_threads)
-    # don't use more threads than there are samples, numba goes slower
-    threads_to_use = min(num_threads, len(samples))
-    set_num_threads(threads_to_use)
+# def set_numba_run_threads(num_threads, samples):
+#     # guarding against bad user inputs
+#     num_threads = max(1, num_threads)
+#     # don't use more threads than there are samples, numba goes slower
+#     threads_to_use = min(num_threads, len(samples))
+#     set_num_threads(threads_to_use)
 
 
 def _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
