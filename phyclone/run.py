@@ -18,6 +18,7 @@ from phyclone.data.pyclone import load_data
 # from numba import set_num_threads
 from phyclone.utils.dev import clear_proposal_dist_caches
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from multiprocessing import get_context
 
 
 def run(
@@ -66,7 +67,7 @@ def run(
 
         rng_list = rng_main.spawn(num_chains)
 
-        with ProcessPoolExecutor(max_workers=num_chains) as pool:
+        with ProcessPoolExecutor(max_workers=num_chains, mp_context=get_context("spawn")) as pool:
             chain_results = [pool.submit(phyclone_go, burnin, concentration_update, concentration_value,
                                          data, max_time, num_iters,
                                          num_particles, num_samples_data_point,
