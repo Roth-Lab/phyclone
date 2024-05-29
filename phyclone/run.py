@@ -197,6 +197,8 @@ def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regr
                 if i % print_freq == 0:
                     print_stats(i, tree, tree_dist, chain_num)
 
+                clear_proposal_dist_caches()
+
                 tree = burnin_sampler.sample_tree(tree)
 
                 for _ in range(num_samples_data_point):

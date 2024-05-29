@@ -9,8 +9,8 @@ def clear_proposal_dist_caches():
     _get_cached_semi_proposal_dist.cache_clear()
     _get_cached_full_proposal_dist.cache_clear()
     get_cached_new_tree.cache_clear()
-    # compute_log_S.cache_clear()
-    # _convolve_two_children.cache_clear()
+    compute_log_S.cache_clear()
+    _convolve_two_children.cache_clear()
 
 
 def print_cache_info():
