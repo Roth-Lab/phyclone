@@ -3,8 +3,8 @@ Created on 9 Aug 2017
 
 @author: Andrew Roth
 '''
-import numpy as np
 from phyclone.utils.math import log_factorial, log_binomial_coefficient, log_multinomial_coefficient
+from itertools import repeat
 
 
 class RootPermutationDistribution(object):
@@ -104,7 +104,7 @@ def interleave_lists(lists, rng):
     sentinels = []
 
     for i, l in enumerate(lists):
-        sentinels.extend(np.ones(len(l), dtype=int) * i)
+        sentinels.extend(repeat(i, len(l)))
 
     rng.shuffle(sentinels)
 
