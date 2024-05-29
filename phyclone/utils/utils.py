@@ -81,9 +81,12 @@ class NumpyArrayListHasher:
 
     @staticmethod
     def _create_hashable(list_of_np_arrays):
-        hashable = np.array([xxhash.xxh3_64_hexdigest(arr) for arr in list_of_np_arrays], order='C')
+        # hashable = np.array([xxhash.xxh3_64_hexdigest(arr) for arr in list_of_np_arrays], order='C')
+        # hashable.sort()
+        # ret = xxhash.xxh3_64_hexdigest(hashable)
+        hashable = [xxhash.xxh3_64_hexdigest(arr) for arr in list_of_np_arrays]
         hashable.sort()
-        ret = xxhash.xxh3_64_hexdigest(hashable)
+        ret = tuple(hashable)
         return ret
 
     def __hash__(self) -> int:
