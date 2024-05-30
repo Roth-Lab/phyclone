@@ -196,6 +196,13 @@ class Tree(object):
             new._node_indices_rev = tree_dict['node_idx_rev'].copy()
             new._node_indices = node_idxs.copy()
 
+            # node_index_holes = set(new_graph.node_indices()).difference(tree_dict['node_idx_rev'].keys())
+
+            node_index_holes = [idx for idx in new_graph.node_indices() if idx not in tree_dict['node_idx_rev']]
+
+            if len(node_index_holes) > 0:
+                new_graph.remove_nodes_from(node_index_holes)
+
         else:
             for node, data_list in tree_dict["node_data"].items():
                 new._data[node] = list(data_list)
@@ -303,6 +310,8 @@ class Tree(object):
             self._data[node_name] = subtree._data[old_node_name]
             self._node_indices[node_name] = new_idx
             self._node_indices_rev[new_idx] = node_name
+
+        self._last_node_added_to = subtree._last_node_added_to
 
         self._update_path_to_root(parent_node.node_id)
 

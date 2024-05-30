@@ -246,6 +246,14 @@ def topology_report(**kwargs):
     help="""Number of prune-regraph updates per SMC iteration. Default is 1."""
 )
 @click.option(
+    "-s",
+    "--subtree-update-prob",
+    default=0.0,
+    type=float,
+    show_default=True,
+    help="""Probability of updating a subtree (instead of whole tree) using PG sampler. Default is 0.0"""
+)
+@click.option(
     "--precision",
     default=400,
     type=float,
