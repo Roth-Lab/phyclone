@@ -5,7 +5,7 @@ import rustworkx as rx
 
 from phyclone.tree.visitors import (PostOrderNodeUpdater, PreOrderNodeRelabeller,
                                     GraphToCladesVisitor, GraphToNewickVisitor)
-from phyclone.utils.math import log_factorial
+from phyclone.utils.math import log_factorial, cached_log_factorial
 from phyclone.tree.utils import compute_log_S
 import itertools
 from typing import Union
@@ -124,6 +124,11 @@ class Tree(object):
             result += self._get_multiplicity(child)
 
         return result
+
+    @property
+    def multiplicity_rst(self):
+        mult = sum(map(cached_log_factorial, map(self._graph.out_degree, self._graph.node_indices())))
+        return mult
 
     @property
     def nodes(self):
