@@ -111,22 +111,22 @@ class Tree(object):
     def leafs(self):
         return [x for x in self.nodes if self.get_number_of_children(x) == 0]
 
+    # @property
+    # def multiplicity(self):
+    #     return self._get_multiplicity("root")
+    #
+    # def _get_multiplicity(self, node):
+    #     children = self.get_children(node)
+    #
+    #     result = log_factorial(len(children))
+    #
+    #     for child in children:
+    #         result += self._get_multiplicity(child)
+    #
+    #     return result
+
     @property
     def multiplicity(self):
-        return self._get_multiplicity("root")
-
-    def _get_multiplicity(self, node):
-        children = self.get_children(node)
-
-        result = log_factorial(len(children))
-
-        for child in children:
-            result += self._get_multiplicity(child)
-
-        return result
-
-    @property
-    def multiplicity_rst(self):
         mult = sum(map(cached_log_factorial, map(self._graph.out_degree, self._graph.node_indices())))
         return mult
 
