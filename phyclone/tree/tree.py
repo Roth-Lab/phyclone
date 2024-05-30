@@ -10,6 +10,7 @@ from phyclone.tree.utils import compute_log_S
 import itertools
 from typing import Union
 from rustworkx.visualization import mpl_draw
+from scipy.special import gammaln
 
 
 class Tree(object):
@@ -239,9 +240,41 @@ class Tree(object):
         self._data[-1].append(data_point)
         self._last_node_added_to = -1
 
+    # def add_subtree(self, subtree, parent=None):
+    #
+    #     subtree = subtree.copy()
+    #
+    #     # Connect subtree
+    #     if parent is None:
+    #         parent = "root"
+    #
+    #     parent_idx = self._node_indices[parent]
+    #
+    #     parent_node = self._graph[parent_idx]
+    #
+    #     subtree_root = subtree.roots[0]
+    #
+    #     subtree_dummy_root = subtree._node_indices["root"]
+    #
+    #     subtree._graph.remove_node(subtree_dummy_root)
+    #
+    #     node_map_idx = self._graph.compose(subtree._graph, {parent_idx: (subtree._node_indices[subtree_root], None)})
+    #
+    #     for old_idx, new_idx in node_map_idx.items():
+    #         node_obj = self._graph[new_idx]
+    #         node_name = node_obj.node_id
+    #         # assert node_name not in self._data
+    #         self._data[node_name] = subtree._data[node_name]
+    #         self._node_indices[node_name] = new_idx
+    #         self._node_indices_rev[new_idx] = node_name
+    #
+    #     self._update_path_to_root(parent_node.node_id)
+
     def add_subtree(self, subtree, parent=None):
 
         subtree = subtree.copy()
+
+        first_label = (max(self.nodes + subtree.nodes + [-1, ]) + 1) - 1
 
         # Connect subtree
         if parent is None:
@@ -251,19 +284,23 @@ class Tree(object):
 
         parent_node = self._graph[parent_idx]
 
-        subtree_root = subtree.roots[0]
-
         subtree_dummy_root = subtree._node_indices["root"]
 
-        subtree._graph.remove_node(subtree_dummy_root)
+        node_map_idx = self._graph.compose(subtree._graph, {parent_idx: (subtree_dummy_root, None)})
 
-        node_map_idx = self._graph.compose(subtree._graph, {parent_idx: (subtree._node_indices[subtree_root], None)})
+        self._graph.remove_node_retain_edges(node_map_idx[subtree_dummy_root])
 
         for old_idx, new_idx in node_map_idx.items():
+            if old_idx == subtree_dummy_root:
+                continue
             node_obj = self._graph[new_idx]
             node_name = node_obj.node_id
-            # assert node_name not in self._data
-            self._data[node_name] = subtree._data[node_name]
+            old_node_name = node_name
+            if node_name in self._data:
+                first_label += 1
+                node_name = first_label
+                node_obj.node_id = node_name
+            self._data[node_name] = subtree._data[old_node_name]
             self._node_indices[node_name] = new_idx
             self._node_indices_rev[new_idx] = node_name
 
