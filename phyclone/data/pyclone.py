@@ -66,6 +66,8 @@ def _setup_cluster_df(cluster_file, outlier_prob):
         cluster_df.loc[:, 'outlier_prob'] = outlier_prob
     if outlier_prob == 0:
         cluster_df.loc[:, 'outlier_prob'] = outlier_prob
+    else:
+        cluster_df.loc[cluster_df['outlier_prob'] == 0, 'outlier_prob'] = outlier_prob
     cluster_df = cluster_df[["mutation_id", "cluster_id", "outlier_prob"]].drop_duplicates()
     return cluster_df
 

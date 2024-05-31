@@ -15,7 +15,6 @@ from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer, read_pickle, save_numpy_rng
 from phyclone.data.pyclone import load_data
-# from numba import set_num_threads
 from phyclone.utils.dev import clear_proposal_dist_caches
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing import get_context
@@ -110,14 +109,6 @@ def phyclone_go(burnin, concentration_update, concentration_value, data, max_tim
                                 num_samples_prune_regraph, print_freq, samplers, samples, thin, timer, tree, tree_dist,
                                 chain_num, rng, subtree_update_prob)
     return results
-
-
-# def set_numba_run_threads(num_threads, samples):
-#     # guarding against bad user inputs
-#     num_threads = max(1, num_threads)
-#     # don't use more threads than there are samples, numba goes slower
-#     threads_to_use = min(num_threads, len(samples))
-#     set_num_threads(threads_to_use)
 
 
 def _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
