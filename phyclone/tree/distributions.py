@@ -1,5 +1,6 @@
 import numpy as np
 from phyclone.utils.math import log_sum_exp, cached_log_factorial
+from scipy.stats import poisson
 
 
 class FSCRPDistribution(object):
@@ -34,16 +35,7 @@ class FSCRPDistribution(object):
         # CRP prior
         num_nodes = tree.get_number_of_nodes()
 
-        # log_p += num_nodes * np.log(self.alpha)
         log_p += num_nodes * self.log_alpha
-
-        # for node, node_data in tree_node_data.items():
-        #     if node == -1:
-        #         continue
-        #
-        #     num_data_points = len(node_data)
-        #
-        #     log_p += cached_log_factorial(num_data_points - 1)
 
         log_p += sum(cached_log_factorial(len(v) - 1) for k, v in tree_node_data.items() if k != -1)
 
@@ -52,7 +44,37 @@ class FSCRPDistribution(object):
 
         log_p -= tree.multiplicity
 
-        # log_p -= tree.multiplicity
+        return log_p
+
+    def log_p_one(self, tree, tree_node_data=None):
+        if tree_node_data is None:
+            tree_node_data = tree.node_data
+
+        log_p = 0
+
+        # CRP prior
+        num_nodes = tree.get_number_of_nodes()
+
+        log_p += num_nodes * self.log_alpha
+
+        log_p += sum(cached_log_factorial(len(v) - 1) for k, v in tree_node_data.items() if k != -1)
+
+        tree_roots = tree.roots
+
+        num_ways = 0
+
+        for root in tree_roots:
+            num_nodes = tree.get_number_of_descendants(root) + 1
+            num_sub_trees = (num_nodes - 1) * np.log(num_nodes)
+            num_ways += num_sub_trees
+
+        t_given_r = -num_ways
+
+        poisson_term = poisson.logpmf(len(tree_roots), 1)
+
+        log_p -= t_given_r + poisson_term
+
+        log_p -= tree.multiplicity
 
         return log_p
 
@@ -93,7 +115,9 @@ class TreeJointDistribution(object):
 
         tree_node_data = tree.node_data
 
-        log_p = self.prior.log_p(tree, tree_node_data)
+        # log_p = self.prior.log_p(tree, tree_node_data)
+
+        log_p = self.prior.log_p_one(tree, tree_node_data)
 
         # Outlier prior
         log_p += self.outlier_prior(tree_node_data)

@@ -391,6 +391,11 @@ class Tree(object):
         descs = rx.descendants(self._graph, source_idx)
         return [self._graph[child].node_id for child in descs]
 
+    def get_number_of_descendants(self, source="root"):
+        source_idx = self._node_indices[source]
+        descs = rx.descendants(self._graph, source_idx)
+        return len(list(descs))
+
     def get_parent(self, node):
         if node == "root":
             return None
