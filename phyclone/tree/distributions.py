@@ -4,10 +4,11 @@ from phyclone.utils.math import log_sum_exp, cached_log_factorial
 
 class FSCRPDistribution(object):
     """FSCRP prior distribution on trees."""
-    __slots__ = ("_alpha", "log_alpha")
+    __slots__ = ("_alpha", "log_alpha", "_c_const")
 
-    def __init__(self, alpha):
+    def __init__(self, alpha, c_const=1000):
         self.alpha = alpha
+        self.c_const = c_const
 
     def __eq__(self, other):
         alpha_check = self.alpha == other.alpha
@@ -24,6 +25,14 @@ class FSCRPDistribution(object):
     def alpha(self, alpha):
         self._alpha = alpha
         self.log_alpha = np.log(alpha)
+
+    @property
+    def c_const(self):
+        return self._c_const
+
+    @c_const.setter
+    def c_const(self, c_const):
+        self._c_const = np.log(c_const)
 
     def log_p(self, tree, tree_node_data=None):
         if tree_node_data is None:
@@ -75,19 +84,21 @@ class FSCRPDistribution(object):
 
         return log_p
 
-    @staticmethod
-    def _compute_z_term(num_roots, num_nodes):
-        a_term = np.log(1) * num_nodes
-        la = np.log(1)
+    def _compute_z_term(self, num_roots, num_nodes):
+        log_one = np.log(1)  # TODO: this is just 0, any point to doing this?
+        a_term = log_one * num_nodes  # TODO: 1 raised to the power of anything is still just 1, likely don't need this
+        la = log_one
+
+        log_const = self.c_const
 
         if num_roots == 0:
-            r_term_denominator = np.log(1) - (np.log(1000) * 1)
+            r_term_denominator = log_one - (log_const * 1)
             r_term_denominator = la + np.log1p(-np.exp(r_term_denominator - la))
             res = a_term - r_term_denominator
         else:
 
-            r_term_numerator = np.log(1) - (np.log(1000) * num_roots)
-            r_term_denominator = np.log(1) - (np.log(1000) * 1)
+            r_term_numerator = log_one - (log_const * num_roots)
+            r_term_denominator = log_one - (log_const * 1)
 
             r_term_numerator = la + np.log1p(-np.exp(r_term_numerator - la))
             r_term_denominator = la + np.log1p(-np.exp(r_term_denominator - la))
@@ -97,8 +108,9 @@ class FSCRPDistribution(object):
 
     def _compute_r_term(self, num_roots, num_nodes):
         z_term = self._compute_z_term(num_roots, num_nodes)
+        log_const = self.c_const
 
-        return np.log(1) - (z_term + (np.log(1000) * (num_roots - 1)))
+        return np.log(1) - (z_term + (log_const * (num_roots - 1)))
 
 
 class TreeJointDistribution(object):
