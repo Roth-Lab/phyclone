@@ -15,10 +15,15 @@ class Test(unittest.TestCase):
 
     def closed_form(self, r, b_term):
         a_term = 1 ** b_term
-        r_term_numerator = 1-(1 / (1000 ** r))
-        r_term_denominator = 1-(1 / (1000 ** 1))
 
-        res = a_term * (r_term_numerator / r_term_denominator)
+        if r == 0:
+            r_term_denominator = 1 - (1 / (1000 ** 1))
+            res = a_term / r_term_denominator
+        else:
+            r_term_numerator = 1-(1 / (1000 ** r))
+            r_term_denominator = 1-(1 / (1000 ** 1))
+
+            res = a_term * (r_term_numerator / r_term_denominator)
         return res
 
     def overall_prob(self, r, z_term):
@@ -28,15 +33,23 @@ class Test(unittest.TestCase):
 
     def closed_form_log(self, r, b_term):
         a_term = np.log(1) * b_term
-        r_term_numerator = np.log(1) - (np.log(1000) * r)
-        r_term_denominator = np.log(1) - (np.log(1000) * 1)
-
         la = np.log(1)
 
-        r_term_numerator = la + np.log1p(-np.exp(r_term_numerator - la))
-        r_term_denominator = la + np.log1p(-np.exp(r_term_denominator - la))
+        if r == 0:
+            r_term_denominator = np.log(1) - (np.log(1000) * 1)
+            r_term_denominator = la + np.log1p(-np.exp(r_term_denominator - la))
+            res = a_term - r_term_denominator
+        else:
 
-        res = a_term + (r_term_numerator - r_term_denominator)
+            r_term_numerator = np.log(1) - (np.log(1000) * r)
+            r_term_denominator = np.log(1) - (np.log(1000) * 1)
+
+
+
+            r_term_numerator = la + np.log1p(-np.exp(r_term_numerator - la))
+            r_term_denominator = la + np.log1p(-np.exp(r_term_denominator - la))
+
+            res = a_term + (r_term_numerator - r_term_denominator)
         return res
 
     def overall_prob_log(self, r, z_term):
@@ -136,6 +149,49 @@ class Test(unittest.TestCase):
         two_root_overall_log = self.overall_prob_log(2, two_root_z_log)
 
         np.testing.assert_allclose(two_root_overall_log, expected_log_overall)
+
+    def test_seven_roots(self):
+
+        r = 7
+        b_term = 7
+
+        expected = self.naive_way(r, b_term)
+        actual = self.closed_form(r, b_term)
+
+        print("Expected: {}, Actual: {}".format(expected, actual))
+
+        np.testing.assert_allclose(expected, actual)
+
+        overall = self.overall_prob(r, actual)
+
+        print("overall: {}".format(overall))
+
+
+    def test_zero_roots_log(self):
+
+        r = 0
+        b_term = 0
+
+        expected = self.closed_form(r, b_term)
+        expected_log_z = np.log(expected)
+        actual_log_z = self.closed_form_log(r, b_term)
+
+        print("Z-terms || Expected: {}, Actual: {}".format(expected_log_z, actual_log_z))
+
+        np.testing.assert_allclose(actual_log_z, expected_log_z)
+
+        expected_prob = self.overall_prob(r, expected)
+        expected_prob_log = np.log(expected_prob)
+
+        actual_prob_log = self.overall_prob_log(r, actual_log_z)
+
+        print("Prob || Expected: {}, Actual: {}".format(expected_prob_log, actual_prob_log))
+
+        np.testing.assert_allclose(actual_prob_log, expected_prob_log)
+
+
+
+
 
 
 

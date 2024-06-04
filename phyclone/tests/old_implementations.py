@@ -248,6 +248,9 @@ class OldTree(object):
     def get_descendants(self, source="root"):
         return nx.descendants(self._graph, source=source)
 
+    def get_number_of_descendants(self, source="root"):
+        return len(nx.descendants(self._graph, source=source))
+
     def get_parent(self, node):
         if node == "root":
             return None
