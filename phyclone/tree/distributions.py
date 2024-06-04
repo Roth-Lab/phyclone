@@ -67,18 +67,16 @@ class FSCRPDistribution(object):
             num_sub_trees = (num_nodes - 1) * np.log(num_nodes)
             num_ways += num_sub_trees
 
-        # t_given_r = -num_ways
-
         r_term = self._compute_r_term(len(tree_roots), num_nodes)
 
-        # log_p -= t_given_r + r_term
         log_p += (-num_ways + r_term)
 
         log_p -= tree.multiplicity
 
         return log_p
 
-    def _compute_z_term(self, num_roots, num_nodes):
+    @staticmethod
+    def _compute_z_term(num_roots, num_nodes):
         a_term = np.log(1) * num_nodes
         la = np.log(1)
 
