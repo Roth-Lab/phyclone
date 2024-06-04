@@ -1,6 +1,5 @@
 import numpy as np
 from phyclone.utils.math import log_sum_exp, cached_log_factorial
-from scipy.stats import poisson
 
 
 class FSCRPDistribution(object):
@@ -70,13 +69,30 @@ class FSCRPDistribution(object):
 
         t_given_r = -num_ways
 
-        poisson_term = poisson.logpmf(len(tree_roots), 1)
+        r_term = self._compute_r_term(len(tree_roots), num_nodes)
 
-        log_p -= t_given_r + poisson_term
+        log_p -= t_given_r + r_term
 
         log_p -= tree.multiplicity
 
         return log_p
+
+    def _compute_z_term(self, num_roots, num_nodes):
+        a_term = np.log(1) * num_nodes
+        r_term_numerator = np.log(1) - (np.log(1000) * num_roots)
+        r_term_denominator = np.log(1) - (np.log(1000) * 1)
+        la = np.log(1)
+
+        r_term_numerator = la + np.log1p(-np.exp(r_term_numerator - la))
+        r_term_denominator = la + np.log1p(-np.exp(r_term_denominator - la))
+
+        res = a_term + (r_term_numerator - r_term_denominator)
+        return res
+
+    def _compute_r_term(self, num_roots, num_nodes):
+        z_term = self._compute_z_term(num_roots, num_nodes)
+
+        return np.log(1) - (z_term + (np.log(1000) * (num_roots - 1)))
 
 
 class TreeJointDistribution(object):
