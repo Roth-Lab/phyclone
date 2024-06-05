@@ -1,4 +1,5 @@
-from collections import OrderedDict, defaultdict
+import itertools
+from collections import OrderedDict, defaultdict, Counter
 
 import numba
 import numpy as np
@@ -7,9 +8,11 @@ import pandas as pd
 import phyclone.data.base
 from phyclone.utils.math import log_normalize, log_beta_binomial_pdf, log_sum_exp, log_binomial_pdf
 from phyclone.utils.exceptions import MajorCopyNumberError
+from scipy.stats import ranksums, wilcoxon, mannwhitneyu, PermutationMethod, kstest
 
 
-def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400):
+def load_data(file_name, rng, low_loss_prob, high_loss_prob, assign_loss_prob, cluster_file=None,
+              density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400):
     pyclone_data, samples = load_pyclone_data(file_name)
 
     if cluster_file is None:
@@ -25,7 +28,7 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
             data.append(data_point)
 
     else:
-        cluster_df = _setup_cluster_df(cluster_file, outlier_prob)
+        cluster_df = _setup_cluster_df(cluster_file, outlier_prob, rng, low_loss_prob, high_loss_prob, assign_loss_prob)
 
         cluster_sizes = cluster_df["cluster_id"].value_counts().to_dict()
 
@@ -59,17 +62,94 @@ def _create_clustered_data_arr(cluster_outlier_probs, cluster_sizes, clusters, d
     return data
 
 
-def _setup_cluster_df(cluster_file, outlier_prob):
+def _setup_cluster_df(cluster_file, outlier_prob, rng, low_loss_prob, high_loss_prob, assign_loss_prob):
     cluster_df = pd.read_csv(cluster_file, sep="\t")
     if 'outlier_prob' not in cluster_df.columns:
-        print('Cluster level outlier probability column not found. Setting values to {p}'.format(p=outlier_prob))
-        cluster_df.loc[:, 'outlier_prob'] = outlier_prob
+        if assign_loss_prob:
+            _assign_out_prob(cluster_df, rng, low_loss_prob, high_loss_prob)
+            print('Cluster level outlier probability column not found. Assigning from data.')
+        else:
+            print('Cluster level outlier probability column not found. Setting values to {p}'.format(p=outlier_prob))
+            cluster_df.loc[:, 'outlier_prob'] = outlier_prob
     if outlier_prob == 0:
         cluster_df.loc[:, 'outlier_prob'] = outlier_prob
     else:
         cluster_df.loc[cluster_df['outlier_prob'] == 0, 'outlier_prob'] = outlier_prob
     cluster_df = cluster_df[["mutation_id", "cluster_id", "outlier_prob"]].drop_duplicates()
     return cluster_df
+
+
+def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
+    clust_distances_dict = defaultdict(list)
+    old_df_ref = df
+
+    grouped = df.groupby(['sample_id'], sort=False)
+
+    sample_clust_dict = dict()
+
+    for sample, group in grouped:
+        group = group.sort_values(by='cellular_prevalence', ascending=False)
+        top_clust = group['cluster_id'].iloc[0]
+        sample_clust_dict[sample] = top_clust
+
+    value, count = Counter(sample_clust_dict.values()).most_common(1)[0]
+
+    truncal_cluster = value
+
+    # df = old_df_ref.drop(columns=['sample_id', 'cellular_prevalence']).drop_duplicates()
+    df = old_df_ref[['cluster_id', 'chrom', 'coord', 'mutation_id']].drop_duplicates()
+    grouped = df.groupby(['cluster_id', 'chrom'], sort=False)
+    clust_chroms = defaultdict(set)
+    for cluster, group in grouped:
+        clust_chroms[cluster[0]].add(cluster[1])
+        if len(group) == 1:
+            # group['closest_delta'] = group['coord']
+            continue
+        else:
+            group = group.sort_values(by='coord', ascending=False)
+            fill_val = group['coord'].iloc[0]
+            group['prev'] = group['coord'].shift(-1, fill_value=fill_val)
+            group['delta_prev'] = (group['coord'] - group['prev']).abs()
+
+            # group['closest_delta'] = group['delta_prev']
+
+            new_fill_val = group['delta_prev'].iloc[-1]
+            group['delta_next'] = group['delta_prev'].shift(1, fill_value=new_fill_val)
+            group['closest_delta'] = group.apply(lambda x: min(x['delta_next'], x['delta_prev']), axis=1)
+        # clust_distances_dict[cluster[0]].extend(group['closest_delta'].values)
+
+        clust_distances_dict[cluster[0]].append(group['closest_delta'].values.mean())
+        # clust_distances_dict[cluster[0]].extend(group['closest_delta'].unique())
+
+
+    truncal_dists = clust_distances_dict[truncal_cluster]
+
+    lost_clusters = list()
+
+    min_clust_size = 2
+
+    for cluster, distance in clust_distances_dict.items():
+        if cluster == truncal_cluster or len(distance) < min_clust_size:
+            continue
+
+        if len(distance) < 21:
+            res = mannwhitneyu(distance, truncal_dists, method=PermutationMethod(random_state=rng))
+        else:
+            res = mannwhitneyu(distance, truncal_dists)
+
+        if res.pvalue < 0.01:
+            # lost_clusters.append((cluster, res.pvalue, len(distance)))
+            lost_clusters.append(cluster)
+
+    cluster_df = old_df_ref
+
+    cluster_df['outlier_prob'] = low_loss_prob
+
+    value_filter = cluster_df['cluster_id'].isin(lost_clusters)
+    cluster_df.loc[value_filter, 'outlier_prob'] = high_loss_prob
+
+
+
 
 
 def compute_outlier_prob(outlier_prob, cluster_size):

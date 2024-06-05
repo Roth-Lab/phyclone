@@ -44,15 +44,18 @@ def run(
         num_chains=1,
         rng_pickle=None,
         save_rng=True,
-        subtree_update_prob=0.0):
+        subtree_update_prob=0.0,
+        low_loss_prob=0.05,
+        high_loss_prob=0.6,
+        assign_loss_prob=False):
     rng_main = instantiate_and_seed_RNG(seed, rng_pickle)
 
     if save_rng:
         save_numpy_rng(out_file, rng_main)
 
-    data, samples = load_data(
-        in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
-        precision=precision)
+    data, samples = load_data(in_file, rng_main, low_loss_prob, high_loss_prob, assign_loss_prob,
+                              cluster_file=cluster_file, density=density, grid_size=grid_size,
+                              outlier_prob=outlier_prob, precision=precision)
 
     results = {}
 
