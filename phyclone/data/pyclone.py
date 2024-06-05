@@ -35,7 +35,7 @@ def load_data(file_name, rng, low_loss_prob, high_loss_prob, assign_loss_prob, c
         clusters = cluster_df.set_index("mutation_id")["cluster_id"].to_dict()
 
         cluster_outlier_probs = cluster_df.set_index("cluster_id")["outlier_prob"].to_dict()
-        
+
         print("Using input clustering with {} clusters".format(cluster_df["cluster_id"].nunique()))
 
         data = _create_clustered_data_arr(cluster_outlier_probs, cluster_sizes, clusters, density, grid_size,
@@ -66,8 +66,8 @@ def _setup_cluster_df(cluster_file, outlier_prob, rng, low_loss_prob, high_loss_
     cluster_df = pd.read_csv(cluster_file, sep="\t")
     if 'outlier_prob' not in cluster_df.columns:
         if assign_loss_prob:
-            _assign_out_prob(cluster_df, rng, low_loss_prob, high_loss_prob)
             print('Cluster level outlier probability column not found. Assigning from data.')
+            _assign_out_prob(cluster_df, rng, low_loss_prob, high_loss_prob)
         else:
             print('Cluster level outlier probability column not found. Setting values to {p}'.format(p=outlier_prob))
             cluster_df.loc[:, 'outlier_prob'] = outlier_prob
@@ -96,37 +96,29 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
 
     truncal_cluster = value
 
-    # df = old_df_ref.drop(columns=['sample_id', 'cellular_prevalence']).drop_duplicates()
     df = old_df_ref[['cluster_id', 'chrom', 'coord', 'mutation_id']].drop_duplicates()
     grouped = df.groupby(['cluster_id', 'chrom'], sort=False)
     clust_chroms = defaultdict(set)
     for cluster, group in grouped:
         clust_chroms[cluster[0]].add(cluster[1])
         if len(group) == 1:
-            # group['closest_delta'] = group['coord']
+            # group['closest_delta'] = 0
             continue
         else:
             group = group.sort_values(by='coord', ascending=False)
             fill_val = group['coord'].iloc[0]
             group['prev'] = group['coord'].shift(-1, fill_value=fill_val)
             group['delta_prev'] = (group['coord'] - group['prev']).abs()
-
-            # group['closest_delta'] = group['delta_prev']
-
             new_fill_val = group['delta_prev'].iloc[-1]
             group['delta_next'] = group['delta_prev'].shift(1, fill_value=new_fill_val)
             group['closest_delta'] = group.apply(lambda x: min(x['delta_next'], x['delta_prev']), axis=1)
-        # clust_distances_dict[cluster[0]].extend(group['closest_delta'].values)
-
-        clust_distances_dict[cluster[0]].append(group['closest_delta'].values.mean())
-        # clust_distances_dict[cluster[0]].extend(group['closest_delta'].unique())
-
+        clust_distances_dict[cluster[0]].extend(group['closest_delta'].values)
 
     truncal_dists = clust_distances_dict[truncal_cluster]
 
     lost_clusters = list()
 
-    min_clust_size = 2
+    min_clust_size = 4
 
     for cluster, distance in clust_distances_dict.items():
         if cluster == truncal_cluster or len(distance) < min_clust_size:
@@ -148,9 +140,13 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
     value_filter = cluster_df['cluster_id'].isin(lost_clusters)
     cluster_df.loc[value_filter, 'outlier_prob'] = high_loss_prob
 
-
-
-
+    if len(lost_clusters) > 0:
+        print("{} potentially lost/outlier clusters identified,"
+              " setting their prior loss prob to {}.".format(len(lost_clusters), high_loss_prob))
+        print("Clusters identified as potentially lost/outliers: {}".format(lost_clusters))
+    else:
+        print("No potentially lost/outlier clusters identified,"
+              " setting global prior loss prob to {}.".format(low_loss_prob))
 
 def compute_outlier_prob(outlier_prob, cluster_size):
     if outlier_prob == 0:
@@ -317,8 +313,8 @@ def _compute_liklihood_grid(ccf_grid, density, log_ll, precision, sample_data_po
 @numba.experimental.jitclass([
     ('a', numba.int64),
     ('b', numba.int64),
-    ('cn', numba.int64[:,:]),
-    ('mu', numba.float64[:,:]),
+    ('cn', numba.int64[:, :]),
+    ('mu', numba.float64[:, :]),
     ('log_pi', numba.float64[:]),
     ('t', numba.float64)
 ])
