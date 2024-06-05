@@ -297,7 +297,7 @@ def topology_report(**kwargs):
     "--assign-loss-prob/--no-assign-loss-prob",
     default=False,
     show_default=True,
-    help="Whether the numpy RNG BitGenerator should be pickled for reproducibility."
+    help="Whether to assign loss probability prior from the data."
 )
 def run(**kwargs):
     """ Run a new PhyClone analysis.

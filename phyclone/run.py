@@ -45,8 +45,8 @@ def run(
         rng_pickle=None,
         save_rng=True,
         subtree_update_prob=0.0,
-        low_loss_prob=0.05,
-        high_loss_prob=0.6,
+        low_loss_prob=0.01,
+        high_loss_prob=0.5,
         assign_loss_prob=False):
     rng_main = instantiate_and_seed_RNG(seed, rng_pickle)
 
