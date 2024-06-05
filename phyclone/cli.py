@@ -299,6 +299,20 @@ def topology_report(**kwargs):
     show_default=True,
     help="Whether to assign loss probability prior from the data."
 )
+@click.option(
+    "--low-loss-prob",
+    default=0.01,
+    type=click.FloatRange(0.0, 1.0, clamp=True),
+    show_default=True,
+    help="""Lower loss probability setting"""
+)
+@click.option(
+    "--high-loss-prob",
+    default=0.5,
+    type=click.FloatRange(0.0, 1.0, clamp=True),
+    show_default=True,
+    help="""Higher loss probability setting"""
+)
 def run(**kwargs):
     """ Run a new PhyClone analysis.
     """
