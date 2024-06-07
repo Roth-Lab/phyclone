@@ -165,6 +165,9 @@ def compute_outlier_prob(outlier_prob, cluster_size):
 def load_pyclone_data(file_name):
     df = _create_raw_data_df(file_name)
 
+    # remove any rows where maj copy number == 0
+    df = df.loc[df['major_cn'] > 0]
+
     samples = sorted(df['sample_id'].unique())
 
     # Filter for mutations present in all samples
