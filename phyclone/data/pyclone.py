@@ -28,7 +28,8 @@ def load_data(file_name, rng, low_loss_prob, high_loss_prob, assign_loss_prob, c
             data.append(data_point)
 
     else:
-        cluster_df = _setup_cluster_df(cluster_file, outlier_prob, rng, low_loss_prob, high_loss_prob, assign_loss_prob)
+        cluster_df = _setup_cluster_df(cluster_file, file_name, outlier_prob,
+                                       rng, low_loss_prob, high_loss_prob, assign_loss_prob)
 
         cluster_sizes = cluster_df["cluster_id"].value_counts().to_dict()
 
@@ -62,10 +63,14 @@ def _create_clustered_data_arr(cluster_outlier_probs, cluster_sizes, clusters, d
     return data
 
 
-def _setup_cluster_df(cluster_file, outlier_prob, rng, low_loss_prob, high_loss_prob, assign_loss_prob):
+def _setup_cluster_df(cluster_file, data_file, outlier_prob, rng, low_loss_prob, high_loss_prob, assign_loss_prob):
     cluster_df = pd.read_csv(cluster_file, sep="\t")
     if 'outlier_prob' not in cluster_df.columns:
         if assign_loss_prob:
+            data_df = pd.read_table(data_file)
+            data_df = data_df[['mutation_id', 'chrom', 'coord']]
+            cluster_df = pd.merge(cluster_df, data_df, how="inner", on=["mutation_id"])
+            cluster_df = cluster_df.drop_duplicates()
             print('Cluster level outlier probability column not found. Assigning from data.')
             _assign_out_prob(cluster_df, rng, low_loss_prob, high_loss_prob)
         else:
@@ -125,9 +130,9 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
             continue
 
         if len(distance) < 21:
-            res = mannwhitneyu(distance, truncal_dists, method=PermutationMethod(random_state=rng))
+            res = mannwhitneyu(distance, truncal_dists, method=PermutationMethod(random_state=rng), alternative='less')
         else:
-            res = mannwhitneyu(distance, truncal_dists)
+            res = mannwhitneyu(distance, truncal_dists, alternative='less')
 
         if res.pvalue < 0.01:
             # lost_clusters.append((cluster, res.pvalue, len(distance)))
