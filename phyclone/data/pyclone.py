@@ -1,6 +1,6 @@
 import itertools
-from collections import OrderedDict, defaultdict, Counter
-
+from collections import OrderedDict, defaultdict
+from operator import itemgetter
 import numba
 import numpy as np
 import pandas as pd
@@ -8,7 +8,7 @@ import pandas as pd
 import phyclone.data.base
 from phyclone.utils.math import log_normalize, log_beta_binomial_pdf, log_sum_exp, log_binomial_pdf
 from phyclone.utils.exceptions import MajorCopyNumberError
-from scipy.stats import ranksums, wilcoxon, mannwhitneyu, PermutationMethod, kstest
+from scipy.stats import mannwhitneyu, PermutationMethod
 
 
 def load_data(file_name, rng, low_loss_prob, high_loss_prob, assign_loss_prob, cluster_file=None,
@@ -89,18 +89,33 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
     clust_distances_dict = defaultdict(list)
     old_df_ref = df
 
-    grouped = df.groupby(['sample_id'], sort=False)
+    # grouped = df.groupby('sample_id', sort=False)
 
-    sample_clust_dict = dict()
+    # sample_clust_dict = dict()
+    #
+    # for sample, group in grouped:
+    #     group = group.sort_values(by='cellular_prevalence', ascending=False)
+    #     top_clust = group['cluster_id'].iloc[0]
+    #     sample_clust_dict[sample] = top_clust
+    #
+    # value, count = Counter(sample_clust_dict.values()).most_common(1)[0]
+    #
+    # truncal_cluster = value
 
-    for sample, group in grouped:
-        group = group.sort_values(by='cellular_prevalence', ascending=False)
-        top_clust = group['cluster_id'].iloc[0]
-        sample_clust_dict[sample] = top_clust
+    grouped = df.groupby('cluster_id', sort=False)
 
-    value, count = Counter(sample_clust_dict.values()).most_common(1)[0]
+    cluster_prev_dict = dict()
 
-    truncal_cluster = value
+    for cluster, group in grouped:
+        unique_vals = group['cellular_prevalence'].unique()
+        sum_vals = unique_vals.sum()
+        cluster_prev_dict[cluster] = sum_vals
+        # group = group.sort_values(by='cellular_prevalence', ascending=False)
+        # top_clust = group['cluster_id'].iloc[0]
+        # sample_clust_dict[sample] = top_clust
+
+    # TODO: check for multiple?
+    truncal_cluster = max(cluster_prev_dict.items(), key=itemgetter(1))[0]
 
     df = old_df_ref[['cluster_id', 'chrom', 'coord', 'mutation_id']].drop_duplicates()
     grouped = df.groupby(['cluster_id', 'chrom'], sort=False)
@@ -154,6 +169,7 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
     else:
         print("No potentially lost/outlier clusters identified,"
               " setting global prior loss prob to {}.".format(low_loss_prob))
+
 
 def compute_outlier_prob(outlier_prob, cluster_size):
     if outlier_prob == 0:
