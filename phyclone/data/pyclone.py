@@ -117,6 +117,8 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
     # TODO: check for multiple?
     truncal_cluster = max(cluster_prev_dict.items(), key=itemgetter(1))[0]
 
+    print("Cluster {} identified as likely truncal.".format(truncal_cluster))
+
     df = old_df_ref[['cluster_id', 'chrom', 'coord', 'mutation_id']].drop_duplicates()
     grouped = df.groupby(['cluster_id', 'chrom'], sort=False)
     clust_chroms = defaultdict(set)
