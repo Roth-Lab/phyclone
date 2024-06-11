@@ -107,18 +107,19 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
     clust_chroms = defaultdict(set)
     for cluster, group in grouped:
         clust_chroms[cluster[0]].add(cluster[1])
-        if len(group) == 1:
-            group['closest_delta'] = 0
-            # continue
-        else:
-            group = group.sort_values(by='coord', ascending=False)
-            fill_val = group['coord'].iloc[0]
-            group['prev'] = group['coord'].shift(-1, fill_value=fill_val)
-            group['delta_prev'] = (group['coord'] - group['prev']).abs()
-            new_fill_val = group['delta_prev'].iloc[-1]
-            group['delta_next'] = group['delta_prev'].shift(1, fill_value=new_fill_val)
-            group['closest_delta'] = group.apply(lambda x: min(x['delta_next'], x['delta_prev']), axis=1)
-        clust_distances_dict[cluster[0]].extend(group['closest_delta'].values)
+        clust_distances_dict[cluster[0]].extend([cluster[1]] * len(group))
+        # if len(group) == 1:
+        #     group['closest_delta'] = 0
+        #     # continue
+        # else:
+        #     group = group.sort_values(by='coord', ascending=False)
+        #     fill_val = group['coord'].iloc[0]
+        #     group['prev'] = group['coord'].shift(-1, fill_value=fill_val)
+        #     group['delta_prev'] = (group['coord'] - group['prev']).abs()
+        #     new_fill_val = group['delta_prev'].iloc[-1]
+        #     group['delta_next'] = group['delta_prev'].shift(1, fill_value=new_fill_val)
+        #     group['closest_delta'] = group.apply(lambda x: min(x['delta_next'], x['delta_prev']), axis=1)
+        # clust_distances_dict[cluster[0]].extend(group['closest_delta'].values)
 
     truncal_dists = clust_distances_dict[truncal_cluster]
 
