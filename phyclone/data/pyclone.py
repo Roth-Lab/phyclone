@@ -108,8 +108,13 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
 
     for cluster, group in grouped:
         unique_vals = group['cellular_prevalence'].unique()
-        sum_vals = unique_vals.sum()
+        # sum_vals = unique_vals.sum()
+        sum_vals = unique_vals.mean()
         cluster_prev_dict[cluster] = sum_vals
+
+        # cluster_prev_dict[cluster] = group['cellular_prevalence'].mean()
+
+
         # group = group.sort_values(by='cellular_prevalence', ascending=False)
         # top_clust = group['cluster_id'].iloc[0]
         # sample_clust_dict[sample] = top_clust
@@ -153,7 +158,7 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
         else:
             res = mannwhitneyu(distance, truncal_dists, alternative='less')
 
-        if res.pvalue < 0.01:
+        if res.pvalue < 0.05:
             # lost_clusters.append((cluster, res.pvalue, len(distance)))
             lost_clusters.append(cluster)
 
