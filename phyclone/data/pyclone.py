@@ -136,11 +136,14 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
 
         num_unique_sum = 0
 
+        # num_unique_arr = np.zeros(test_iters)
+
         for i in range(test_iters):
             sample_drawn = rng.choice(truncal_dist_tester, size=cluster_dist_len, replace=False)
             unique_vals = np.unique(sample_drawn)
             num_unique = len(unique_vals)
             num_unique_sum += num_unique
+            # num_unique_arr[i] = num_unique
             if num_unique < chromo_obvs:
                 samples_fewer += 1
 
@@ -151,7 +154,9 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
 
         estimate = (num_unique_sum / test_iters) / chromo_obvs
 
-        if pvalue < 0.05 and estimate > 2:
+        # estimate_2 = num_unique_arr.mean() / chromo_obvs
+
+        if pvalue < 0.01 and estimate > 1:
             # lost_clusters.append((cluster, res.pvalue, len(distance)))
             lost_clusters.append(cluster)
 
