@@ -89,35 +89,14 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
     clust_distances_dict = defaultdict(list)
     old_df_ref = df
 
-    # grouped = df.groupby('sample_id', sort=False)
-
-    # sample_clust_dict = dict()
-    #
-    # for sample, group in grouped:
-    #     group = group.sort_values(by='cellular_prevalence', ascending=False)
-    #     top_clust = group['cluster_id'].iloc[0]
-    #     sample_clust_dict[sample] = top_clust
-    #
-    # value, count = Counter(sample_clust_dict.values()).most_common(1)[0]
-    #
-    # truncal_cluster = value
-
     grouped = df.groupby('cluster_id', sort=False)
 
     cluster_prev_dict = dict()
 
     for cluster, group in grouped:
         unique_vals = group['cellular_prevalence'].unique()
-        # sum_vals = unique_vals.sum()
         sum_vals = unique_vals.mean()
         cluster_prev_dict[cluster] = sum_vals
-
-        # cluster_prev_dict[cluster] = group['cellular_prevalence'].mean()
-
-
-        # group = group.sort_values(by='cellular_prevalence', ascending=False)
-        # top_clust = group['cluster_id'].iloc[0]
-        # sample_clust_dict[sample] = top_clust
 
     # TODO: check for multiple?
     truncal_cluster = max(cluster_prev_dict.items(), key=itemgetter(1))[0]
@@ -130,35 +109,49 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
     for cluster, group in grouped:
         clust_chroms[cluster[0]].add(cluster[1])
         clust_distances_dict[cluster[0]].extend([cluster[1]] * len(group))
-        # if len(group) == 1:
-        #     group['closest_delta'] = 0
-        #     # continue
-        # else:
-        #     group = group.sort_values(by='coord', ascending=False)
-        #     fill_val = group['coord'].iloc[0]
-        #     group['prev'] = group['coord'].shift(-1, fill_value=fill_val)
-        #     group['delta_prev'] = (group['coord'] - group['prev']).abs()
-        #     new_fill_val = group['delta_prev'].iloc[-1]
-        #     group['delta_next'] = group['delta_prev'].shift(1, fill_value=new_fill_val)
-        #     group['closest_delta'] = group.apply(lambda x: min(x['delta_next'], x['delta_prev']), axis=1)
-        # clust_distances_dict[cluster[0]].extend(group['closest_delta'].values)
 
-    truncal_dists = clust_distances_dict[truncal_cluster]
+    truncal_dists = np.array(clust_distances_dict[truncal_cluster])
+
+    truncal_dist_len = len(truncal_dists)
 
     lost_clusters = list()
 
     min_clust_size = 4
 
+    test_iters = 10000
+
     for cluster, distance in clust_distances_dict.items():
-        if cluster == truncal_cluster or len(distance) < min_clust_size:
+        cluster_dist_len = len(distance)
+        if cluster == truncal_cluster or cluster_dist_len < min_clust_size:
             continue
 
-        if len(distance) < 21:
-            res = mannwhitneyu(distance, truncal_dists, method=PermutationMethod(random_state=rng), alternative='less')
+        if cluster_dist_len > truncal_dist_len:
+            truncal_dist_tester = np.resize(truncal_dists, cluster_dist_len)
         else:
-            res = mannwhitneyu(distance, truncal_dists, alternative='less')
+            truncal_dist_tester = truncal_dists
 
-        if res.pvalue < 0.05:
+        chromo_obvs = len(clust_chroms[cluster])
+
+        samples_fewer = 0
+
+        num_unique_sum = 0
+
+        for i in range(test_iters):
+            sample_drawn = rng.choice(truncal_dist_tester, size=cluster_dist_len, replace=False)
+            unique_vals = np.unique(sample_drawn)
+            num_unique = len(unique_vals)
+            num_unique_sum += num_unique
+            if num_unique < chromo_obvs:
+                samples_fewer += 1
+
+        if samples_fewer == 0:
+            pvalue = 1 / test_iters
+        else:
+            pvalue = samples_fewer / test_iters
+
+        estimate = (num_unique_sum / test_iters) / chromo_obvs
+
+        if pvalue < 0.05 and estimate > 2:
             # lost_clusters.append((cluster, res.pvalue, len(distance)))
             lost_clusters.append(cluster)
 
@@ -176,6 +169,99 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
     else:
         print("No potentially lost/outlier clusters identified,"
               " setting global prior loss prob to {}.".format(low_loss_prob))
+
+
+# def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
+#     clust_distances_dict = defaultdict(list)
+#     old_df_ref = df
+#
+#     # grouped = df.groupby('sample_id', sort=False)
+#
+#     # sample_clust_dict = dict()
+#     #
+#     # for sample, group in grouped:
+#     #     group = group.sort_values(by='cellular_prevalence', ascending=False)
+#     #     top_clust = group['cluster_id'].iloc[0]
+#     #     sample_clust_dict[sample] = top_clust
+#     #
+#     # value, count = Counter(sample_clust_dict.values()).most_common(1)[0]
+#     #
+#     # truncal_cluster = value
+#
+#     grouped = df.groupby('cluster_id', sort=False)
+#
+#     cluster_prev_dict = dict()
+#
+#     for cluster, group in grouped:
+#         unique_vals = group['cellular_prevalence'].unique()
+#         # sum_vals = unique_vals.sum()
+#         sum_vals = unique_vals.mean()
+#         cluster_prev_dict[cluster] = sum_vals
+#
+#         # cluster_prev_dict[cluster] = group['cellular_prevalence'].mean()
+#
+#
+#         # group = group.sort_values(by='cellular_prevalence', ascending=False)
+#         # top_clust = group['cluster_id'].iloc[0]
+#         # sample_clust_dict[sample] = top_clust
+#
+#     # TODO: check for multiple?
+#     truncal_cluster = max(cluster_prev_dict.items(), key=itemgetter(1))[0]
+#
+#     print("Cluster {} identified as likely truncal.".format(truncal_cluster))
+#
+#     df = old_df_ref[['cluster_id', 'chrom', 'coord', 'mutation_id']].drop_duplicates()
+#     grouped = df.groupby(['cluster_id', 'chrom'], sort=False)
+#     clust_chroms = defaultdict(set)
+#     for cluster, group in grouped:
+#         clust_chroms[cluster[0]].add(cluster[1])
+#         clust_distances_dict[cluster[0]].extend([cluster[1]] * len(group))
+#         # if len(group) == 1:
+#         #     group['closest_delta'] = 0
+#         #     # continue
+#         # else:
+#         #     group = group.sort_values(by='coord', ascending=False)
+#         #     fill_val = group['coord'].iloc[0]
+#         #     group['prev'] = group['coord'].shift(-1, fill_value=fill_val)
+#         #     group['delta_prev'] = (group['coord'] - group['prev']).abs()
+#         #     new_fill_val = group['delta_prev'].iloc[-1]
+#         #     group['delta_next'] = group['delta_prev'].shift(1, fill_value=new_fill_val)
+#         #     group['closest_delta'] = group.apply(lambda x: min(x['delta_next'], x['delta_prev']), axis=1)
+#         # clust_distances_dict[cluster[0]].extend(group['closest_delta'].values)
+#
+#     truncal_dists = clust_distances_dict[truncal_cluster]
+#
+#     lost_clusters = list()
+#
+#     min_clust_size = 4
+#
+#     for cluster, distance in clust_distances_dict.items():
+#         if cluster == truncal_cluster or len(distance) < min_clust_size:
+#             continue
+#
+#         if len(distance) < 21:
+#             res = mannwhitneyu(distance, truncal_dists, method=PermutationMethod(random_state=rng), alternative='less')
+#         else:
+#             res = mannwhitneyu(distance, truncal_dists, alternative='less')
+#
+#         if res.pvalue < 0.05:
+#             # lost_clusters.append((cluster, res.pvalue, len(distance)))
+#             lost_clusters.append(cluster)
+#
+#     cluster_df = old_df_ref
+#
+#     cluster_df['outlier_prob'] = low_loss_prob
+#
+#     value_filter = cluster_df['cluster_id'].isin(lost_clusters)
+#     cluster_df.loc[value_filter, 'outlier_prob'] = high_loss_prob
+#
+#     if len(lost_clusters) > 0:
+#         print("{} potentially lost/outlier clusters identified,"
+#               " setting their prior loss prob to {}.".format(len(lost_clusters), high_loss_prob))
+#         print("Clusters identified as potentially lost/outliers: {}".format(lost_clusters))
+#     else:
+#         print("No potentially lost/outlier clusters identified,"
+#               " setting global prior loss prob to {}.".format(low_loss_prob))
 
 
 def compute_outlier_prob(outlier_prob, cluster_size):
