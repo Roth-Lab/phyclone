@@ -1,7 +1,7 @@
 import numpy as np
 import numba
 from phyclone.utils import two_np_arr_cache, list_of_np_cache
-from phyclone.utils.math import conv_log, fft_convolve_two_children   # , non_log_conv
+from phyclone.utils.math import conv_log, fft_convolve_two_children
 
 
 @list_of_np_cache(maxsize=4096)
@@ -23,11 +23,9 @@ def compute_log_S(child_log_R_values):
 
 
 def _sub_compute_S(log_D):
-    # log_S = np.zeros(log_D.shape, order='C')
     log_S = np.empty_like(log_D)
     num_dims = log_D.shape[0]
     for i in range(num_dims):
-        # log_S[i, :] = np.logaddexp.accumulate(log_D[i, :])
         np.logaddexp.accumulate(log_D[i, :], out=log_S[i, :])
     return log_S
 
@@ -53,20 +51,10 @@ def compute_log_D(child_log_R_values):
 def _convolve_two_children(child_1, child_2):
     grid_size = child_1.shape[-1]
     if grid_size < 1000:
-        # num_dims = child_1.shape[0]
-        # res_arr = np.empty_like(child_1)
-        # _conv_two_children_jit(child_1, np.fliplr(child_2), num_dims, res_arr)
         res_arr = _np_conv_dims(child_1, child_2)
     else:
         res_arr = fft_convolve_two_children(child_1, child_2)
     return res_arr
-
-# def _np_conv_dims(child_1, child_2):
-#     num_dims = child_1.shape[0]
-#     log_D = child_1.copy()
-#     for i in range(num_dims):
-#         log_D[i, :] = non_log_conv(child_2[i, :], log_D[i, :])
-#     return log_D
 
 
 def _np_conv_dims(child_1, child_2):
