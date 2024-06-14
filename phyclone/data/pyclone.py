@@ -8,7 +8,7 @@ import pandas as pd
 import phyclone.data.base
 from phyclone.utils.math import log_normalize, log_beta_binomial_pdf, log_sum_exp, log_binomial_pdf
 from phyclone.utils.exceptions import MajorCopyNumberError
-from scipy.stats import mannwhitneyu, PermutationMethod
+from dataclasses import dataclass
 
 
 def load_data(file_name, rng, low_loss_prob, high_loss_prob, assign_loss_prob, cluster_file=None,
@@ -77,7 +77,7 @@ def _setup_cluster_df(cluster_file, data_file, outlier_prob, rng, low_loss_prob,
         else:
             print('Cluster level outlier probability column not found. Setting values to {p}'.format(p=outlier_prob))
             cluster_df.loc[:, 'outlier_prob'] = outlier_prob
-    if outlier_prob == 0:
+    if outlier_prob == 0 and not assign_loss_prob:
         cluster_df.loc[:, 'outlier_prob'] = outlier_prob
     else:
         cluster_df.loc[cluster_df['outlier_prob'] == 0, 'outlier_prob'] = outlier_prob
@@ -86,42 +86,25 @@ def _setup_cluster_df(cluster_file, data_file, outlier_prob, rng, low_loss_prob,
 
 
 def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
-    clust_distances_dict = defaultdict(list)
-    old_df_ref = df
 
-    grouped = df.groupby('cluster_id', sort=False)
+    truncal_cluster = _define_truncal_cluster(df)
 
-    cluster_prev_dict = dict()
+    cluster_info_dict = _build_cluster_info_dict(df)
 
-    for cluster, group in grouped:
-        unique_vals = group['cellular_prevalence'].unique()
-        sum_vals = unique_vals.mean()
-        cluster_prev_dict[cluster] = sum_vals
+    truncal_dists = _get_truncal_chrom_arr(df, truncal_cluster)
 
-    # TODO: check for multiple?
-    truncal_cluster = max(cluster_prev_dict.items(), key=itemgetter(1))[0]
+    lost_clusters = _define_possibly_lost_clusters(cluster_info_dict, rng, truncal_cluster, truncal_dists)
 
-    print("Cluster {} identified as likely truncal.".format(truncal_cluster))
+    _finalize_loss_prob_on_cluster_df(df, high_loss_prob, lost_clusters, low_loss_prob)
 
-    df = old_df_ref[['cluster_id', 'chrom', 'coord', 'mutation_id']].drop_duplicates()
-    grouped = df.groupby(['cluster_id', 'chrom'], sort=False)
-    clust_chroms = defaultdict(set)
-    for cluster, group in grouped:
-        clust_chroms[cluster[0]].add(cluster[1])
-        clust_distances_dict[cluster[0]].extend([cluster[1]] * len(group))
 
-    truncal_dists = np.array(clust_distances_dict[truncal_cluster])
-
+def _define_possibly_lost_clusters(cluster_info_dict, rng, truncal_cluster, truncal_dists):
     truncal_dist_len = len(truncal_dists)
-
     lost_clusters = list()
-
     min_clust_size = 4
-
     test_iters = 10000
-
-    for cluster, distance in clust_distances_dict.items():
-        cluster_dist_len = len(distance)
+    for cluster, info_obj in cluster_info_dict.items():
+        cluster_dist_len = info_obj.num_mutations
         if cluster == truncal_cluster or cluster_dist_len < min_clust_size:
             continue
 
@@ -130,20 +113,17 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
         else:
             truncal_dist_tester = truncal_dists
 
-        chromo_obvs = len(clust_chroms[cluster])
+        chromo_obvs = info_obj.num_unique_chromosomes
 
         samples_fewer = 0
 
         num_unique_sum = 0
-
-        # num_unique_arr = np.zeros(test_iters)
 
         for i in range(test_iters):
             sample_drawn = rng.choice(truncal_dist_tester, size=cluster_dist_len, replace=False)
             unique_vals = np.unique(sample_drawn)
             num_unique = len(unique_vals)
             num_unique_sum += num_unique
-            # num_unique_arr[i] = num_unique
             if num_unique < chromo_obvs:
                 samples_fewer += 1
 
@@ -154,19 +134,15 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
 
         estimate = (num_unique_sum / test_iters) / chromo_obvs
 
-        # estimate_2 = num_unique_arr.mean() / chromo_obvs
-
         if pvalue < 0.01 and estimate > 1:
-            # lost_clusters.append((cluster, res.pvalue, len(distance)))
             lost_clusters.append(cluster)
+    return lost_clusters
 
-    cluster_df = old_df_ref
 
+def _finalize_loss_prob_on_cluster_df(cluster_df, high_loss_prob, lost_clusters, low_loss_prob):
     cluster_df['outlier_prob'] = low_loss_prob
-
     value_filter = cluster_df['cluster_id'].isin(lost_clusters)
     cluster_df.loc[value_filter, 'outlier_prob'] = high_loss_prob
-
     if len(lost_clusters) > 0:
         print("{} potentially lost/outlier clusters identified,"
               " setting their prior loss prob to {}.".format(len(lost_clusters), high_loss_prob))
@@ -176,97 +152,47 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
               " setting global prior loss prob to {}.".format(low_loss_prob))
 
 
-# def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
-#     clust_distances_dict = defaultdict(list)
-#     old_df_ref = df
-#
-#     # grouped = df.groupby('sample_id', sort=False)
-#
-#     # sample_clust_dict = dict()
-#     #
-#     # for sample, group in grouped:
-#     #     group = group.sort_values(by='cellular_prevalence', ascending=False)
-#     #     top_clust = group['cluster_id'].iloc[0]
-#     #     sample_clust_dict[sample] = top_clust
-#     #
-#     # value, count = Counter(sample_clust_dict.values()).most_common(1)[0]
-#     #
-#     # truncal_cluster = value
-#
-#     grouped = df.groupby('cluster_id', sort=False)
-#
-#     cluster_prev_dict = dict()
-#
-#     for cluster, group in grouped:
-#         unique_vals = group['cellular_prevalence'].unique()
-#         # sum_vals = unique_vals.sum()
-#         sum_vals = unique_vals.mean()
-#         cluster_prev_dict[cluster] = sum_vals
-#
-#         # cluster_prev_dict[cluster] = group['cellular_prevalence'].mean()
-#
-#
-#         # group = group.sort_values(by='cellular_prevalence', ascending=False)
-#         # top_clust = group['cluster_id'].iloc[0]
-#         # sample_clust_dict[sample] = top_clust
-#
-#     # TODO: check for multiple?
-#     truncal_cluster = max(cluster_prev_dict.items(), key=itemgetter(1))[0]
-#
-#     print("Cluster {} identified as likely truncal.".format(truncal_cluster))
-#
-#     df = old_df_ref[['cluster_id', 'chrom', 'coord', 'mutation_id']].drop_duplicates()
-#     grouped = df.groupby(['cluster_id', 'chrom'], sort=False)
-#     clust_chroms = defaultdict(set)
-#     for cluster, group in grouped:
-#         clust_chroms[cluster[0]].add(cluster[1])
-#         clust_distances_dict[cluster[0]].extend([cluster[1]] * len(group))
-#         # if len(group) == 1:
-#         #     group['closest_delta'] = 0
-#         #     # continue
-#         # else:
-#         #     group = group.sort_values(by='coord', ascending=False)
-#         #     fill_val = group['coord'].iloc[0]
-#         #     group['prev'] = group['coord'].shift(-1, fill_value=fill_val)
-#         #     group['delta_prev'] = (group['coord'] - group['prev']).abs()
-#         #     new_fill_val = group['delta_prev'].iloc[-1]
-#         #     group['delta_next'] = group['delta_prev'].shift(1, fill_value=new_fill_val)
-#         #     group['closest_delta'] = group.apply(lambda x: min(x['delta_next'], x['delta_prev']), axis=1)
-#         # clust_distances_dict[cluster[0]].extend(group['closest_delta'].values)
-#
-#     truncal_dists = clust_distances_dict[truncal_cluster]
-#
-#     lost_clusters = list()
-#
-#     min_clust_size = 4
-#
-#     for cluster, distance in clust_distances_dict.items():
-#         if cluster == truncal_cluster or len(distance) < min_clust_size:
-#             continue
-#
-#         if len(distance) < 21:
-#             res = mannwhitneyu(distance, truncal_dists, method=PermutationMethod(random_state=rng), alternative='less')
-#         else:
-#             res = mannwhitneyu(distance, truncal_dists, alternative='less')
-#
-#         if res.pvalue < 0.05:
-#             # lost_clusters.append((cluster, res.pvalue, len(distance)))
-#             lost_clusters.append(cluster)
-#
-#     cluster_df = old_df_ref
-#
-#     cluster_df['outlier_prob'] = low_loss_prob
-#
-#     value_filter = cluster_df['cluster_id'].isin(lost_clusters)
-#     cluster_df.loc[value_filter, 'outlier_prob'] = high_loss_prob
-#
-#     if len(lost_clusters) > 0:
-#         print("{} potentially lost/outlier clusters identified,"
-#               " setting their prior loss prob to {}.".format(len(lost_clusters), high_loss_prob))
-#         print("Clusters identified as potentially lost/outliers: {}".format(lost_clusters))
-#     else:
-#         print("No potentially lost/outlier clusters identified,"
-#               " setting global prior loss prob to {}.".format(low_loss_prob))
+def _get_truncal_chrom_arr(df, truncal_cluster):
+    df = df[['cluster_id', 'chrom', 'coord', 'mutation_id']].drop_duplicates()
+    df = df.loc[df['cluster_id'] == truncal_cluster]
+    truncal_dists = list()
+    grouped = df.groupby('chrom', sort=False)
+    for chrom, group in grouped:
+        truncal_dists.extend([chrom] * len(group))
+    truncal_dists = np.array(truncal_dists)
+    return truncal_dists
+
+
+def _define_truncal_cluster(df):
+    grouped = df.groupby('cluster_id', sort=False)
+    cluster_prev_dict = dict()
+    for cluster, group in grouped:
+        unique_vals = group['cellular_prevalence'].unique()
+        sum_vals = unique_vals.mean()
+        cluster_prev_dict[cluster] = sum_vals
+
+    # TODO: check for multiple?
+    truncal_cluster = max(cluster_prev_dict.items(), key=itemgetter(1))[0]
+    print("Cluster {} identified as likely truncal.".format(truncal_cluster))
+    return truncal_cluster
+
+
+def _build_cluster_info_dict(df):
+    grouped = df.groupby('cluster_id', sort=False)
+    cluster_info_dict = dict()
+    for cluster, group in grouped:
+        clust_info_obj = ClusterInfo(cluster_id=cluster,
+                                     num_mutations=len(group['mutation_id'].unique()),
+                                     num_unique_chromosomes=len(group['chrom'].unique()))
+        cluster_info_dict[cluster] = clust_info_obj
+    return cluster_info_dict
+
+
+@dataclass
+class ClusterInfo:
+    cluster_id: str | int
+    num_mutations: int
+    num_unique_chromosomes: int
 
 
 def compute_outlier_prob(outlier_prob, cluster_size):
