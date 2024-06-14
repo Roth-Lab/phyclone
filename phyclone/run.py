@@ -47,8 +47,20 @@ def run(
         subtree_update_prob=0.0,
         low_loss_prob=0.01,
         high_loss_prob=0.5,
-        assign_loss_prob=False):
+        assign_loss_prob=False,
+        user_provided_loss_prob=False):
+
     rng_main = instantiate_and_seed_RNG(seed, rng_pickle)
+
+    if assign_loss_prob and user_provided_loss_prob:
+        raise Exception("Cannot use both --assign-loss-prob and --user-provided-loss-prob,"
+                        " these options are mutually exclusive")
+
+    if assign_loss_prob and outlier_prob == 0:
+        outlier_prob = 0.01
+
+    if user_provided_loss_prob and outlier_prob == 0:
+        outlier_prob = 0.01
 
     if save_rng:
         save_numpy_rng(out_file, rng_main)

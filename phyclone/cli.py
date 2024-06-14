@@ -298,6 +298,15 @@ def topology_report(**kwargs):
     default=False,
     show_default=True,
     help="Whether to assign loss probability prior from the cluster data."
+         "Note: This option is incompatible with --user-provided-loss-prob"
+)
+@click.option(
+    "--user-provided-loss-prob/--no-user-provided-loss-prob",
+    default=False,
+    show_default=True,
+    help="Whether to use user-provided cluster loss probability prior from the cluster file."
+         "Requires that the \'outlier_prob\' column be present and populated in the cluster file."
+         "Note: This option is incompatible with --assign-loss-prob"
 )
 @click.option(
     "--low-loss-prob",
