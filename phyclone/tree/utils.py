@@ -1,7 +1,6 @@
 import numpy as np
-import numba
 from phyclone.utils import two_np_arr_cache, list_of_np_cache
-from phyclone.utils.math import conv_log, fft_convolve_two_children
+from phyclone.utils.math import fft_convolve_two_children
 
 
 @list_of_np_cache(maxsize=4096)
@@ -83,12 +82,6 @@ def _np_conv_dims(child_1, child_2):
     log_D += child_2_maxes
 
     return log_D
-
-
-@numba.jit(cache=True, nopython=True, parallel=True)
-def _conv_two_children_jit(child_1, child_2, num_dims, res_arr):
-    for i in numba.prange(num_dims):
-        conv_log(child_1[i, :], child_2[i, :], res_arr[i, :])
 
 
 def get_clades(tree):

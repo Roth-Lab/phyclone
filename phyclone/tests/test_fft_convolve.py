@@ -1,15 +1,11 @@
 import numpy as np
 import unittest
-from phyclone.tree.utils import _conv_two_children_jit
+from phyclone.tree.utils import _np_conv_dims
 from phyclone.utils.math import fft_convolve_two_children
-from numba import set_num_threads
 
 
 def run_direct_two_child_convolve(child_1, child_2):
-    num_dims = child_1.shape[0]
-    set_num_threads(num_dims)
-    res_arr = np.empty_like(child_1)
-    _conv_two_children_jit(child_1, child_2, num_dims, res_arr)
+    res_arr = _np_conv_dims(child_1, child_2)
     return res_arr
 
 
