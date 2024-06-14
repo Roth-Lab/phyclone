@@ -1,5 +1,5 @@
 import numpy as np
-from phyclone.utils.math import exp_normalize, discrete_rvs, log_normalize
+from phyclone.utils.math import exp_normalize, log_normalize
 
 
 class DataPointSampler(object):
@@ -92,7 +92,6 @@ class PruneRegraphSampler(object):
 
         p, _ = exp_normalize(log_p)
 
-        # idx = discrete_rvs(p, self._rng)
         idx = self._rng.multinomial(1, p).argmax()
 
         return trees[idx][1]

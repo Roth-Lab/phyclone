@@ -1,16 +1,16 @@
 from collections import defaultdict
-import matplotlib.pyplot as plt
 import numpy as np
 import rustworkx as rx
+import itertools
+from typing import Union
 
 from phyclone.tree.visitors import (PostOrderNodeUpdater, PreOrderNodeRelabeller,
                                     GraphToCladesVisitor, GraphToNewickVisitor)
-from phyclone.utils.math import log_factorial, cached_log_factorial
+from phyclone.utils.math import cached_log_factorial
 from phyclone.tree.utils import compute_log_S
-import itertools
-from typing import Union
-from rustworkx.visualization import mpl_draw
-from scipy.special import gammaln
+
+# from rustworkx.visualization import mpl_draw
+# import matplotlib.pyplot as plt
 
 
 class Tree(object):
@@ -57,10 +57,10 @@ class Tree(object):
         vis_clades = frozenset(vis.clades)
         return vis_clades
 
-    def quick_draw_tree(self):
-        mpl_draw(self._graph, labels=lambda node: str(node.node_id), with_labels=True)
-        plt.show()
-        plt.close()
+    # def quick_draw_tree(self):
+    #     mpl_draw(self._graph, labels=lambda node: str(node.node_id), with_labels=True)
+    #     plt.show()
+    #     plt.close()
 
     @staticmethod
     def get_single_node_tree(data):
@@ -112,20 +112,6 @@ class Tree(object):
     def leafs(self):
         return [x for x in self.nodes if self.get_number_of_children(x) == 0]
 
-    # @property
-    # def multiplicity(self):
-    #     return self._get_multiplicity("root")
-    #
-    # def _get_multiplicity(self, node):
-    #     children = self.get_children(node)
-    #
-    #     result = log_factorial(len(children))
-    #
-    #     for child in children:
-    #         result += self._get_multiplicity(child)
-    #
-    #     return result
-
     @property
     def multiplicity(self):
         mult = sum(map(cached_log_factorial, map(self._graph.out_degree, self._graph.node_indices())))
@@ -170,7 +156,6 @@ class Tree(object):
 
             new_graph = new._graph
             node_idxs = tree_dict['node_idx']
-            # assert node_idxs["root"] == new._node_indices["root"]
 
             new_graph.extend_from_edge_list(tree_dict['graph'])
 
@@ -195,8 +180,6 @@ class Tree(object):
 
             new._node_indices_rev = tree_dict['node_idx_rev'].copy()
             new._node_indices = node_idxs.copy()
-
-            # node_index_holes = set(new_graph.node_indices()).difference(tree_dict['node_idx_rev'].keys())
 
             node_index_holes = [idx for idx in new_graph.node_indices() if idx not in tree_dict['node_idx_rev']]
 
@@ -246,36 +229,6 @@ class Tree(object):
     def add_data_point_to_outliers(self, data_point):
         self._data[-1].append(data_point)
         self._last_node_added_to = -1
-
-    # def add_subtree(self, subtree, parent=None):
-    #
-    #     subtree = subtree.copy()
-    #
-    #     # Connect subtree
-    #     if parent is None:
-    #         parent = "root"
-    #
-    #     parent_idx = self._node_indices[parent]
-    #
-    #     parent_node = self._graph[parent_idx]
-    #
-    #     subtree_root = subtree.roots[0]
-    #
-    #     subtree_dummy_root = subtree._node_indices["root"]
-    #
-    #     subtree._graph.remove_node(subtree_dummy_root)
-    #
-    #     node_map_idx = self._graph.compose(subtree._graph, {parent_idx: (subtree._node_indices[subtree_root], None)})
-    #
-    #     for old_idx, new_idx in node_map_idx.items():
-    #         node_obj = self._graph[new_idx]
-    #         node_name = node_obj.node_id
-    #         # assert node_name not in self._data
-    #         self._data[node_name] = subtree._data[node_name]
-    #         self._node_indices[node_name] = new_idx
-    #         self._node_indices_rev[new_idx] = node_name
-    #
-    #     self._update_path_to_root(parent_node.node_id)
 
     def add_subtree(self, subtree, parent=None):
 
@@ -585,7 +538,6 @@ class TreeNode(object):
     def __eq__(self, other):
         log_p_compare = np.array_equal(self.log_p, other.log_p)
         log_r_compare = np.array_equal(self.log_r, other.log_r)
-        # id_compare = self.node_id == other.node_id
         return log_p_compare and log_r_compare
 
     def copy(self):
