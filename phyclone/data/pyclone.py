@@ -87,7 +87,6 @@ def _setup_cluster_df(cluster_file, data_file, outlier_prob, rng, low_loss_prob,
 
 
 def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
-
     truncal_cluster = _define_truncal_cluster(df)
 
     cluster_info_dict = _build_cluster_info_dict(df)
@@ -147,11 +146,17 @@ def _finalize_loss_prob_on_cluster_df(cluster_df, high_loss_prob, lost_clusters,
     if len(lost_clusters) > 0:
         if len(lost_clusters) > 1:
             pluralize = 's'
+            possessive = 'their'
         else:
             pluralize = ''
-        print("{} potentially lost/outlier cluster{} identified,"
-              " setting their prior loss prob to {}.".format(len(lost_clusters), pluralize, high_loss_prob))
-        print("Clusters identified as potentially lost/outliers: {}".format(lost_clusters))
+            possessive = 'its'
+        print("{num} potentially lost/outlier cluster{pl} identified,"
+              " setting {pos} prior loss prob to {pr}.".format(num=len(lost_clusters),
+                                                               pl=pluralize,
+                                                               pr=high_loss_prob,
+                                                               pos=possessive))
+        print("Cluster{pl} identified as potentially lost/outlier{pl}: {lost}".format(pl=pluralize,
+                                                                                      lost=lost_clusters))
     else:
         print("No potentially lost/outlier clusters identified,"
               " setting global prior loss prob to {}.".format(low_loss_prob))
