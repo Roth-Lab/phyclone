@@ -4,26 +4,6 @@ from phyclone.tree.utils import _convolve_two_children
 from phyclone.utils.math import conv_log, non_log_conv
 
 
-# def numpy_reliant_non_log_conv(child_log_R, prev_log_D_n):
-#     """ Compute the recursion over D using the numpy.
-#     """
-#     log_R_max = child_log_R.max()
-# 
-#     log_D_max = prev_log_D_n.max()
-# 
-#     R_norm = np.exp(child_log_R - log_R_max)
-# 
-#     D_norm = np.exp(prev_log_D_n - log_D_max)
-# 
-#     result = np.convolve(R_norm, D_norm)
-# 
-#     result = result[:len(child_log_R)]
-# 
-#     result[result <= 0] = 1e-100
-# 
-#     return np.log(result) + log_D_max + log_R_max
-
-
 class Test(unittest.TestCase):
 
     def test_small_grid_simple_integers(self):
