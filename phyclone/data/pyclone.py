@@ -77,10 +77,11 @@ def _setup_cluster_df(cluster_file, data_file, outlier_prob, rng, low_loss_prob,
         else:
             print('Cluster level outlier probability column not found. Setting values to {p}'.format(p=outlier_prob))
             cluster_df.loc[:, 'outlier_prob'] = outlier_prob
-    if outlier_prob == 0 and not assign_loss_prob:
-        cluster_df.loc[:, 'outlier_prob'] = outlier_prob
-    else:
-        cluster_df.loc[cluster_df['outlier_prob'] == 0, 'outlier_prob'] = outlier_prob
+    if not assign_loss_prob:
+        if outlier_prob == 0:
+            cluster_df.loc[:, 'outlier_prob'] = outlier_prob
+        else:
+            cluster_df.loc[cluster_df['outlier_prob'] == 0, 'outlier_prob'] = outlier_prob
     cluster_df = cluster_df[["mutation_id", "cluster_id", "outlier_prob"]].drop_duplicates()
     return cluster_df
 
@@ -144,8 +145,12 @@ def _finalize_loss_prob_on_cluster_df(cluster_df, high_loss_prob, lost_clusters,
     value_filter = cluster_df['cluster_id'].isin(lost_clusters)
     cluster_df.loc[value_filter, 'outlier_prob'] = high_loss_prob
     if len(lost_clusters) > 0:
-        print("{} potentially lost/outlier clusters identified,"
-              " setting their prior loss prob to {}.".format(len(lost_clusters), high_loss_prob))
+        if len(lost_clusters) > 1:
+            pluralize = 's'
+        else:
+            pluralize = ''
+        print("{} potentially lost/outlier cluster{} identified,"
+              " setting their prior loss prob to {}.".format(len(lost_clusters), pluralize, high_loss_prob))
         print("Clusters identified as potentially lost/outliers: {}".format(lost_clusters))
     else:
         print("No potentially lost/outlier clusters identified,"

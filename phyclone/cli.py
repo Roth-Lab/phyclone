@@ -181,7 +181,7 @@ def topology_report(**kwargs):
     default=0,
     type=click.FloatRange(0.0, 1.0, clamp=True),
     show_default=True,
-    help="""Prior probability data points are outliers and don't fit tree. Default is 0.0"""
+    help="""Global prior probability that data points are outliers and don't fit tree. Default is 0.0"""
 )
 @click.option(
     "-p", "--proposal",
@@ -211,7 +211,7 @@ def topology_report(**kwargs):
 @click.option(
     "--concentration-value",
     default=1.0,
-    type=click.FloatRange(0.0, 1.0, clamp=True),
+    type=float,
     show_default=True,
     help="""The (initial) concentration of the Dirichlet process. Higher values will encourage more clusters, 
     lower values have the opposite effect. Default is 1.0."""
@@ -302,14 +302,14 @@ def topology_report(**kwargs):
 @click.option(
     "--low-loss-prob",
     default=0.01,
-    type=click.FloatRange(0.0, 1.0, clamp=True),
+    type=click.FloatRange(0.001, 1.0, clamp=True),
     show_default=True,
     help="""Lower loss probability setting"""
 )
 @click.option(
     "--high-loss-prob",
     default=0.5,
-    type=click.FloatRange(0.0, 1.0, clamp=True),
+    type=click.FloatRange(0.001, 1.0, clamp=True),
     show_default=True,
     help="""Higher loss probability setting"""
 )
