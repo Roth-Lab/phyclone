@@ -76,49 +76,6 @@ def write_topology_report(in_file, out_file):
     df.to_csv(out_file, index=False, sep="\t")
 
 
-def _create_parent_child_out_files(data_arr, out_file, parent_child_arr, results):
-    parent_child_df = _create_parent_child_matrix_df(data_arr, parent_child_arr)
-    parent_child_counts_out = os.path.join(
-        os.path.dirname(out_file), "parent_child_matrix_counts.tsv"
-    )
-    parent_child_df.to_csv(parent_child_counts_out, index=False, sep="\t")
-    parent_child_out = os.path.join(
-        os.path.dirname(out_file), "parent_child_matrix.tsv"
-    )
-    trace_len = len(results["trace"])
-    parent_child_probs_arr = parent_child_arr / trace_len
-    parent_child_probs_df = _create_parent_child_matrix_df(
-        data_arr, parent_child_probs_arr
-    )
-    parent_child_probs_df.to_csv(parent_child_out, index=False, sep="\t")
-
-
-def _create_parent_child_matrix_df(data_arr, parent_child_arr):
-    parent_child_df = pd.DataFrame(
-        parent_child_arr,
-        columns=[str(data_point.name) for data_point in data_arr],
-        index=[str(data_point.name) for data_point in data_arr],
-    )
-    parent_child_df = parent_child_df.reset_index()
-    parent_child_df = parent_child_df.rename(columns={"index": "ID"})
-    return parent_child_df
-
-
-def count_parent_child_relationships(curr_tree, data_index_dict, parent_child_arr):
-    curr_graph = curr_tree.graph
-    curr_node_data = curr_tree.node_data
-    for node in nx.dfs_preorder_nodes(curr_graph):
-        dp_in_node = curr_node_data[node]
-        children = list(curr_graph.successors(node))
-        for dp in dp_in_node:
-            for child in children:
-                dp_in_child_node = curr_node_data[child]
-                for child_dp in dp_in_child_node:
-                    parent_child_arr[
-                        data_index_dict[dp.idx], data_index_dict[child_dp.idx]
-                    ] += 1
-
-
 def count_topology(topologies, x, i, x_top, chain_num=0):
     if x_top in topologies:
         topology = topologies[x_top]
