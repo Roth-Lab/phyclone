@@ -12,7 +12,6 @@ from phyclone.smc.utils import RootPermutationDistribution
 import phyclone.tests.simulate as simulate
 
 import numpy as np
-from numba import set_num_threads
 
 
 class BaseTest(object):

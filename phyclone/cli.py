@@ -42,7 +42,7 @@ from phyclone.run import run as run_prog
 @click.option(
     "-w", "--weight-type",
     default="counts",
-    type=click.Choice(["counts", "corrected-counts", "joint-likelihood"]),
+    type=click.Choice(["counts", "joint-likelihood"]),
     show_default=True,
     help="""Which measure to use as the consensus tree weights. Counts is the same as an unweighted consensus."""
 )

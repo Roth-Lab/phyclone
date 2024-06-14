@@ -10,11 +10,10 @@ from phyclone.process_trace.map import get_map_node_ccfs
 from phyclone.process_trace.utils import print_string_to_file
 from phyclone.utils.math import exp_normalize
 from phyclone.tree import Tree
-from numba import set_num_threads
 
 
 def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None, map_type='frequency'):
-    set_num_threads(1)
+
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
@@ -24,7 +23,6 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
 
     if map_type == 'frequency':
 
-        # topologies = create_topology_dict_from_trace(results["trace"])
         topologies = create_topology_dict_from_trace(results)
 
         df = create_topology_dataframe(topologies.values())
@@ -37,11 +35,6 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
 
         map_val = float("-inf")
 
-        # for i, x in enumerate(results["trace"]):
-        #     if x["log_p_one"] > map_val:
-        #         map_iter = i
-        #
-        #         map_val = x["log_p_one"]
         for curr_chain_num, chain_results in results.items():
             for i, x in enumerate(chain_results["trace"]):
                 if x["log_p_one"] > map_val:
@@ -72,11 +65,10 @@ def create_topology_dict_from_trace(trace):
 
 
 def write_topology_report(in_file, out_file):
-    set_num_threads(1)
+
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
-    # topologies = create_topology_dict_from_trace(results["trace"])
     topologies = create_topology_dict_from_trace(results)
 
     df = create_topology_dataframe(topologies.values())
@@ -168,8 +160,6 @@ def create_topology_dataframe(topologies):
         topology["topology"] = tree.to_newick_string()
 
     df = pd.DataFrame(topologies)
-    df["multiplicity_corrected_count"] = df["count"] / df["multiplicity"]
-    df["log_multiplicity_corrected_count"] = np.log(df["count"]) - df["log_multiplicity"]
     return df
 
 
@@ -181,7 +171,7 @@ def write_consensus_results(
     consensus_threshold=0.5,
     weight_type="counts"
 ):
-    set_num_threads(1)
+
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
 
@@ -190,27 +180,15 @@ def write_consensus_results(
     trees = []
     probs = []
 
-    weighted_consensus = True
-
     if weight_type == "counts":
         weighted_consensus = False
-        # trees = [Tree.from_dict(x["tree"]) for x in results["trace"]]
         for chain_results in results.values():
             trees.extend([Tree.from_dict(x["tree"]) for x in chain_results["trace"]])
-    elif weight_type == "corrected-counts":
-        # topologies = create_topology_dict_from_trace(results["trace"])
-        topologies = create_topology_dict_from_trace(results)
-
-        for topology in topologies.values():
-            curr_tree = topology["topology"]
-            curr_prob = np.log(topology["count"]) - topology["log_multiplicity"]
-            trees.append(curr_tree)
-            probs.append(curr_prob)
     else:
+        weighted_consensus = True
         for chain_results in results.values():
             trees.extend([Tree.from_dict(x["tree"]) for x in chain_results["trace"]])
             probs.extend([x["log_p_one"] for x in chain_results["trace"]])
-            # chain_probs = np.array([x["log_p_one"] for x in chain_results["trace"]])
 
     if weighted_consensus:
         probs = np.array(probs)
