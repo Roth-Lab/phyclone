@@ -81,7 +81,7 @@ def consensus(**kwargs):
 )
 @click.option(
     "--map-type",
-    default="frequency",
+    default="joint-likelihood",
     type=click.Choice(["joint-likelihood", "frequency"]),
     show_default=True,
     help="""Which measure to use as for MAP computation."""
@@ -249,7 +249,7 @@ def topology_report(**kwargs):
     "-s",
     "--subtree-update-prob",
     default=0.0,
-    type=float,
+    type=click.FloatRange(0.0, 1.0, clamp=True),
     show_default=True,
     help="""Probability of updating a subtree (instead of whole tree) using PG sampler. Default is 0.0"""
 )
@@ -297,21 +297,25 @@ def topology_report(**kwargs):
     "--assign-loss-prob/--no-assign-loss-prob",
     default=False,
     show_default=True,
-    help="Whether to assign loss probability prior from the data."
+    help="Whether to assign loss probability prior from the cluster data."
 )
 @click.option(
     "--low-loss-prob",
     default=0.01,
     type=click.FloatRange(0.001, 1.0, clamp=True),
     show_default=True,
-    help="""Lower loss probability setting"""
+    help="""Lower loss probability setting. 
+    Used when allowing PhyClone to assign loss prior probability from cluster data.
+    Unless combined with the --assign-loss-prob option and a cluster input file, this does nothing."""
 )
 @click.option(
     "--high-loss-prob",
     default=0.5,
     type=click.FloatRange(0.001, 1.0, clamp=True),
     show_default=True,
-    help="""Higher loss probability setting"""
+    help="""Higher loss probability setting. 
+    Used when allowing PhyClone to assign loss prior probability from cluster data.
+    Unless combined with the --assign-loss-prob option and a cluster input file, this does nothing."""
 )
 def run(**kwargs):
     """ Run a new PhyClone analysis.
