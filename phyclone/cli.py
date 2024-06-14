@@ -81,7 +81,7 @@ def consensus(**kwargs):
 )
 @click.option(
     "--map-type",
-    default="frequency",
+    default="joint-likelihood",
     type=click.Choice(["joint-likelihood", "frequency"]),
     show_default=True,
     help="""Which measure to use as for MAP computation."""
@@ -158,6 +158,12 @@ def topology_report(**kwargs):
     help="""Thinning parameter for storing entries in trace. Default is 1."""
 )
 @click.option(
+    "--num-chains",
+    default=1,
+    type=int,
+    help="""Number of parallel chains for sampling. Default is 1."""
+)
+@click.option(
     "-c", "--cluster-file",
     default=None,
     type=click.Path(resolve_path=True, exists=True),
@@ -175,7 +181,7 @@ def topology_report(**kwargs):
     default=0,
     type=click.FloatRange(0.0, 1.0, clamp=True),
     show_default=True,
-    help="""Prior probability data points are outliers and don't fit tree. Default is 0.0"""
+    help="""Global prior probability that data points are outliers and don't fit tree. Default is 0.0"""
 )
 @click.option(
     "-p", "--proposal",
@@ -205,7 +211,7 @@ def topology_report(**kwargs):
 @click.option(
     "--concentration-value",
     default=1.0,
-    type=click.FloatRange(0.0, 1.0, clamp=True),
+    type=float,
     show_default=True,
     help="""The (initial) concentration of the Dirichlet process. Higher values will encourage more clusters, 
     lower values have the opposite effect. Default is 1.0."""
@@ -238,6 +244,14 @@ def topology_report(**kwargs):
     type=int,
     show_default=True,
     help="""Number of prune-regraph updates per SMC iteration. Default is 1."""
+)
+@click.option(
+    "-s",
+    "--subtree-update-prob",
+    default=0.0,
+    type=click.FloatRange(0.0, 1.0, clamp=True),
+    show_default=True,
+    help="""Probability of updating a subtree (instead of whole tree) using PG sampler. Default is 0.0"""
 )
 @click.option(
     "--precision",
@@ -278,6 +292,30 @@ def topology_report(**kwargs):
     default=True,
     show_default=True,
     help="Whether the numpy RNG BitGenerator should be pickled for reproducibility."
+)
+@click.option(
+    "--assign-loss-prob/--no-assign-loss-prob",
+    default=False,
+    show_default=True,
+    help="Whether to assign loss probability prior from the cluster data."
+)
+@click.option(
+    "--low-loss-prob",
+    default=0.01,
+    type=click.FloatRange(0.001, 1.0, clamp=True),
+    show_default=True,
+    help="""Lower loss probability setting. 
+    Used when allowing PhyClone to assign loss prior probability from cluster data.
+    Unless combined with the --assign-loss-prob option and a cluster input file, this does nothing."""
+)
+@click.option(
+    "--high-loss-prob",
+    default=0.5,
+    type=click.FloatRange(0.001, 1.0, clamp=True),
+    show_default=True,
+    help="""Higher loss probability setting. 
+    Used when allowing PhyClone to assign loss prior probability from cluster data.
+    Unless combined with the --assign-loss-prob option and a cluster input file, this does nothing."""
 )
 def run(**kwargs):
     """ Run a new PhyClone analysis.

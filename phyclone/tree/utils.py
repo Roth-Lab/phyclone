@@ -1,7 +1,7 @@
 import numpy as np
 import numba
 from phyclone.utils import two_np_arr_cache, list_of_np_cache
-from phyclone.utils.math import conv_log
+from phyclone.utils.math import conv_log, fft_convolve_two_children
 
 
 @list_of_np_cache(maxsize=4096)
@@ -23,49 +23,71 @@ def compute_log_S(child_log_R_values):
 
 
 def _sub_compute_S(log_D):
-    log_S = np.zeros(log_D.shape, order='C')
+    log_S = np.empty_like(log_D)
     num_dims = log_D.shape[0]
     for i in range(num_dims):
-        log_S[i, :] = np.logaddexp.accumulate(log_D[i, :])
+        np.logaddexp.accumulate(log_D[i, :], out=log_S[i, :])
     return log_S
 
 
 def compute_log_D(child_log_R_values):
-    if len(child_log_R_values) == 0:
+    num_children = len(child_log_R_values)
+
+    if num_children == 0:
         return 0
 
-    log_D = _comp_log_d_split(child_log_R_values)
-
-    return log_D
-
-
-def _comp_log_d_split(child_log_R_values):
-    num_children = len(child_log_R_values)
     if num_children == 1:
         return child_log_R_values[0]
 
-    log_D = _comp_log_d_internals(child_log_R_values, num_children)
-    return log_D
-
-
-def _comp_log_d_internals(child_log_R_values, num_children):
     conv_res = _convolve_two_children(child_log_R_values[0], child_log_R_values[1])
     for j in range(2, num_children):
         conv_res = _convolve_two_children(child_log_R_values[j], conv_res)
-    return conv_res
+
+    log_D = conv_res
+    return log_D
 
 
 @two_np_arr_cache(maxsize=4096)
 def _convolve_two_children(child_1, child_2):
-    num_dims = child_1.shape[0]
-    res_arr = np.empty_like(child_1)
-    _conv_two_children_jit(child_1, child_2, num_dims, res_arr)
+    grid_size = child_1.shape[-1]
+    if grid_size < 1000:
+        res_arr = _np_conv_dims(child_1, child_2)
+    else:
+        res_arr = fft_convolve_two_children(child_1, child_2)
     return res_arr
 
 
-@numba.jit(cache=True, nopython=True)
+def _np_conv_dims(child_1, child_2):
+    num_dims = child_1.shape[0]
+
+    child_1_maxes = np.max(child_1, axis=-1, keepdims=True)
+
+    child_2_maxes = np.max(child_2, axis=-1, keepdims=True)
+
+    child_1_norm = np.exp(child_1 - child_1_maxes)
+
+    child_2_norm = np.exp(child_2 - child_2_maxes)
+
+    grid_size = child_1.shape[-1]
+
+    arr_list = [np.convolve(child_2_norm[i, :], child_1_norm[i, :])[:grid_size] for i in range(num_dims)]
+
+    log_D = np.ascontiguousarray(arr_list)
+
+    log_D[log_D <= 0] = 1e-100
+
+    log_D = np.log(log_D, order='C', dtype=np.float64, out=log_D)
+
+    log_D += child_1_maxes
+
+    log_D += child_2_maxes
+
+    return log_D
+
+
+@numba.jit(cache=True, nopython=True, parallel=True)
 def _conv_two_children_jit(child_1, child_2, num_dims, res_arr):
-    for i in range(num_dims):
+    for i in numba.prange(num_dims):
         conv_log(child_1[i, :], child_2[i, :], res_arr[i, :])
 
 

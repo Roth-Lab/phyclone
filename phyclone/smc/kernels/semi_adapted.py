@@ -12,41 +12,39 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     Considers all possible choice of existing nodes and one option for a new node proposed at random. This
     should provide a computational advantage over the fully adapted proposal.
     """
+    __slots__ = ("_log_p", 'log_half', '_q_dist', '_curr_trees')
 
     def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, parent_tree=None):
         super().__init__(data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree)
+
+        self.log_half = kernel.log_half
 
         self._init_dist()
 
     def log_p(self, tree):
         """ Get the log probability of proposing the tree.
         """
-        node = tree.labels[self.data_point.idx]
 
-        # First particle or all outliers
         if self._empty_tree():
-            if node == -1:
-                log_p = np.log(self.outlier_proposal_prob)
-
-            else:
-                log_p = np.log(1 - self.outlier_proposal_prob)
+            log_p = self._get_log_p(tree)
 
         else:
-            # Outlier
-            if node == -1:
-                log_p = np.log(self.outlier_proposal_prob)
+
+            node = tree.labels[self.data_point.idx]
+
+            assert node == tree.node_last_added_to
 
             # Existing node
-            elif node in self.parent_particle.tree_nodes:
-                log_p = np.log((1 - self.outlier_proposal_prob) / 2) + self._get_log_p(tree)
+            if node in self.parent_particle.tree_nodes or node == -1:
+                log_p = self.log_half + self._get_log_p(tree)
 
             # New node
             else:
                 old_num_roots = len(self.parent_particle.tree_roots)
 
-                log_p = np.log((1 - self.outlier_proposal_prob) / 2)
+                log_p = self.log_half
 
-                num_children = tree.get_number_of_children(node)
+                num_children = tree.num_children_on_node_that_matters
 
                 log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
 
@@ -55,41 +53,22 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     def _get_log_p(self, tree):
         """ Get the log probability of the given tree. From stored dict, using TreeHolder intermediate.
         """
-        tree_particle = TreeHolder(tree, self.tree_dist)
+        if isinstance(tree, Tree):
+            tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
+        else:
+            tree_particle = tree
         return self._log_p[tree_particle]
 
     def sample(self):
         """ Sample a new tree from the proposal distribution.
         """
-        u = self._rng.random()
-
-        self._set_parent_tree(None)
-
         if self._empty_tree():
-            # First particle
-            if self.parent_particle is None:
-                tree = Tree(self.data_point.grid_size)
-
-            else:
-                tree = self.parent_tree.copy()
-
-            if u < self.outlier_proposal_prob:
-                tree.add_data_point_to_outliers(self.data_point)
-
-            else:
-                tree.create_root_node(children=[], data=[self.data_point])
-
-        # Particles t=2 ...
+            tree = self._propose_existing_node()
         else:
-            # Outlier
-            if u < self.outlier_proposal_prob:
-                tree = self._propose_outlier()
+            u = self._rng.random()
 
-            # Existing node
-            elif self.outlier_proposal_prob < u < (1 - self.outlier_proposal_prob) / 2:
+            if u < 0.5:
                 tree = self._propose_existing_node()
-
-            # New node
             else:
                 tree = self._propose_new_node()
 
@@ -97,41 +76,81 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
     def _init_dist(self):
         self._log_p = {}
+        trees = self._get_existing_node_trees()
 
-        if not self._empty_tree():
-            trees = []
+        if self.outlier_proposal_prob > 0:
+            trees.append(self._get_outlier_tree())
 
-            nodes = self.parent_particle.tree_roots
-
-            for node in nodes:
+        if self._empty_tree():
+            if self.parent_particle is None:
+                tree = Tree(self.data_point.grid_size)
+            else:
                 tree = self.parent_tree.copy()
 
-                tree.add_data_point_to_node(self.data_point, node)
+            tree.create_root_node(children=[], data=[self.data_point])
+            tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
 
-                tree_holder = TreeHolder(tree, self.tree_dist)
+            trees.append(tree_particle)
 
-                trees.append(tree_holder)
-
-            log_q = np.array([x.log_p for x in trees])
-
-            log_q = log_normalize(log_q)
-
-            self._log_p = dict(zip(trees, log_q))
+        self._set_log_p_dist(trees)
 
         self.parent_tree = None
 
+    def _get_existing_node_trees(self):
+        """ Enumerate all trees obtained by adding the data point to an existing node.
+        """
+        trees = []
+
+        if self.parent_particle is None:
+            return trees
+
+        nodes = self.parent_particle.tree_roots
+
+        for node in nodes:
+            tree = self.parent_tree.copy()
+            tree.add_data_point_to_node(self.data_point, node)
+            tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
+            trees.append(tree_particle)
+
+        return trees
+
+    def _get_outlier_tree(self):
+        """ Get the tree obtained by adding data point as outlier
+        """
+        if self.parent_particle is None:
+            tree = Tree(self.data_point.grid_size)
+
+        else:
+            tree = self.parent_tree.copy()
+
+        tree.add_data_point_to_outliers(self.data_point)
+
+        tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
+
+        return tree_particle
+
     def _propose_existing_node(self):
-        q = np.exp(list(self._log_p.values()))
-
-        assert abs(1 - sum(q)) < 1e-6
-
-        q = q / sum(q)
+        q = self._q_dist
 
         idx = self._rng.multinomial(1, q).argmax()
 
-        tree = list(self._log_p.keys())[idx]
+        tree = self._curr_trees[idx]
 
-        return tree.tree
+        return tree
+
+    def _set_log_p_dist(self, trees):
+        log_q = np.array([x.log_p for x in trees])
+        log_q = log_normalize(log_q)
+        self._curr_trees = trees
+        self._set_q_dist(log_q)
+        self._log_p = dict(zip(trees, log_q))
+
+    def _set_q_dist(self, log_q):
+        q = np.exp(log_q)
+        q_sum = np.sum(q)
+        assert abs(1 - q_sum) < 1e-6
+        q /= q_sum
+        self._q_dist = q
 
     def _propose_new_node(self):
         num_roots = len(self.parent_particle.tree_roots)
@@ -140,24 +159,33 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         children = self._rng.choice(self.parent_particle.tree_roots, num_children, replace=False)
 
-        tree = self.parent_tree.copy()
+        tree_container = get_cached_new_tree(self.parent_particle,
+                                             self.data_point,
+                                             frozenset(children),
+                                             self.tree_dist,
+                                             self.perm_dist)
 
-        tree.create_root_node(children=children, data=[self.data_point])
+        return tree_container
 
-        return tree
 
-    def _propose_outlier(self):
-        tree = self.parent_tree.copy()
+@lru_cache(maxsize=256)
+def get_cached_new_tree(parent_particle, data_point, children, tree_dist, perm_dist):
+    tree = parent_particle.tree
 
-        tree.add_data_point_to_outliers(self.data_point)
+    tree.create_root_node(children=children, data=[data_point])
 
-        return tree
+    tree_container = TreeHolder(tree, tree_dist, perm_dist)
+
+    return tree_container
 
 
 class SemiAdaptedKernel(Kernel):
+    __slots__ = ("outlier_proposal_prob", "log_half")
 
     def __init__(self, tree_dist, rng, outlier_proposal_prob=0.0, perm_dist=None):
         super().__init__(tree_dist, rng, perm_dist=perm_dist)
+
+        self.log_half = np.log(0.5)
 
         self.outlier_proposal_prob = outlier_proposal_prob
 

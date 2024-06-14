@@ -7,6 +7,7 @@ import math
 import numba
 import numpy as np
 from functools import lru_cache
+from scipy.signal import fftconvolve
 
 
 def bernoulli_rvs(rng: np.random.Generator, p=0.5):
@@ -201,30 +202,77 @@ def log_beta_binomial_pdf(n, x, a, b):
     return log_binomial_coefficient(n, x) + log_beta_binomial_likelihood(n, x, a, b)
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(cache=True, nopython=True, fastmath=True)
 def conv_log(log_x, log_y, ans):
-    """ Convolve in log space.
+    """ Direct convolution in log space.
     """
-    nx = len(log_x)
+    n = len(log_x)
 
     log_y = log_y[::-1]
-    n = nx
 
     for k in range(1, n + 1):
-        sub_ans = None
+        v_arr = np.empty(k)
+        max_val = -np.inf
         for j in range(k):
             curr = log_x[j] + log_y[n - (k - j)]
-            if sub_ans is None:
-                sub_ans = curr
-            else:
-                if sub_ans > curr:
-                    max_val = sub_ans
-                    min_val = curr
-                else:
-                    max_val = curr
-                    min_val = sub_ans
-                sub_ans = max_val + np.log1p(np.exp(min_val - max_val))
+            v_arr[j] = curr
+            if curr > max_val:
+                max_val = curr
 
-        ans[k - 1] = sub_ans
+        v_arr -= max_val
+
+        np.exp(v_arr, v_arr)
+
+        sub_ans = 0
+        for i in range(k):
+            sub_ans += v_arr[i]
+
+        ans[k - 1] = np.log(sub_ans) + max_val
 
     return ans
+
+
+def fft_convolve_two_children(child_1, child_2):
+    """ FFT convolution
+    """
+    child_1_maxes = np.max(child_1, axis=-1, keepdims=True)
+
+    child_2_maxes = np.max(child_2, axis=-1, keepdims=True)
+
+    child_1_norm = np.exp(child_1 - child_1_maxes)
+
+    child_2_norm = np.exp(child_2 - child_2_maxes)
+
+    result = fftconvolve(child_1_norm, child_2_norm, axes=[-1])
+
+    result = result[..., :child_1_norm.shape[-1]]
+
+    result[result <= 0] = 1e-100
+
+    result = np.log(result, order='C', dtype=np.float64)
+
+    result += child_2_maxes
+
+    result += child_1_maxes
+
+    return result
+
+
+def non_log_conv(child_log_R, prev_log_D_n):
+    """ Compute the recursion over D using the numpy.
+    """
+    log_R_max = child_log_R.max()
+
+    log_D_max = prev_log_D_n.max()
+
+    R_norm = np.exp(child_log_R - log_R_max)
+
+    D_norm = np.exp(prev_log_D_n - log_D_max)
+
+    result = np.convolve(R_norm, D_norm)
+
+    result = result[:len(child_log_R)]
+
+    result[result <= 0] = 1e-100
+
+    return np.log(result) + log_D_max + log_R_max

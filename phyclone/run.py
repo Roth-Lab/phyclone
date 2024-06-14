@@ -8,13 +8,16 @@ from dataclasses import dataclass
 
 from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
 from phyclone.mcmc.gibbs_mh import DataPointSampler, PruneRegraphSampler
-from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler
+from phyclone.mcmc.particle_gibbs import ParticleGibbsTreeSampler, ParticleGibbsSubtreeSampler
 from phyclone.process_trace import create_main_run_output
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
 from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer, read_pickle, save_numpy_rng
 from phyclone.data.pyclone import load_data
+from phyclone.utils.dev import clear_proposal_dist_caches
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from multiprocessing import get_context
 
 
 def run(
@@ -38,59 +41,102 @@ def run(
         resample_threshold=0.5,
         seed=None,
         thin=1,
+        num_chains=1,
         rng_pickle=None,
-        save_rng=True):
-
-    rng = instantiate_and_seed_RNG(seed, rng_pickle)
+        save_rng=True,
+        subtree_update_prob=0.0,
+        low_loss_prob=0.01,
+        high_loss_prob=0.5,
+        assign_loss_prob=False):
+    rng_main = instantiate_and_seed_RNG(seed, rng_pickle)
 
     if save_rng:
-        save_numpy_rng(out_file, rng)
+        save_numpy_rng(out_file, rng_main)
 
-    data, samples = load_data(
-        in_file, cluster_file=cluster_file, density=density, grid_size=grid_size, outlier_prob=outlier_prob,
-        precision=precision)
+    data, samples = load_data(in_file, rng_main, low_loss_prob, high_loss_prob, assign_loss_prob,
+                              cluster_file=cluster_file, density=density, grid_size=grid_size,
+                              outlier_prob=outlier_prob, precision=precision)
 
+    results = {}
+
+    if num_chains == 1:
+        results[0] = phyclone_go(burnin, concentration_update, concentration_value, data, max_time, num_iters,
+                                 num_particles, num_samples_data_point, num_samples_prune_regraph, outlier_prob,
+                                 print_freq, proposal, resample_threshold, rng_main, samples, thin, 0,
+                                 subtree_update_prob)
+
+        print("Finished chain", 0)
+
+    else:
+
+        rng_list = rng_main.spawn(num_chains)
+
+        with ProcessPoolExecutor(max_workers=num_chains, mp_context=get_context("spawn")) as pool:
+            chain_results = [pool.submit(phyclone_go, burnin, concentration_update, concentration_value,
+                                         data, max_time, num_iters,
+                                         num_particles, num_samples_data_point,
+                                         num_samples_prune_regraph, outlier_prob,
+                                         print_freq, proposal, resample_threshold,
+                                         rng, samples, thin, chain_num, subtree_update_prob)
+                             for chain_num, rng in enumerate(rng_list)]
+
+            for future in as_completed(chain_results):
+                exception = future.exception()
+                if exception is not None:
+                    raise exception
+                else:
+                    result = future.result()
+                    res_chain = result["chain_num"]
+                    results[res_chain] = result
+                    print("Finished chain", res_chain)
+
+    create_main_run_output(cluster_file, out_file, results)
+
+
+def phyclone_go(burnin, concentration_update, concentration_value, data, max_time, num_iters, num_particles,
+                num_samples_data_point, num_samples_prune_regraph, outlier_prob, print_freq, proposal,
+                resample_threshold, rng, samples, thin, chain_num, subtree_update_prob):
     tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
-
     kernel = setup_kernel(outlier_prob, proposal, rng, tree_dist)
-
     samplers = setup_samplers(kernel,
                               num_particles,
                               outlier_prob,
                               resample_threshold,
                               rng,
                               tree_dist)
-
     tree = Tree.get_single_node_tree(data)
-
     timer = Timer()
-
     tree = _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regraph, print_freq, samplers, timer,
-                       tree, tree_dist)
-
+                       tree, tree_dist, chain_num)
     results = _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
-                                num_samples_prune_regraph, print_freq, samplers, samples, thin, timer, tree, tree_dist)
-
-    create_main_run_output(cluster_file, out_file, results)
+                                num_samples_prune_regraph, print_freq, samplers, samples, thin, timer, tree, tree_dist,
+                                chain_num, rng, subtree_update_prob)
+    return results
 
 
 def _run_main_sampler(concentration_update, data, max_time, num_iters, num_samples_data_point,
-                      num_samples_prune_regraph, print_freq, samplers, samples, thin, timer,
-                      tree, tree_dist):
-
+                      num_samples_prune_regraph, print_freq, samplers, samples, thin, timer, tree, tree_dist,
+                      chain_num, rng, subtree_update_prob):
     trace = setup_trace(timer, tree, tree_dist)
 
     dp_sampler = samplers.dp_sampler
     prg_sampler = samplers.prg_sampler
     tree_sampler = samplers.tree_sampler
     conc_sampler = samplers.conc_sampler
+    subtree_sampler = samplers.subtree_sampler
 
     for i in range(num_iters):
         with timer:
             if i % print_freq == 0:
-                print_stats(i, tree, tree_dist)
+                print_stats(i, tree, tree_dist, chain_num)
 
-            tree = tree_sampler.sample_tree(tree)
+            clear_proposal_dist_caches()
+
+            # tree = tree_sampler.sample_tree(tree)
+            if rng.random() < subtree_update_prob:
+                tree = subtree_sampler.sample_tree(tree)
+            else:
+                tree = tree_sampler.sample_tree(tree)
 
             for _ in range(num_samples_data_point):
                 tree = dp_sampler.sample_tree(tree)
@@ -108,7 +154,7 @@ def _run_main_sampler(concentration_update, data, max_time, num_iters, num_sampl
 
             if timer.elapsed >= max_time:
                 break
-    results = {"data": data, "samples": samples, "trace": trace}
+    results = {"data": data, "samples": samples, "trace": trace, "chain_num": chain_num}
     return results
 
 
@@ -140,7 +186,7 @@ def setup_trace(timer, tree, tree_dist):
 
 
 def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regraph, print_freq, samplers, timer, tree,
-                tree_dist):
+                tree_dist, chain_num):
     burnin_sampler = samplers.burnin_sampler
     dp_sampler = samplers.dp_sampler
     prg_sampler = samplers.prg_sampler
@@ -152,7 +198,9 @@ def _run_burnin(burnin, max_time, num_samples_data_point, num_samples_prune_regr
         for i in range(burnin):
             with timer:
                 if i % print_freq == 0:
-                    print_stats(i, tree, tree_dist)
+                    print_stats(i, tree, tree_dist, chain_num)
+
+                clear_proposal_dist_caches()
 
                 tree = burnin_sampler.sample_tree(tree)
 
@@ -183,6 +231,7 @@ class SamplersHolder:
     conc_sampler: GammaPriorConcentrationSampler
     burnin_sampler: UnconditionalSMCSampler
     tree_sampler: ParticleGibbsTreeSampler
+    subtree_sampler: ParticleGibbsSubtreeSampler
 
 
 def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist):
@@ -195,11 +244,15 @@ def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng,
     tree_sampler = ParticleGibbsTreeSampler(
         kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
     )
+    subtree_sampler = ParticleGibbsSubtreeSampler(
+        kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
+    )
     return SamplersHolder(dp_sampler,
                           prg_sampler,
                           conc_sampler,
                           burnin_sampler,
-                          tree_sampler)
+                          tree_sampler,
+                          subtree_sampler)
 
 
 def setup_kernel(outlier_prob, proposal, rng, tree_dist):
@@ -230,7 +283,8 @@ def instantiate_and_seed_RNG(seed, rng_pickle):
     return rng
 
 
-def print_stats(iter_id, tree, tree_dist):
-    string_template = 'iter: {}, alpha: {}, log_p: {}, num_nodes: {}, num_outliers: {}, num_roots: {}'
-    print(string_template.format(iter_id, round(tree_dist.prior.alpha, 3), round(tree_dist.log_p_one(tree), 3),
+def print_stats(iter_id, tree, tree_dist, chain_num):
+    string_template = 'chain: {} || iter: {}, alpha: {}, log_p: {}, num_nodes: {}, num_outliers: {}, num_roots: {}'
+    print(string_template.format(chain_num, iter_id, round(tree_dist.prior.alpha, 3),
+                                 round(tree_dist.log_p_one(tree), 3),
                                  tree.get_number_of_nodes(), len(tree.outliers), tree.get_number_of_children("root")))

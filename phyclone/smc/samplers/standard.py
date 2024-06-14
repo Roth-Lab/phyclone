@@ -8,6 +8,7 @@ import phyclone.smc.swarm
 class SMCSampler(AbstractSMCSampler):
     """ Standard SMC sampler with adaptive resampling.
     """
+    __slots__ = ()
 
     def _init_swarm(self):
         self.swarm = phyclone.smc.swarm.ParticleSwarm()

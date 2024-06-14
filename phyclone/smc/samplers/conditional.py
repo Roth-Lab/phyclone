@@ -1,15 +1,16 @@
-import networkx as nx
+import rustworkx as rx
 import numpy as np
 
 from phyclone.smc.samplers.base import AbstractSMCSampler
 from phyclone.tree import Tree
-
+from phyclone.smc.swarm import TreeHolder
 import phyclone.smc.swarm
 
 
 class ConditionalSMCSampler(AbstractSMCSampler):
     """ SMC sampler which conditions a fixed path.
     """
+    __slots__ = "constrained_path"
 
     def __init__(self, current_tree, data_points, kernel, num_particles, resample_threshold=0.5):
         super().__init__(data_points, kernel, num_particles, resample_threshold=resample_threshold)
@@ -26,6 +27,9 @@ class ConditionalSMCSampler(AbstractSMCSampler):
         new_tree = Tree(tree.grid_size)
 
         parent_tree = None
+
+        tree_dist = self.kernel.tree_dist
+        perm_dist = self.kernel.perm_dist
 
         for data_point in self.data_points:
             new_tree = new_tree.copy()
@@ -54,15 +58,18 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
             proposal_dist = self.kernel.get_proposal_distribution(data_point, parent_particle, parent_tree)
 
-            log_q = proposal_dist.log_p(new_tree)
+            # log_q = proposal_dist.log_p(new_tree)
+            new_tree_holder = TreeHolder(new_tree, tree_dist, perm_dist)
+            log_q = proposal_dist.log_p(new_tree_holder)
 
-            particle = self.kernel.create_particle(log_q, parent_particle, new_tree)
+            # particle = self.kernel.create_particle(log_q, parent_particle, new_tree)
+            particle = self.kernel.create_particle(log_q, parent_particle, new_tree_holder)
 
             constrained_path.append(particle)
 
             parent_tree = new_tree
 
-        assert nx.is_isomorphic(tree.graph, new_tree.graph)
+        assert rx.is_isomorphic(tree.graph, new_tree.graph, id_order=False)
 
         return constrained_path
 

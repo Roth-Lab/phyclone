@@ -1,8 +1,12 @@
 import numpy as np
 
+from phyclone.process_trace.utils import convert_rustworkx_to_networkx
+
 
 def get_map_node_ccfs(tree):
     graph = tree._graph.copy()
+
+    graph = convert_rustworkx_to_networkx(graph)
     
     compute_max_likelihood(graph, "root")
     

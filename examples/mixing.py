@@ -37,14 +37,8 @@ def main(seed=None):
     
     true_tree = load_true_tree()
     
-    data = load_data(
-        file_name,
-        cluster_file=cluster_file,
-        density="beta-binomial",
-        grid_size=101,
-        precision=50,
-        outlier_prob=outlier_prob
-    )
+    data = load_data(file_name, rng, low_loss_prob, high_loss_prob, assign_loss_prob, cluster_file=cluster_file,
+                     density="beta-binomial", grid_size=101, outlier_prob=outlier_prob, precision=50)
 
     conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng)
 

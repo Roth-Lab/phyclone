@@ -10,6 +10,7 @@ import scipy.stats as stats
 class GammaPriorConcentrationSampler(object):
     """ Gibbs update assuming a gamma prior on the concentration parameter.
     """
+    __slots__ = ("a", "b", "_rng")
 
     def __init__(self, a, b, rng):
         """

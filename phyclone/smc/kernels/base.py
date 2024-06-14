@@ -6,6 +6,7 @@ class Kernel(object):
 
     Subclasses should implement the get_proposal_distribution method.
     """
+    __slots__ = ("tree_dist", "perm_dist", "_rng")
 
     @property
     def rng(self):
@@ -78,6 +79,8 @@ class Kernel(object):
 class ProposalDistribution(object):
     """ Abstract class for proposal distribution.
     """
+    __slots__ = ("data_point", "tree_dist", "perm_dist",
+                 "outlier_proposal_prob", "parent_particle", "_rng", "parent_tree")
 
     def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, parent_tree=None):
         self.data_point = data_point

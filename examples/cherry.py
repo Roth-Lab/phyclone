@@ -109,13 +109,13 @@ for i in range(num_iters):
     )
 
 
-topologies = []
+topologies = dict()
 
 for i, x in enumerate(trace):
-    curr_tree = Tree.from_dict(data, x["tree"])
+    curr_tree = Tree.from_dict(x["tree"])
     count_topology(topologies, x, i, curr_tree)
 
-df = create_topology_dataframe(topologies)
+df = create_topology_dataframe(topologies.values())
 
 df = df.sort_values(by="count", ascending=False)
 

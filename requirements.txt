@@ -1,5 +1,4 @@
 python>=3.10
-biopython
 click
 matplotlib
 networkx
@@ -9,4 +8,5 @@ pandas
 scikit-learn
 scipy
 python-xxhash
+rustworkx
 pip

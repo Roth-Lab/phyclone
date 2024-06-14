@@ -45,7 +45,10 @@ class BootstrapProposalDistribution(ProposalDistribution):
                 log_p = np.log((1 - self.outlier_proposal_prob) / 2)
 
                 if old_num_roots > 0:
-                    num_children = tree.get_number_of_children(node)
+                    if isinstance(tree, Tree):
+                        num_children = tree.get_number_of_children(node)
+                    else:
+                        num_children = tree.num_children_on_node_that_matters
 
                     log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
 

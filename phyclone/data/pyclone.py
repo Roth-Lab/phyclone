@@ -1,5 +1,6 @@
+import itertools
 from collections import OrderedDict, defaultdict
-
+from operator import itemgetter
 import numba
 import numpy as np
 import pandas as pd
@@ -7,9 +8,11 @@ import pandas as pd
 import phyclone.data.base
 from phyclone.utils.math import log_normalize, log_beta_binomial_pdf, log_sum_exp, log_binomial_pdf
 from phyclone.utils.exceptions import MajorCopyNumberError
+from dataclasses import dataclass
 
 
-def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400):
+def load_data(file_name, rng, low_loss_prob, high_loss_prob, assign_loss_prob, cluster_file=None,
+              density='beta-binomial', grid_size=101, outlier_prob=1e-4, precision=400):
     pyclone_data, samples = load_pyclone_data(file_name)
 
     if cluster_file is None:
@@ -25,14 +28,15 @@ def load_data(file_name, cluster_file=None, density='beta-binomial', grid_size=1
             data.append(data_point)
 
     else:
-        cluster_df = _setup_cluster_df(cluster_file, outlier_prob)
+        cluster_df = _setup_cluster_df(cluster_file, file_name, outlier_prob,
+                                       rng, low_loss_prob, high_loss_prob, assign_loss_prob)
 
         cluster_sizes = cluster_df["cluster_id"].value_counts().to_dict()
 
         clusters = cluster_df.set_index("mutation_id")["cluster_id"].to_dict()
 
         cluster_outlier_probs = cluster_df.set_index("cluster_id")["outlier_prob"].to_dict()
-        
+
         print("Using input clustering with {} clusters".format(cluster_df["cluster_id"].nunique()))
 
         data = _create_clustered_data_arr(cluster_outlier_probs, cluster_sizes, clusters, density, grid_size,
@@ -59,15 +63,141 @@ def _create_clustered_data_arr(cluster_outlier_probs, cluster_sizes, clusters, d
     return data
 
 
-def _setup_cluster_df(cluster_file, outlier_prob):
+def _setup_cluster_df(cluster_file, data_file, outlier_prob, rng, low_loss_prob, high_loss_prob, assign_loss_prob):
     cluster_df = pd.read_csv(cluster_file, sep="\t")
     if 'outlier_prob' not in cluster_df.columns:
-        print('Cluster level outlier probability column not found. Setting values to {p}'.format(p=outlier_prob))
-        cluster_df.loc[:, 'outlier_prob'] = outlier_prob
-    if outlier_prob == 0:
-        cluster_df.loc[:, 'outlier_prob'] = outlier_prob
+        if assign_loss_prob:
+            if 'chrom' not in cluster_df.columns:
+                data_df = pd.read_table(data_file)
+                data_df = data_df[['mutation_id', 'chrom', 'coord']]
+                cluster_df = pd.merge(cluster_df, data_df, how="inner", on=["mutation_id"])
+                cluster_df = cluster_df.drop_duplicates()
+            print('Cluster level outlier probability column not found. Assigning from data.')
+            _assign_out_prob(cluster_df, rng, low_loss_prob, high_loss_prob)
+        else:
+            print('Cluster level outlier probability column not found. Setting values to {p}'.format(p=outlier_prob))
+            cluster_df.loc[:, 'outlier_prob'] = outlier_prob
+    if not assign_loss_prob:
+        if outlier_prob == 0:
+            cluster_df.loc[:, 'outlier_prob'] = outlier_prob
+        else:
+            cluster_df.loc[cluster_df['outlier_prob'] == 0, 'outlier_prob'] = outlier_prob
     cluster_df = cluster_df[["mutation_id", "cluster_id", "outlier_prob"]].drop_duplicates()
     return cluster_df
+
+
+def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
+
+    truncal_cluster = _define_truncal_cluster(df)
+
+    cluster_info_dict = _build_cluster_info_dict(df)
+
+    truncal_dists = _get_truncal_chrom_arr(df, truncal_cluster)
+
+    lost_clusters = _define_possibly_lost_clusters(cluster_info_dict, rng, truncal_cluster, truncal_dists)
+
+    _finalize_loss_prob_on_cluster_df(df, high_loss_prob, lost_clusters, low_loss_prob)
+
+
+def _define_possibly_lost_clusters(cluster_info_dict, rng, truncal_cluster, truncal_dists):
+    truncal_dist_len = len(truncal_dists)
+    lost_clusters = list()
+    min_clust_size = 4
+    test_iters = 10000
+    for cluster, info_obj in cluster_info_dict.items():
+        cluster_dist_len = info_obj.num_mutations
+        if cluster == truncal_cluster or cluster_dist_len < min_clust_size:
+            continue
+
+        if cluster_dist_len > truncal_dist_len:
+            truncal_dist_tester = np.resize(truncal_dists, cluster_dist_len)
+        else:
+            truncal_dist_tester = truncal_dists
+
+        chromo_obvs = info_obj.num_unique_chromosomes
+
+        samples_fewer = 0
+
+        num_unique_sum = 0
+
+        for i in range(test_iters):
+            sample_drawn = rng.choice(truncal_dist_tester, size=cluster_dist_len, replace=False)
+            unique_vals = np.unique(sample_drawn)
+            num_unique = len(unique_vals)
+            num_unique_sum += num_unique
+            if num_unique < chromo_obvs:
+                samples_fewer += 1
+
+        if samples_fewer == 0:
+            pvalue = 1 / test_iters
+        else:
+            pvalue = samples_fewer / test_iters
+
+        estimate = (num_unique_sum / test_iters) / chromo_obvs
+
+        if pvalue < 0.01 and estimate > 1:
+            lost_clusters.append(cluster)
+    return lost_clusters
+
+
+def _finalize_loss_prob_on_cluster_df(cluster_df, high_loss_prob, lost_clusters, low_loss_prob):
+    cluster_df['outlier_prob'] = low_loss_prob
+    value_filter = cluster_df['cluster_id'].isin(lost_clusters)
+    cluster_df.loc[value_filter, 'outlier_prob'] = high_loss_prob
+    if len(lost_clusters) > 0:
+        if len(lost_clusters) > 1:
+            pluralize = 's'
+        else:
+            pluralize = ''
+        print("{} potentially lost/outlier cluster{} identified,"
+              " setting their prior loss prob to {}.".format(len(lost_clusters), pluralize, high_loss_prob))
+        print("Clusters identified as potentially lost/outliers: {}".format(lost_clusters))
+    else:
+        print("No potentially lost/outlier clusters identified,"
+              " setting global prior loss prob to {}.".format(low_loss_prob))
+
+
+def _get_truncal_chrom_arr(df, truncal_cluster):
+    df = df[['cluster_id', 'chrom', 'coord', 'mutation_id']].drop_duplicates()
+    df = df.loc[df['cluster_id'] == truncal_cluster]
+    truncal_dists = list()
+    grouped = df.groupby('chrom', sort=False)
+    for chrom, group in grouped:
+        truncal_dists.extend([chrom] * len(group))
+    truncal_dists = np.array(truncal_dists)
+    return truncal_dists
+
+
+def _define_truncal_cluster(df):
+    grouped = df.groupby('cluster_id', sort=False)
+    cluster_prev_dict = dict()
+    for cluster, group in grouped:
+        unique_vals = group['cellular_prevalence'].unique()
+        sum_vals = unique_vals.mean()
+        cluster_prev_dict[cluster] = sum_vals
+
+    # TODO: check for multiple?
+    truncal_cluster = max(cluster_prev_dict.items(), key=itemgetter(1))[0]
+    print("Cluster {} identified as likely truncal.".format(truncal_cluster))
+    return truncal_cluster
+
+
+def _build_cluster_info_dict(df):
+    grouped = df.groupby('cluster_id', sort=False)
+    cluster_info_dict = dict()
+    for cluster, group in grouped:
+        clust_info_obj = ClusterInfo(cluster_id=cluster,
+                                     num_mutations=len(group['mutation_id'].unique()),
+                                     num_unique_chromosomes=len(group['chrom'].unique()))
+        cluster_info_dict[cluster] = clust_info_obj
+    return cluster_info_dict
+
+
+@dataclass
+class ClusterInfo:
+    cluster_id: str | int
+    num_mutations: int
+    num_unique_chromosomes: int
 
 
 def compute_outlier_prob(outlier_prob, cluster_size):
@@ -81,6 +211,9 @@ def compute_outlier_prob(outlier_prob, cluster_size):
 
 def load_pyclone_data(file_name):
     df = _create_raw_data_df(file_name)
+
+    # remove any rows where maj copy number == 0
+    df = df.loc[df['major_cn'] > 0]
 
     samples = sorted(df['sample_id'].unique())
 
@@ -235,8 +368,8 @@ def _compute_liklihood_grid(ccf_grid, density, log_ll, precision, sample_data_po
 @numba.experimental.jitclass([
     ('a', numba.int64),
     ('b', numba.int64),
-    ('cn', numba.int64[:,:]),
-    ('mu', numba.float64[:,:]),
+    ('cn', numba.int64[:, :]),
+    ('mu', numba.float64[:, :]),
     ('log_pi', numba.float64[:]),
     ('t', numba.float64)
 ])

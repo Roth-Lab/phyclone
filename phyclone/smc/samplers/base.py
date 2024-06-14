@@ -1,6 +1,8 @@
 class AbstractSMCSampler(object):
     """ Abstract class for an SMC sampler.
     """
+    __slots__ = ("data_points", "kernel", "num_particles", "_rng",
+                 "resample_threshold", "iteration", "num_iterations", "swarm")
 
     def __init__(self, data_points, kernel, num_particles, resample_threshold=0.5):
         self.data_points = data_points

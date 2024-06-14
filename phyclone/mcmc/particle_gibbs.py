@@ -7,6 +7,7 @@ from phyclone.smc.utils import RootPermutationDistribution
 class ParticleGibbsTreeSampler(object):
     """ Particle Gibbs sampler targeting sampling a full tree.
     """
+    __slots__ = ("kernel", "num_particles", "resample_threshold", "_rng")
 
     def __init__(self, kernel, rng, num_particles=10, resample_threshold=0.5):
         self.kernel = kernel
