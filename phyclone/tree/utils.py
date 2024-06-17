@@ -3,7 +3,7 @@ from phyclone.utils import two_np_arr_cache, list_of_np_cache
 from phyclone.utils.math import fft_convolve_two_children
 
 
-@list_of_np_cache(maxsize=4096)
+@list_of_np_cache(maxsize=2048)
 def compute_log_S(child_log_R_values):
     """ Compute log(S) recursion.
 
@@ -46,7 +46,7 @@ def compute_log_D(child_log_R_values):
     return log_D
 
 
-@two_np_arr_cache(maxsize=4096)
+@two_np_arr_cache(maxsize=1024)
 def _convolve_two_children(child_1, child_2):
     grid_size = child_1.shape[-1]
     if grid_size < 1000:
