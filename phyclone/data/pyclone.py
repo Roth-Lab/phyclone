@@ -1,5 +1,5 @@
 import itertools
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict, Counter
 from operator import itemgetter
 import numba
 import numpy as np
@@ -174,15 +174,38 @@ def _get_truncal_chrom_arr(df, truncal_cluster):
 
 
 def _define_truncal_cluster(df):
+    unique_sample_names = df['sample_id'].unique()
+    grouped = df.groupby('sample_id', sort=False)
+
+    potentials = list()
+
+    for sample, group in grouped:
+        group = group.sort_values(by='cellular_prevalence', ascending=False)
+        top_prev = group['cellular_prevalence'].iloc[0]
+        top_prev_group = group.loc[group['cellular_prevalence'] == top_prev]
+        clusters_with_top_prev_in_sample = top_prev_group['cluster_id'].unique()
+        potentials.extend(clusters_with_top_prev_in_sample)
+
+    counter_dict = Counter(potentials)
+    freq_list = counter_dict.values()
+    max_count = max(freq_list)
+
+    if max_count == len(unique_sample_names):
+        total = Counter(freq_list)[max_count]
+        if total == 1:
+            truncal_cluster = counter_dict.most_common(1)[0][0]
+            return truncal_cluster
+
+    potentials_set = set(potentials)
+
+    df = df.loc[df['cluster_id'].isin(potentials_set)]
+
     grouped = df.groupby('cluster_id', sort=False)
     cluster_prev_dict = dict()
     for cluster, group in grouped:
-        # unique_vals = group['cellular_prevalence'].unique()
-        # sum_vals = unique_vals.mean()
-        sum_vals = group['cellular_prevalence'].mean()
+        sum_vals = group['cellular_prevalence'].mean()  # TODO: check mean vs. median here
         cluster_prev_dict[cluster] = sum_vals
 
-    # TODO: check for multiple?
     truncal_cluster = max(cluster_prev_dict.items(), key=itemgetter(1))[0]
     print("Cluster {} identified as likely truncal.".format(truncal_cluster))
     return truncal_cluster
