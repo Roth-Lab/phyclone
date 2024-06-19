@@ -177,8 +177,9 @@ def _define_truncal_cluster(df):
     grouped = df.groupby('cluster_id', sort=False)
     cluster_prev_dict = dict()
     for cluster, group in grouped:
-        unique_vals = group['cellular_prevalence'].unique()
-        sum_vals = unique_vals.mean()
+        # unique_vals = group['cellular_prevalence'].unique()
+        # sum_vals = unique_vals.mean()
+        sum_vals = group['cellular_prevalence'].mean()
         cluster_prev_dict[cluster] = sum_vals
 
     # TODO: check for multiple?
