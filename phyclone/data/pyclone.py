@@ -89,6 +89,8 @@ def _setup_cluster_df(cluster_file, data_file, outlier_prob, rng, low_loss_prob,
 def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
     truncal_cluster = _define_truncal_cluster(df)
 
+    print("Cluster {} identified as likely truncal.".format(truncal_cluster))
+
     cluster_info_dict = _build_cluster_info_dict(df)
 
     truncal_dists = _get_truncal_chrom_arr(df, truncal_cluster)
@@ -207,7 +209,6 @@ def _define_truncal_cluster(df):
         cluster_prev_dict[cluster] = sum_vals
 
     truncal_cluster = max(cluster_prev_dict.items(), key=itemgetter(1))[0]
-    print("Cluster {} identified as likely truncal.".format(truncal_cluster))
     return truncal_cluster
 
 
