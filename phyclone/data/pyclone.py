@@ -176,17 +176,7 @@ def _get_truncal_chrom_arr(df, truncal_cluster):
 
 
 def _define_truncal_cluster(df):
-    unique_sample_names = df['sample_id'].unique()
-    grouped = df.groupby('sample_id', sort=False)
-
-    potentials = list()
-
-    for sample, group in grouped:
-        group = group.sort_values(by='cellular_prevalence', ascending=False)
-        top_prev = group['cellular_prevalence'].iloc[0]
-        top_prev_group = group.loc[group['cellular_prevalence'] == top_prev]
-        clusters_with_top_prev_in_sample = top_prev_group['cluster_id'].unique()
-        potentials.extend(clusters_with_top_prev_in_sample)
+    potentials, unique_sample_names = _get_potential_truncal_clusters(df)
 
     counter_dict = Counter(potentials)
     freq_list = counter_dict.values()
@@ -210,6 +200,19 @@ def _define_truncal_cluster(df):
 
     truncal_cluster = max(cluster_prev_dict.items(), key=itemgetter(1))[0]
     return truncal_cluster
+
+
+def _get_potential_truncal_clusters(df):
+    unique_sample_names = df['sample_id'].unique()
+    grouped = df.groupby('sample_id', sort=False)
+    potentials = list()
+    for sample, group in grouped:
+        group = group.sort_values(by='cellular_prevalence', ascending=False)
+        top_prev = group['cellular_prevalence'].iloc[0]
+        top_prev_group = group.loc[group['cellular_prevalence'] == top_prev]
+        clusters_with_top_prev_in_sample = top_prev_group['cluster_id'].unique()
+        potentials.extend(clusters_with_top_prev_in_sample)
+    return potentials, unique_sample_names
 
 
 def _build_cluster_info_dict(df):
