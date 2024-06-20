@@ -34,38 +34,36 @@ class FSCRPDistribution(object):
     def c_const(self, c_const):
         self._c_const = np.log(c_const)
 
-    def log_p(self, tree, tree_node_data=None):
-        if tree_node_data is None:
-            tree_node_data = tree.node_data
+    def log_p(self, tree, tree_node_data=None, log_p=None, num_nodes=None, multiplicity=None):
+        if not log_p or not num_nodes:
+            log_p, num_nodes = self._alpha_and_CRP_prior_log_p_compute(tree, tree_node_data)
 
-        log_p = 0
-
-        # CRP prior
-        num_nodes = tree.get_number_of_nodes()
-
-        log_p += num_nodes * self.log_alpha
-
-        log_p += sum(cached_log_factorial(len(v) - 1) for k, v in tree_node_data.items() if k != -1)
+        if not multiplicity:
+            multiplicity = tree.multiplicity
 
         # Uniform prior on toplogies
         log_p -= (num_nodes - 1) * np.log(num_nodes + 1)
 
-        log_p -= tree.multiplicity
+        log_p -= multiplicity
 
         return log_p
 
-    def log_p_one(self, tree, tree_node_data=None):
+    def _alpha_and_CRP_prior_log_p_compute(self, tree, tree_node_data):
         if tree_node_data is None:
             tree_node_data = tree.node_data
-
         log_p = 0
-
         # CRP prior
         num_nodes = tree.get_number_of_nodes()
-
         log_p += num_nodes * self.log_alpha
-
         log_p += sum(cached_log_factorial(len(v) - 1) for k, v in tree_node_data.items() if k != -1)
+        return log_p, num_nodes
+
+    def log_p_one(self, tree, tree_node_data=None, log_p=None, num_nodes=None, multiplicity=None):
+        if not log_p or not num_nodes:
+            log_p, num_nodes = self._alpha_and_CRP_prior_log_p_compute(tree, tree_node_data)
+
+        if not multiplicity:
+            multiplicity = tree.multiplicity
 
         tree_roots = tree.roots
 
@@ -74,15 +72,29 @@ class FSCRPDistribution(object):
         r_term = self._compute_r_term(len(tree_roots), num_nodes)
 
         for root in tree_roots:
-            num_nodes = tree.get_number_of_descendants(root) + 1
-            num_sub_trees = (num_nodes - 1) * np.log(num_nodes)
+            curr_num_nodes = tree.get_number_of_descendants(root) + 1
+            num_sub_trees = (curr_num_nodes - 1) * np.log(curr_num_nodes)
             num_ways += num_sub_trees
 
         log_p += (-num_ways + r_term)
 
-        log_p -= tree.multiplicity
+        log_p -= multiplicity
 
         return log_p
+
+    def compute_both_log_p_and_log_p_one_priors(self, tree, tree_node_data=None):
+        log_p_start, num_nodes = self._alpha_and_CRP_prior_log_p_compute(tree, tree_node_data)
+
+        multiplicity = tree.multiplicity
+
+        log_p_one = log_p_start
+        log_p = log_p_start
+
+        log_p = self.log_p(tree, tree_node_data, log_p, num_nodes, multiplicity)
+
+        log_p_one = self.log_p_one(tree, tree_node_data, log_p_one, num_nodes, multiplicity)
+
+        return log_p, log_p_one
 
     def _compute_z_term(self, num_roots, num_nodes):
         log_one = np.log(1)  # TODO: this is just 0, any point to doing this?
@@ -164,6 +176,34 @@ class TreeJointDistribution(object):
             log_p += data_point.outlier_marginal_prob
 
         return log_p
+
+    def compute_both_log_p_and_log_p_one(self, tree):
+        tree_node_data = tree.node_data
+
+        log_p, log_p_one = self.prior.compute_both_log_p_and_log_p_one_priors(tree, tree_node_data)
+
+        log_outlier_prior = self.outlier_prior(tree_node_data)
+
+        log_p += log_outlier_prior
+
+        log_p_one += log_outlier_prior
+
+        if tree.get_number_of_children("root") > 0:
+            for i in range(tree.grid_size[0]):
+                log_p += log_sum_exp(tree.data_log_likelihood[i, :])
+                log_p_one += tree.data_log_likelihood[i, -1]
+
+        # if tree.get_number_of_children("root") > 0:
+        #     for i in range(tree.grid_size[0]):
+        #         log_p_one += tree.data_log_likelihood[i, -1]
+
+        for data_point in tree.outliers:
+            log_p += data_point.outlier_marginal_prob
+            log_p_one += data_point.outlier_marginal_prob
+
+        return log_p, log_p_one
+
+
 
     @staticmethod
     def outlier_prior(tree_node_data):
