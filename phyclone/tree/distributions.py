@@ -71,12 +71,12 @@ class FSCRPDistribution(object):
 
         num_ways = 0
 
+        r_term = self._compute_r_term(len(tree_roots), num_nodes)
+
         for root in tree_roots:
             num_nodes = tree.get_number_of_descendants(root) + 1
             num_sub_trees = (num_nodes - 1) * np.log(num_nodes)
             num_ways += num_sub_trees
-
-        r_term = self._compute_r_term(len(tree_roots), num_nodes)
 
         log_p += (-num_ways + r_term)
 
