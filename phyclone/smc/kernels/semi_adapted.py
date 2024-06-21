@@ -168,7 +168,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         return tree_container
 
 
-@lru_cache(maxsize=256)
+@lru_cache(maxsize=1024)
 def get_cached_new_tree(parent_particle, data_point, children, tree_dist, perm_dist):
     tree = parent_particle.tree
 

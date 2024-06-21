@@ -3,7 +3,7 @@ from phyclone.utils import two_np_arr_cache, list_of_np_cache
 from phyclone.utils.math import fft_convolve_two_children
 
 
-@list_of_np_cache(maxsize=2048)
+@list_of_np_cache(maxsize=4096)
 def compute_log_S(child_log_R_values):
     """ Compute log(S) recursion.
 
