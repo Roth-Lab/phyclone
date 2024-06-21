@@ -161,8 +161,6 @@ class TreeJointDistribution(object):
 
         tree_node_data = tree.node_data
 
-        # log_p = self.prior.log_p(tree, tree_node_data)
-
         log_p = self.prior.log_p_one(tree, tree_node_data)
 
         # Outlier prior
@@ -193,17 +191,11 @@ class TreeJointDistribution(object):
                 log_p += log_sum_exp(tree.data_log_likelihood[i, :])
                 log_p_one += tree.data_log_likelihood[i, -1]
 
-        # if tree.get_number_of_children("root") > 0:
-        #     for i in range(tree.grid_size[0]):
-        #         log_p_one += tree.data_log_likelihood[i, -1]
-
         for data_point in tree.outliers:
             log_p += data_point.outlier_marginal_prob
             log_p_one += data_point.outlier_marginal_prob
 
         return log_p, log_p_one
-
-
 
     @staticmethod
     def outlier_prior(tree_node_data):
