@@ -5,7 +5,8 @@ Created on 8 Dec 2016
 """
 
 import numpy as np
-import scipy.stats as stats
+# import scipy.stats as stats
+from scipy.stats import gamma, beta, bernoulli
 
 
 class GammaPriorConcentrationSampler(object):
@@ -30,7 +31,7 @@ class GammaPriorConcentrationSampler(object):
 
     def sample(self, old_value, num_clusters, num_data_points):
         if num_clusters == 0:
-            new_value = stats.gamma.rvs(
+            new_value = gamma.rvs(
                 self.a, scale=(1 / self.b), random_state=self._rng
             )
 
@@ -43,7 +44,7 @@ class GammaPriorConcentrationSampler(object):
 
             n = num_data_points
 
-            eta = stats.beta.rvs(a=old_value + 1, b=n, random_state=self._rng)
+            eta = beta.rvs(a=old_value + 1, b=n, random_state=self._rng)
 
             shape = a + k - 1
 
@@ -53,9 +54,9 @@ class GammaPriorConcentrationSampler(object):
 
             pi = x / (1 + x)
 
-            shape += stats.bernoulli.rvs(pi, random_state=self._rng)
+            shape += bernoulli.rvs(pi, random_state=self._rng)
 
-            new_value = stats.gamma.rvs(shape, scale=(1 / rate), random_state=self._rng)
+            new_value = gamma.rvs(shape, scale=(1 / rate), random_state=self._rng)
 
             new_value = max(new_value, 1e-10)  # Catch numerical error
 

@@ -114,12 +114,13 @@ class FSCRPDistribution(object):
         return log_p, log_p_one
 
     def _compute_z_term(self, num_roots, num_nodes):
-        log_one = np.log(1)  # TODO: this is just 0, any point to doing this?
-        a_term = (
-            log_one * num_nodes
-        )  # TODO: 1 raised to the power of anything is still just 1, likely don't need this
-        la = log_one
+        # TODO: this is just 0, any point to doing this?
+        log_one = np.log(1)
 
+        # TODO: 1 raised to the power of anything is still just 1, likely don't need this
+        a_term = (log_one * num_nodes)
+
+        la = log_one
         log_const = self.c_const
 
         if num_roots == 0:

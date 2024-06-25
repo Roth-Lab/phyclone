@@ -516,7 +516,7 @@ class SampleDataPoint(object):
         self.t = t
 
 
-@numba.jit(nopython=True)
+@numba.jit(nopython=True, cache=True)
 def log_pyclone_beta_binomial_pdf(data, f, s):
     t = data.t
 
@@ -552,7 +552,7 @@ def log_pyclone_beta_binomial_pdf(data, f, s):
     return log_sum_exp(ll)
 
 
-@numba.jit(nopython=True)
+@numba.jit(nopython=True, cache=True)
 def log_pyclone_binomial_pdf(data, f):
     t = data.t
 

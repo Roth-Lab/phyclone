@@ -1,7 +1,7 @@
 import numpy as np
 import time
 from functools import lru_cache, wraps
-import xxhash
+from xxhash import xxh3_64_hexdigest
 import pickle
 from os.path import join, dirname
 from itertools import count
@@ -81,7 +81,7 @@ class NumpyArrayListHasher:
     @staticmethod
     def _create_hashable(list_of_np_arrays):
         hashable = np.array(
-            [xxhash.xxh3_64_hexdigest(arr) for arr in list_of_np_arrays], order="C"
+            [xxh3_64_hexdigest(arr) for arr in list_of_np_arrays], order="C"
         )
         hashable.sort()
         ret = tuple(hashable)
@@ -123,7 +123,7 @@ class NumpyTwoArraysHasher:
         self.input_1 = arr_1
         self.input_2 = arr_2
         self.h = frozenset(
-            [xxhash.xxh3_64_hexdigest(arr_1), xxhash.xxh3_64_hexdigest(arr_2)]
+            [xxh3_64_hexdigest(arr_1), xxh3_64_hexdigest(arr_2)]
         )
 
     def __hash__(self) -> int:

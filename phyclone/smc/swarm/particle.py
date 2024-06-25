@@ -1,6 +1,5 @@
 from collections import deque
 
-# from phyclone.tree import Tree
 from phyclone.smc.swarm import TreeHolder
 
 

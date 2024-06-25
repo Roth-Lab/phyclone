@@ -1,7 +1,7 @@
 from collections import defaultdict
 import numpy as np
 import rustworkx as rx
-import itertools
+from itertools import chain
 from typing import Union
 
 from phyclone.tree.visitors import (
@@ -105,9 +105,7 @@ class Tree(object):
 
     @property
     def data(self):
-        result = sorted(
-            itertools.chain.from_iterable(self._data.values()), key=lambda x: x.idx
-        )
+        result = sorted(chain.from_iterable(self._data.values()), key=lambda x: x.idx)
         return result
 
     @property

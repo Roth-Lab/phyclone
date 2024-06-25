@@ -3,8 +3,7 @@ import numpy as np
 
 from phyclone.smc.samplers.base import AbstractSMCSampler
 from phyclone.tree import Tree
-from phyclone.smc.swarm import TreeHolder
-import phyclone.smc.swarm
+from phyclone.smc.swarm import TreeHolder, ParticleSwarm
 
 
 class ConditionalSMCSampler(AbstractSMCSampler):
@@ -84,7 +83,7 @@ class ConditionalSMCSampler(AbstractSMCSampler):
         return constrained_path
 
     def _init_swarm(self):
-        self.swarm = phyclone.smc.swarm.ParticleSwarm()
+        self.swarm = ParticleSwarm()
 
         uniform_weight = -np.log(self.num_particles)
 
@@ -100,7 +99,7 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
     def _resample_swarm(self):
         if self.swarm.relative_ess <= self.resample_threshold:
-            new_swarm = phyclone.smc.swarm.ParticleSwarm()
+            new_swarm = ParticleSwarm()
 
             log_uniform_weight = -np.log(self.num_particles)
 
@@ -123,7 +122,7 @@ class ConditionalSMCSampler(AbstractSMCSampler):
             self.swarm = new_swarm
 
     def _update_swarm(self):
-        new_swarm = phyclone.smc.swarm.ParticleSwarm()
+        new_swarm = ParticleSwarm()
 
         particle = self.constrained_path[self.iteration + 1]
 

@@ -2,7 +2,7 @@ import numpy as np
 
 from phyclone.smc.samplers.base import AbstractSMCSampler
 
-import phyclone.smc.swarm
+from phyclone.smc.swarm import ParticleSwarm
 
 
 class SMCSampler(AbstractSMCSampler):
@@ -11,7 +11,7 @@ class SMCSampler(AbstractSMCSampler):
     __slots__ = ()
 
     def _init_swarm(self):
-        self.swarm = phyclone.smc.swarm.ParticleSwarm()
+        self.swarm = ParticleSwarm()
 
         uniform_weight = -np.log(self.num_particles)
 
@@ -20,7 +20,7 @@ class SMCSampler(AbstractSMCSampler):
 
     def _resample_swarm(self):
         if self.swarm.relative_ess <= self.resample_threshold:
-            new_swarm = phyclone.smc.swarm.ParticleSwarm()
+            new_swarm = ParticleSwarm()
 
             log_uniform_weight = -np.log(self.num_particles)
 
@@ -35,7 +35,7 @@ class SMCSampler(AbstractSMCSampler):
             self.swarm = new_swarm
 
     def _update_swarm(self):
-        new_swarm = phyclone.smc.swarm.ParticleSwarm()
+        new_swarm = ParticleSwarm()
 
         for parent_log_W, parent_particle in zip(
             self.swarm.log_weights, self.swarm.particles

@@ -1,6 +1,6 @@
-import phyclone.utils.math
-import phyclone.smc.samplers
-import phyclone.smc.swarm
+from phyclone.utils.math import discrete_rvs
+from phyclone.smc.samplers import ConditionalSMCSampler
+from phyclone.smc.swarm import ParticleSwarm
 from phyclone.smc.utils import RootPermutationDistribution
 
 
@@ -29,7 +29,7 @@ class ParticleGibbsTreeSampler(object):
 
         data_sigma = RootPermutationDistribution.sample(tree, self._rng)
 
-        sampler = phyclone.smc.samplers.ConditionalSMCSampler(
+        sampler = ConditionalSMCSampler(
             tree,
             data_sigma,
             self.kernel,
@@ -41,7 +41,7 @@ class ParticleGibbsTreeSampler(object):
 
     def _sample_tree_from_swarm(self, swarm):
         """Given an SMC swarm sample a tree"""
-        particle_idx = phyclone.utils.math.discrete_rvs(swarm.weights, self._rng)
+        particle_idx = discrete_rvs(swarm.weights, self._rng)
 
         particle = swarm.particles[particle_idx]
 
@@ -83,7 +83,7 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
     # Specifically do we need a term for the random choice of node.
     def _correct_weights(self, parent, swarm, tree):
         """Correct weights so target is the distribution on the full tree"""
-        new_swarm = phyclone.smc.swarm.ParticleSwarm()
+        new_swarm = ParticleSwarm()
 
         for p, w in zip(swarm.particles, swarm.unnormalized_log_weights):
             subtree = p.tree
