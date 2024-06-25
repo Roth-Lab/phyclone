@@ -70,6 +70,6 @@ class TestPruneRegraph(unittest.TestCase):
         result = []
 
         for i in range(size):
-            result.append(self._create_data_point(i+start_idx, n, p))
+            result.append(self._create_data_point(i + start_idx, n, p))
 
         return result

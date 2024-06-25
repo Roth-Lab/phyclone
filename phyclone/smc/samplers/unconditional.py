@@ -19,7 +19,10 @@ class UnconditionalSMCSampler(object):
         data_sigma = RootPermutationDistribution.sample(tree, self._rng)
 
         smc_sampler = SMCSampler(
-            data_sigma, self.kernel, num_particles=self.num_particles, resample_threshold=self.resample_threshold
+            data_sigma,
+            self.kernel,
+            num_particles=self.num_particles,
+            resample_threshold=self.resample_threshold,
         )
 
         swarm = smc_sampler.sample()

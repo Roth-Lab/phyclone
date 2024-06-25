@@ -142,7 +142,6 @@ class Test(unittest.TestCase):
 
         self.assertTrue(tree_eq(exp_subtree, actual_subtree))
 
-
     def test_getting_subtree_from_cherry(self):
         data = self.build_six_datapoints()
 
@@ -163,7 +162,6 @@ class Test(unittest.TestCase):
         exp_subtree = expected_tree.get_subtree(1)
 
         self.assertTrue(tree_eq(exp_subtree, actual_subtree))
-
 
     def test_removing_subtree_from_linear(self):
         data = self.build_six_datapoints()
@@ -191,7 +189,6 @@ class Test(unittest.TestCase):
         expected_tree.remove_subtree(exp_subtree)
 
         self.assertTrue(tree_eq(actual_tree, expected_tree))
-
 
     def test_removing_subtree_from_cherry(self):
         data = self.build_six_datapoints()
@@ -293,7 +290,7 @@ class Test(unittest.TestCase):
         result = []
 
         for i in range(size):
-            result.append(self._create_data_point(i+start_idx, n, p))
+            result.append(self._create_data_point(i + start_idx, n, p))
 
         return result
 

@@ -1,10 +1,16 @@
 from scipy.special import logsumexp as log_sum_exp
-
 import numpy as np
 
 
 class DataPoint(object):
-    __slots__ = ('idx', 'value', 'name', 'outlier_prob', 'outlier_marginal_prob', 'outlier_prob_not')
+    __slots__ = (
+        "idx",
+        "value",
+        "name",
+        "outlier_prob",
+        "outlier_marginal_prob",
+        "outlier_prob_not",
+    )
 
     def __init__(self, idx, value, name=None, outlier_prob=0, outlier_prob_not=1):
         self.idx = idx

@@ -4,6 +4,7 @@ from phyclone.utils.math import log_sum_exp, cached_log_factorial
 
 class FSCRPDistribution(object):
     """FSCRP prior distribution on trees."""
+
     __slots__ = ("_alpha", "log_alpha", "_c_const")
 
     def __init__(self, alpha, c_const=1000):
@@ -34,9 +35,13 @@ class FSCRPDistribution(object):
     def c_const(self, c_const):
         self._c_const = np.log(c_const)
 
-    def log_p(self, tree, tree_node_data=None, log_p=None, num_nodes=None, multiplicity=None):
+    def log_p(
+        self, tree, tree_node_data=None, log_p=None, num_nodes=None, multiplicity=None
+    ):
         if not log_p or not num_nodes:
-            log_p, num_nodes = self._alpha_and_CRP_prior_log_p_compute(tree, tree_node_data)
+            log_p, num_nodes = self._alpha_and_CRP_prior_log_p_compute(
+                tree, tree_node_data
+            )
 
         if not multiplicity:
             multiplicity = tree.multiplicity
@@ -55,12 +60,20 @@ class FSCRPDistribution(object):
         # CRP prior
         num_nodes = tree.get_number_of_nodes()
         log_p += num_nodes * self.log_alpha
-        log_p += sum(cached_log_factorial(len(v) - 1) for k, v in tree_node_data.items() if k != -1)
+        log_p += sum(
+            cached_log_factorial(len(v) - 1)
+            for k, v in tree_node_data.items()
+            if k != -1
+        )
         return log_p, num_nodes
 
-    def log_p_one(self, tree, tree_node_data=None, log_p=None, num_nodes=None, multiplicity=None):
+    def log_p_one(
+        self, tree, tree_node_data=None, log_p=None, num_nodes=None, multiplicity=None
+    ):
         if not log_p or not num_nodes:
-            log_p, num_nodes = self._alpha_and_CRP_prior_log_p_compute(tree, tree_node_data)
+            log_p, num_nodes = self._alpha_and_CRP_prior_log_p_compute(
+                tree, tree_node_data
+            )
 
         if not multiplicity:
             multiplicity = tree.multiplicity
@@ -76,14 +89,16 @@ class FSCRPDistribution(object):
             num_sub_trees = (curr_num_nodes - 1) * np.log(curr_num_nodes)
             num_ways += num_sub_trees
 
-        log_p += (-num_ways + r_term)
+        log_p += -num_ways + r_term
 
         log_p -= multiplicity
 
         return log_p
 
     def compute_both_log_p_and_log_p_one_priors(self, tree, tree_node_data=None):
-        log_p_start, num_nodes = self._alpha_and_CRP_prior_log_p_compute(tree, tree_node_data)
+        log_p_start, num_nodes = self._alpha_and_CRP_prior_log_p_compute(
+            tree, tree_node_data
+        )
 
         multiplicity = tree.multiplicity
 
@@ -92,13 +107,17 @@ class FSCRPDistribution(object):
 
         log_p = self.log_p(tree, tree_node_data, log_p, num_nodes, multiplicity)
 
-        log_p_one = self.log_p_one(tree, tree_node_data, log_p_one, num_nodes, multiplicity)
+        log_p_one = self.log_p_one(
+            tree, tree_node_data, log_p_one, num_nodes, multiplicity
+        )
 
         return log_p, log_p_one
 
     def _compute_z_term(self, num_roots, num_nodes):
         log_one = np.log(1)  # TODO: this is just 0, any point to doing this?
-        a_term = log_one * num_nodes  # TODO: 1 raised to the power of anything is still just 1, likely don't need this
+        a_term = (
+            log_one * num_nodes
+        )  # TODO: 1 raised to the power of anything is still just 1, likely don't need this
         la = log_one
 
         log_const = self.c_const
@@ -178,7 +197,9 @@ class TreeJointDistribution(object):
     def compute_both_log_p_and_log_p_one(self, tree):
         tree_node_data = tree.node_data
 
-        log_p, log_p_one = self.prior.compute_both_log_p_and_log_p_one_priors(tree, tree_node_data)
+        log_p, log_p_one = self.prior.compute_both_log_p_and_log_p_one_priors(
+            tree, tree_node_data
+        )
 
         log_outlier_prior = self.outlier_prior(tree_node_data)
 

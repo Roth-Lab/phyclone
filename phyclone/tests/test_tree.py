@@ -40,8 +40,7 @@ class Test(unittest.TestCase):
         self.assertEqual(self.tree_dist.log_p(self.tree), 0)
 
     def test_two_data_point_one_cluster_sigma(self):
-        """ CRP term is $\alpha * log(x - 1) = 1.0 * log(2)! and tree term is (n+1)^(n-1) = 2^0
-        """
+        """CRP term is $\alpha * log(x - 1) = 1.0 * log(2)! and tree term is (n+1)^(n-1) = 2^0"""
         data = self._create_data_points(3)
 
         node = self.tree.create_root_node([])
@@ -55,8 +54,7 @@ class Test(unittest.TestCase):
         self.assertEqual(self.tree_dist.log_p(self.tree), log_factorial(2))
 
     def test_two_data_point_chain_sigma(self):
-        """ CRP is 0 and tree term is (n+1)^(n-1) = 3^1
-        """
+        """CRP is 0 and tree term is (n+1)^(n-1) = 3^1"""
         data = self._create_data_points(2)
 
         node = self.tree.create_root_node([])
@@ -70,8 +68,7 @@ class Test(unittest.TestCase):
         self.assertEqual(self.tree_dist.log_p(self.tree), -np.log(3))
 
     def test_two_data_point_separate_sigma(self):
-        """ CRP is 0 and tree term is (n+1)^(n-1) = 3^1
-        """
+        """CRP is 0 and tree term is (n+1)^(n-1) = 3^1"""
         data = self._create_data_points(2)
 
         node = self.tree.create_root_node([])

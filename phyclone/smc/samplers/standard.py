@@ -6,8 +6,8 @@ import phyclone.smc.swarm
 
 
 class SMCSampler(AbstractSMCSampler):
-    """ Standard SMC sampler with adaptive resampling.
-    """
+    """Standard SMC sampler with adaptive resampling."""
+
     __slots__ = ()
 
     def _init_swarm(self):
@@ -24,7 +24,9 @@ class SMCSampler(AbstractSMCSampler):
 
             log_uniform_weight = -np.log(self.num_particles)
 
-            multiplicities = self._rng.multinomial(self.num_particles, self.swarm.weights)
+            multiplicities = self._rng.multinomial(
+                self.num_particles, self.swarm.weights
+            )
 
             for particle, multiplicity in zip(self.swarm.particles, multiplicities):
                 for _ in range(multiplicity):
@@ -35,7 +37,9 @@ class SMCSampler(AbstractSMCSampler):
     def _update_swarm(self):
         new_swarm = phyclone.smc.swarm.ParticleSwarm()
 
-        for parent_log_W, parent_particle in zip(self.swarm.log_weights, self.swarm.particles):
+        for parent_log_W, parent_particle in zip(
+            self.swarm.log_weights, self.swarm.particles
+        ):
             particle = self._propose_particle(parent_particle)
 
             new_swarm.add_particle(parent_log_W + self._get_log_w(particle), particle)

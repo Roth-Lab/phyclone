@@ -11,7 +11,13 @@ from phyclone.utils.math import exp_normalize
 from phyclone.tree import Tree
 
 
-def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file=None, map_type='frequency'):
+def write_map_results(
+    in_file,
+    out_table_file,
+    out_tree_file,
+    out_log_probs_file=None,
+    map_type="frequency",
+):
 
     with gzip.GzipFile(in_file, "rb") as fh:
         results = pickle.load(fh)
@@ -20,15 +26,15 @@ def write_map_results(in_file, out_table_file, out_tree_file, out_log_probs_file
 
     chain_num = 0
 
-    if map_type == 'frequency':
+    if map_type == "frequency":
 
         topologies = create_topology_dict_from_trace(results)
 
         df = create_topology_dataframe(topologies.values())
         df = df.sort_values(by="count", ascending=False)
 
-        map_iter = df['iter'].iloc[0]
-        chain_num = df['chain_num'].iloc[0]
+        map_iter = df["iter"].iloc[0]
+        chain_num = df["chain_num"].iloc[0]
     else:
         map_iter = 0
 
@@ -88,14 +94,14 @@ def count_topology(topologies, x, i, x_top, chain_num=0):
     else:
         log_mult = x_top.multiplicity
         topologies[x_top] = {
-                "topology": x_top,
-                "count": 1,
-                "log_p_joint_max": x["log_p_one"],
-                "iter": i,
-                "chain_num": chain_num,
-                "multiplicity": np.exp(log_mult),
-                "log_multiplicity": log_mult,
-            }
+            "topology": x_top,
+            "count": 1,
+            "log_p_joint_max": x["log_p_one"],
+            "iter": i,
+            "chain_num": chain_num,
+            "multiplicity": np.exp(log_mult),
+            "log_multiplicity": log_mult,
+        }
 
 
 def _create_results_output_files(
@@ -125,7 +131,7 @@ def write_consensus_results(
     out_tree_file,
     out_log_probs_file=None,
     consensus_threshold=0.5,
-    weight_type="counts"
+    weight_type="counts",
 ):
 
     with gzip.GzipFile(in_file, "rb") as fh:

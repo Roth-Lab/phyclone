@@ -4,9 +4,13 @@ import networkx as nx
 from phyclone.tree.utils import get_clades
 
 
-def get_consensus_tree(trees, data=None, threshold=0.5, weighted=False, log_p_list=None):
+def get_consensus_tree(
+    trees, data=None, threshold=0.5, weighted=False, log_p_list=None
+):
 
-    clades_counter = clade_probabilities(trees, weighted=weighted, log_p_list=log_p_list)
+    clades_counter = clade_probabilities(
+        trees, weighted=weighted, log_p_list=log_p_list
+    )
 
     consensus_clades = key_above_threshold(clades_counter, threshold)
 
@@ -20,8 +24,7 @@ def get_consensus_tree(trees, data=None, threshold=0.5, weighted=False, log_p_li
 
 
 def consensus(clades):
-    """ Attempts to build a consensus tree from a set of clades. Returns a DiGraph where nodes are clades.
-    """
+    """Attempts to build a consensus tree from a set of clades. Returns a DiGraph where nodes are clades."""
     result = nx.DiGraph()
 
     for clade in clades:
@@ -39,7 +42,7 @@ def consensus(clades):
 
 
 def relabel(graph):
-    """ Relabels a consensus tree.
+    """Relabels a consensus tree.
 
     Takes in a DiGraph of clades, return a new DiGraph where nodes are again set of mutation, but with a different
     interpretation. The tranformation used to change the nodes/sets is to start with the original and remove from each
@@ -66,7 +69,7 @@ def clean_tree(tree, data=None):
     for data_points, node in node_map.items():
         idx_map[node] = sorted(data_points)
 
-    nx.set_node_attributes(new_tree, name='idxs', values=idx_map)
+    nx.set_node_attributes(new_tree, name="idxs", values=idx_map)
 
     if data is not None:
         name_map = defaultdict(list)
@@ -75,14 +78,13 @@ def clean_tree(tree, data=None):
             for idx in idx_map[node]:
                 name_map[node].append(data[idx].name)
 
-        nx.set_node_attributes(new_tree, name='names', values=name_map)
+        nx.set_node_attributes(new_tree, name="names", values=name_map)
 
     return new_tree
 
 
 def clade_probabilities(trees, weighted=False, log_p_list=None):
-    """ Return a clade probabilities.
-    """
+    """Return a clade probabilities."""
     clades_counter = defaultdict(float)
 
     for i, tree in enumerate(trees):
@@ -102,8 +104,7 @@ def clade_probabilities(trees, weighted=False, log_p_list=None):
 
 
 def key_above_threshold(counter, threshold):
-    """ Only keeps the keys in a dict above or equal the threshold
-    """
+    """Only keeps the keys in a dict above or equal the threshold"""
     return set([key for key, value in counter.items() if value > threshold])
 
 
@@ -133,7 +134,7 @@ def find_smallest_superset(set_of_sets, query_set):
     set_of_sets.discard(query_set)
 
     # Intialisation
-    smallest_superset_size = float('inf')
+    smallest_superset_size = float("inf")
 
     smallest_superset = None
 
@@ -146,7 +147,7 @@ def find_smallest_superset(set_of_sets, query_set):
         candidate_superset_size = len(candidate_superset)
 
         if candidate_superset_size == smallest_superset_size:
-            raise Exception('Inconsistent set of clades')
+            raise Exception("Inconsistent set of clades")
 
         if candidate_superset_size < smallest_superset_size:
             smallest_superset_size = candidate_superset_size

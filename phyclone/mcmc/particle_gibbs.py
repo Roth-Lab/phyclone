@@ -5,8 +5,8 @@ from phyclone.smc.utils import RootPermutationDistribution
 
 
 class ParticleGibbsTreeSampler(object):
-    """ Particle Gibbs sampler targeting sampling a full tree.
-    """
+    """Particle Gibbs sampler targeting sampling a full tree."""
+
     __slots__ = ("kernel", "num_particles", "resample_threshold", "_rng")
 
     def __init__(self, kernel, rng, num_particles=10, resample_threshold=0.5):
@@ -19,15 +19,13 @@ class ParticleGibbsTreeSampler(object):
         self._rng = rng
 
     def sample_tree(self, tree):
-        """ Sample a new tree
-        """
+        """Sample a new tree"""
         swarm = self.sample_swarm(tree)
 
         return self._sample_tree_from_swarm(swarm)
 
     def sample_swarm(self, tree):
-        """ Sample a new SMC swarm
-        """
+        """Sample a new SMC swarm"""
 
         data_sigma = RootPermutationDistribution.sample(tree, self._rng)
 
@@ -36,14 +34,13 @@ class ParticleGibbsTreeSampler(object):
             data_sigma,
             self.kernel,
             num_particles=self.num_particles,
-            resample_threshold=self.resample_threshold
+            resample_threshold=self.resample_threshold,
         )
 
         return sampler.sample()
 
     def _sample_tree_from_swarm(self, swarm):
-        """ Given an SMC swarm sample a tree
-        """
+        """Given an SMC swarm sample a tree"""
         particle_idx = phyclone.utils.math.discrete_rvs(swarm.weights, self._rng)
 
         particle = swarm.particles[particle_idx]
@@ -52,8 +49,7 @@ class ParticleGibbsTreeSampler(object):
 
 
 class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
-    """ Particle Gibbs sampler which resamples a sub-tree.
-    """
+    """Particle Gibbs sampler which resamples a sub-tree."""
 
     def sample_tree(self, tree):
         nodes = []
@@ -86,8 +82,7 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
     # TODO: Check that this targets the correct distribution.
     # Specifically do we need a term for the random choice of node.
     def _correct_weights(self, parent, swarm, tree):
-        """ Correct weights so target is the distribution on the full tree
-        """
+        """Correct weights so target is the distribution on the full tree"""
         new_swarm = phyclone.smc.swarm.ParticleSwarm()
 
         for p, w in zip(swarm.particles, swarm.unnormalized_log_weights):

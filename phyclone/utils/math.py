@@ -1,8 +1,9 @@
-'''
+"""
 Created on 8 Dec 2016
 
 @author: Andrew Roth
-'''
+"""
+
 import math
 import numba
 import numpy as np
@@ -34,7 +35,7 @@ def simple_log_factorial(n, arr):
 
 @numba.jit(cache=True, nopython=True)
 def exp_normalize(log_p):
-    """ Normalize a vector numerically safely.
+    """Normalize a vector numerically safely.
 
     Parameters
     ----------
@@ -99,7 +100,7 @@ def lse_accumulate(log_x, out_arr):
 
 @numba.jit(cache=True, nopython=True)
 def log_sum_exp(log_X):
-    """ Given a list of values in log space, log_X. Compute exp(log_X[0] + log_X[1] + ... log_X[n])
+    """Given a list of values in log space, log_X. Compute exp(log_X[0] + log_X[1] + ... log_X[n])
 
     This implementation is numerically safer than the naive method.
     """
@@ -150,7 +151,7 @@ def log_binomial_coefficient(n, x):
 
 
 def log_multinomial_coefficient(x):
-    """ Compute the multinomial coefficient.
+    """Compute the multinomial coefficient.
 
     Parameters
     ----------
@@ -204,8 +205,7 @@ def log_beta_binomial_pdf(n, x, a, b):
 
 @numba.jit(cache=True, nopython=True, fastmath=True)
 def conv_log(log_x, log_y, ans):
-    """ Direct convolution in log space.
-    """
+    """Direct convolution in log space."""
     n = len(log_x)
 
     log_y = log_y[::-1]
@@ -233,8 +233,7 @@ def conv_log(log_x, log_y, ans):
 
 
 def fft_convolve_two_children(child_1, child_2):
-    """ FFT convolution
-    """
+    """FFT convolution"""
     child_1_maxes = np.max(child_1, axis=-1, keepdims=True)
 
     child_2_maxes = np.max(child_2, axis=-1, keepdims=True)
@@ -245,11 +244,11 @@ def fft_convolve_two_children(child_1, child_2):
 
     result = fftconvolve(child_1_norm, child_2_norm, axes=[-1])
 
-    result = result[..., :child_1_norm.shape[-1]]
+    result = result[..., : child_1_norm.shape[-1]]
 
     result[result <= 0] = 1e-100
 
-    result = np.log(result, order='C', dtype=np.float64)
+    result = np.log(result, order="C", dtype=np.float64)
 
     result += child_2_maxes
 
@@ -259,8 +258,7 @@ def fft_convolve_two_children(child_1, child_2):
 
 
 def non_log_conv(child_log_R, prev_log_D_n):
-    """ Compute the recursion over D using the numpy.
-    """
+    """Compute the recursion over D using the numpy."""
     log_R_max = child_log_R.max()
 
     log_D_max = prev_log_D_n.max()
@@ -271,7 +269,7 @@ def non_log_conv(child_log_R, prev_log_D_n):
 
     result = np.convolve(R_norm, D_norm)
 
-    result = result[:len(child_log_R)]
+    result = result[: len(child_log_R)]
 
     result[result <= 0] = 1e-100
 

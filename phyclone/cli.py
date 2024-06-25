@@ -1,6 +1,10 @@
 import click
 
-from phyclone.process_trace import write_map_results, write_consensus_results, write_topology_report
+from phyclone.process_trace import (
+    write_map_results,
+    write_consensus_results,
+    write_topology_report,
+)
 from phyclone.run import run as run_prog
 
 
@@ -8,87 +12,75 @@ from phyclone.run import run as run_prog
 # Consensus Tree Output
 # =========================================================================
 
-@click.command(
-    context_settings={"max_content_width": 120}
-)
+
+@click.command(context_settings={"max_content_width": 120})
 @click.option(
-    "-i", "--in-file",
+    "-i",
+    "--in-file",
     required=True,
     type=click.Path(resolve_path=True, exists=True),
-    help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file."""
+    help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file.""",
 )
 @click.option(
-    "-o", "--out-table-file",
-    required=True,
-    type=click.Path(resolve_path=True)
+    "-o", "--out-table-file", required=True, type=click.Path(resolve_path=True)
 )
 @click.option(
-    "-t", "--out-tree-file",
-    required=True,
-    type=click.Path(resolve_path=True)
+    "-t", "--out-tree-file", required=True, type=click.Path(resolve_path=True)
 )
 @click.option(
-    "-p", "--out-log-probs-file",
-    default=None,
-    type=click.Path(resolve_path=True)
+    "-p", "--out-log-probs-file", default=None, type=click.Path(resolve_path=True)
 )
 @click.option(
     "--consensus-threshold",
     default=0.5,
     type=click.FloatRange(0.0, 1.0, clamp=True),
     show_default=True,
-    help="""Consensus threshold to keep an SNV."""
+    help="""Consensus threshold to keep an SNV.""",
 )
 @click.option(
-    "-w", "--weight-type",
+    "-w",
+    "--weight-type",
     default="counts",
     type=click.Choice(["counts", "joint-likelihood"]),
     show_default=True,
-    help="""Which measure to use as the consensus tree weights. Counts is the same as an unweighted consensus."""
+    help="""Which measure to use as the consensus tree weights. Counts is the same as an unweighted consensus.""",
 )
 def consensus(**kwargs):
-    """ Build consensus results.
-    """
+    """Build consensus results."""
     write_consensus_results(**kwargs)
+
 
 # =========================================================================
 # MAP Tree Output
 # =========================================================================
 
-@click.command(
-    context_settings={"max_content_width": 120}
-)
+
+@click.command(context_settings={"max_content_width": 120})
 @click.option(
-    "-i", "--in-file",
+    "-i",
+    "--in-file",
     required=True,
     type=click.Path(resolve_path=True, exists=True),
-    help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file."""
+    help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file.""",
 )
 @click.option(
-    "-o", "--out-table-file",
-    required=True,
-    type=click.Path(resolve_path=True)
+    "-o", "--out-table-file", required=True, type=click.Path(resolve_path=True)
 )
 @click.option(
-    "-t", "--out-tree-file",
-    required=True,
-    type=click.Path(resolve_path=True)
+    "-t", "--out-tree-file", required=True, type=click.Path(resolve_path=True)
 )
 @click.option(
-    "-p", "--out-log-probs-file",
-    default=None,
-    type=click.Path(resolve_path=True)
+    "-p", "--out-log-probs-file", default=None, type=click.Path(resolve_path=True)
 )
 @click.option(
     "--map-type",
     default="joint-likelihood",
     type=click.Choice(["joint-likelihood", "frequency"]),
     show_default=True,
-    help="""Which measure to use as for MAP computation."""
+    help="""Which measure to use as for MAP computation.""",
 )
 def map(**kwargs):
-    """ Build MAP results.
-    """
+    """Build MAP results."""
     write_map_results(**kwargs)
 
 
@@ -96,95 +88,96 @@ def map(**kwargs):
 # Topology Output
 # =========================================================================
 
-@click.command(
-    context_settings={"max_content_width": 120}
-)
+
+@click.command(context_settings={"max_content_width": 120})
 @click.option(
-    "-i", "--in-file",
+    "-i",
+    "--in-file",
     required=True,
     type=click.Path(resolve_path=True, exists=True),
-    help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file."""
+    help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file.""",
 )
-@click.option(
-    "-o", "--out-file",
-    required=True,
-    type=click.Path(resolve_path=True)
-)
+@click.option("-o", "--out-file", required=True, type=click.Path(resolve_path=True))
 def topology_report(**kwargs):
-    """ Build topology report.
-    """
+    """Build topology report."""
     write_topology_report(**kwargs)
 
 
 # =========================================================================
 # Analysis
 # =========================================================================
-@click.command(
-    context_settings={"max_content_width": 120},
-    name="run"
-)
+@click.command(context_settings={"max_content_width": 120}, name="run")
 @click.option(
-    "-i", "--in-file",
+    "-i",
+    "--in-file",
     required=True,
     type=click.Path(exists=True, resolve_path=True),
     help="""Path to TSV format file with copy number and allele count information for all samples. 
-    See the examples directory in the GitHub repository for format."""
+    See the examples directory in the GitHub repository for format.""",
 )
 @click.option(
-    "-o", "--out-file",
+    "-o",
+    "--out-file",
     required=True,
     type=click.Path(resolve_path=True),
-    help="""Path to where trace file will be written in gzip compressed pickle format."""
+    help="""Path to where trace file will be written in gzip compressed pickle format.""",
 )
 @click.option(
-    "-b", "--burnin",
+    "-b",
+    "--burnin",
     default=1,
     type=int,
     show_default=True,
-    help="""Number of burnin iterations using unconditional SMC sampler. Default is 1."""
+    help="""Number of burnin iterations using unconditional SMC sampler. Default is 1.""",
 )
 @click.option(
-    "-n", "--num-iters",
+    "-n",
+    "--num-iters",
     default=1000,
     type=int,
     show_default=True,
-    help="""Number of iterations of the MCMC sampler to perform. Default is 1,000."""
+    help="""Number of iterations of the MCMC sampler to perform. Default is 1,000.""",
 )
 @click.option(
-    "-t", "--thin",
+    "-t",
+    "--thin",
     default=1,
     type=int,
     show_default=True,
-    help="""Thinning parameter for storing entries in trace. Default is 1."""
+    help="""Thinning parameter for storing entries in trace. Default is 1.""",
 )
 @click.option(
     "--num-chains",
     default=1,
     type=int,
-    help="""Number of parallel chains for sampling. Default is 1."""
+    help="""Number of parallel chains for sampling. Default is 1.""",
 )
 @click.option(
-    "-c", "--cluster-file",
+    "-c",
+    "--cluster-file",
     default=None,
     type=click.Path(resolve_path=True, exists=True),
-    help="""Path to file with pre-computed cluster assignments of mutations is located."""
+    help="""Path to file with pre-computed cluster assignments of mutations is located.""",
 )
 @click.option(
-    "-d", "--density",
+    "-d",
+    "--density",
     default="beta-binomial",
     type=click.Choice(["binomial", "beta-binomial"]),
     show_default=True,
-    help="""Allele count density in the PyClone model. Use beta-binomial for most cases. Default beta-binomial."""
+    help="""Allele count density in the PyClone model. Use beta-binomial for most cases. Default beta-binomial.""",
 )
 @click.option(
-    "-l", "--outlier-prob",
+    "-l",
+    "--outlier-prob",
     default=0,
     type=click.FloatRange(0.0, 1.0, clamp=True),
     show_default=True,
-    help="""Global prior probability that data points are outliers and don't fit tree. Default is 0.0"""
+    help="""Global prior probability that data points are outliers and don't fit tree. Default is 0.0""",
 )
 @click.option(
-    "-p", "--proposal",
+    "-p",
+    "--proposal",
     default="semi-adapted",
     type=click.Choice(["bootstrap", "fully-adapted", "semi-adapted"]),
     show_default=True,
@@ -192,7 +185,7 @@ def topology_report(**kwargs):
     Proposal distribution to use for PG sampling.
     Fully adapted is the most computationally expensive but also likely to lead to the best performance per iteration.
     For large datasets it may be necessary to use one of the other proposals.
-    """
+    """,
 )
 @click.option(
     "-t",
@@ -200,13 +193,13 @@ def topology_report(**kwargs):
     default=float("inf"),
     type=float,
     show_default=True,
-    help="""Maximum running time in seconds."""
+    help="""Maximum running time in seconds.""",
 )
 @click.option(
     "--concentration-update/--no-concentration-update",
     default=True,
     show_default=True,
-    help="Whether the concentration parameter should be updated during sampling."
+    help="Whether the concentration parameter should be updated during sampling.",
 )
 @click.option(
     "--concentration-value",
@@ -214,7 +207,7 @@ def topology_report(**kwargs):
     type=float,
     show_default=True,
     help="""The (initial) concentration of the Dirichlet process. Higher values will encourage more clusters, 
-    lower values have the opposite effect. Default is 1.0."""
+    lower values have the opposite effect. Default is 1.0.""",
 )
 @click.option(
     "--grid-size",
@@ -222,28 +215,28 @@ def topology_report(**kwargs):
     type=int,
     show_default=True,
     help="""Grid size for discrete approximation. This will numerically marginalise the cancer cell fraction. 
-    Higher values lead to more accurate approximations at the expense of run time."""
+    Higher values lead to more accurate approximations at the expense of run time.""",
 )
 @click.option(
     "--num-particles",
     default=20,
     type=int,
     show_default=True,
-    help="""Number of particles to use during PG sampling. Default is 20."""
+    help="""Number of particles to use during PG sampling. Default is 20.""",
 )
 @click.option(
     "--num-samples-data-point",
     default=1,
     type=int,
     show_default=True,
-    help="""Number of Gibbs updates to reassign data points per SMC iteration. Default is 1."""
+    help="""Number of Gibbs updates to reassign data points per SMC iteration. Default is 1.""",
 )
 @click.option(
     "--num-samples-prune-regraph",
     default=1,
     type=int,
     show_default=True,
-    help="""Number of prune-regraph updates per SMC iteration. Default is 1."""
+    help="""Number of prune-regraph updates per SMC iteration. Default is 1.""",
 )
 @click.option(
     "-s",
@@ -251,7 +244,7 @@ def topology_report(**kwargs):
     default=0.0,
     type=click.FloatRange(0.0, 1.0, clamp=True),
     show_default=True,
-    help="""Probability of updating a subtree (instead of whole tree) using PG sampler. Default is 0.0"""
+    help="""Probability of updating a subtree (instead of whole tree) using PG sampler. Default is 0.0""",
 )
 @click.option(
     "--precision",
@@ -259,54 +252,54 @@ def topology_report(**kwargs):
     type=float,
     show_default=True,
     help="""The (initial) precision parameter of the Beta-Binomial density. 
-    The higher the value the more similar the Beta-Binomial is to a Binomial. Default is 400."""
+    The higher the value the more similar the Beta-Binomial is to a Binomial. Default is 400.""",
 )
 @click.option(
     "--print-freq",
     default=10,
     type=int,
     show_default=True,
-    help="""How frequently to print information about fitting. Default every 10 iterations."""
+    help="""How frequently to print information about fitting. Default every 10 iterations.""",
 )
 @click.option(
     "--resample-threshold",
     default=0.5,
     type=click.FloatRange(0.0, 1.0, clamp=True),
     show_default=True,
-    help="""ESS threshold to trigger resampling. Default is 0.5."""
+    help="""ESS threshold to trigger resampling. Default is 0.5.""",
 )
 @click.option(
     "--seed",
     default=None,
     type=int,
-    help="""Set random seed so results can be reproduced. By default a random seed is chosen."""
+    help="""Set random seed so results can be reproduced. By default a random seed is chosen.""",
 )
 @click.option(
     "--rng-pickle",
     default=None,
     type=click.Path(exists=True, resolve_path=True),
-    help="""Set numpy random generator from pickled instance, supersedes seed if also provided."""
+    help="""Set numpy random generator from pickled instance, supersedes seed if also provided.""",
 )
 @click.option(
     "--save-rng/--no-save-rng",
     default=True,
     show_default=True,
-    help="Whether the numpy RNG BitGenerator should be pickled for reproducibility."
+    help="Whether the numpy RNG BitGenerator should be pickled for reproducibility.",
 )
 @click.option(
     "--assign-loss-prob/--no-assign-loss-prob",
     default=False,
     show_default=True,
     help="Whether to assign loss probability prior from the cluster data."
-         "Note: This option is incompatible with --user-provided-loss-prob"
+    "Note: This option is incompatible with --user-provided-loss-prob",
 )
 @click.option(
     "--user-provided-loss-prob/--no-user-provided-loss-prob",
     default=False,
     show_default=True,
     help="Whether to use user-provided cluster loss probability prior from the cluster file."
-         "Requires that the \'outlier_prob\' column be present and populated in the cluster file."
-         "Note: This option is incompatible with --assign-loss-prob"
+    "Requires that the 'outlier_prob' column be present and populated in the cluster file."
+    "Note: This option is incompatible with --assign-loss-prob",
 )
 @click.option(
     "--low-loss-prob",
@@ -315,7 +308,7 @@ def topology_report(**kwargs):
     show_default=True,
     help="""Lower loss probability setting. 
     Used when allowing PhyClone to assign loss prior probability from cluster data.
-    Unless combined with the --assign-loss-prob option and a cluster input file, this does nothing."""
+    Unless combined with the --assign-loss-prob option and a cluster input file, this does nothing.""",
 )
 @click.option(
     "--high-loss-prob",
@@ -324,11 +317,10 @@ def topology_report(**kwargs):
     show_default=True,
     help="""Higher loss probability setting. 
     Used when allowing PhyClone to assign loss prior probability from cluster data.
-    Unless combined with the --assign-loss-prob option and a cluster input file, this does nothing."""
+    Unless combined with the --assign-loss-prob option and a cluster input file, this does nothing.""",
 )
 def run(**kwargs):
-    """ Run a new PhyClone analysis.
-    """
+    """Run a new PhyClone analysis."""
     run_prog(**kwargs)
 
 

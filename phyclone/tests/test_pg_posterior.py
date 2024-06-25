@@ -25,19 +25,23 @@ class BaseTest(object):
             self._rng = np.random.default_rng(12345)
 
         def test_single_data_point_1d(self):
-            data = [simulate.simulate_binomial_data(0, 100, 1.0, self._rng), ]
+            data = [
+                simulate.simulate_binomial_data(0, 100, 1.0, self._rng),
+            ]
 
             self._run_exact_posterior_test(data, burnin=100, num_iters=100)
 
         def test_single_data_point_2d(self):
-            data = [simulate.simulate_binomial_data(0, 100, [1.0, 1.0], self._rng), ]
+            data = [
+                simulate.simulate_binomial_data(0, 100, [1.0, 1.0], self._rng),
+            ]
 
             self._run_exact_posterior_test(data, burnin=100, num_iters=100)
 
         def test_two_data_point_1d_non_informative(self):
             data = [
                 simulate.simulate_binomial_data(0, 0, 1.0, self._rng),
-                simulate.simulate_binomial_data(1, 0, 1.0, self._rng)
+                simulate.simulate_binomial_data(1, 0, 1.0, self._rng),
             ]
 
             self._run_exact_posterior_test(data, burnin=100, num_iters=2000)
@@ -54,7 +58,7 @@ class BaseTest(object):
         def test_two_data_point_1d_single_cluster(self):
             data = [
                 simulate.simulate_binomial_data(0, 10, 1.0, self._rng),
-                simulate.simulate_binomial_data(1, 10, 1.0, self._rng)
+                simulate.simulate_binomial_data(1, 10, 1.0, self._rng),
             ]
 
             self._run_exact_posterior_test(data, burnin=100, num_iters=2000)
@@ -62,7 +66,7 @@ class BaseTest(object):
         def test_two_data_point_1d_two_cluster(self):
             data = [
                 simulate.simulate_binomial_data(0, 10, 1.0, self._rng),
-                simulate.simulate_binomial_data(1, 10, 0.5, self._rng)
+                simulate.simulate_binomial_data(1, 10, 0.5, self._rng),
             ]
 
             self._run_exact_posterior_test(data, burnin=100, num_iters=2000)
@@ -70,7 +74,7 @@ class BaseTest(object):
         def test_two_data_point_2d_two_cluster(self):
             data = [
                 simulate.simulate_binomial_data(0, 100, [1.0, 1.0], self._rng),
-                simulate.simulate_binomial_data(1, 100, [0.5, 0.7], self._rng)
+                simulate.simulate_binomial_data(1, 100, [0.5, 0.7], self._rng),
             ]
 
             self._run_exact_posterior_test(data, burnin=100, num_iters=1000)
@@ -80,13 +84,21 @@ class BaseTest(object):
 
             self.tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
 
-            kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=0, perm_dist=perm_dist,
-                                rng=self._rng)
+            kernel = kernel_cls(
+                self.tree_dist,
+                outlier_proposal_prob=0,
+                perm_dist=perm_dist,
+                rng=self._rng,
+            )
 
             return ParticleGibbsTreeSampler(kernel, self._rng)
 
         def _run_exact_posterior_test(self, data, burnin=100, num_iters=1000):
-            pred_probs = self._run_sampler(data, burnin=burnin * self.run_scale, num_iters=num_iters * self.run_scale)
+            pred_probs = self._run_sampler(
+                data,
+                burnin=burnin * self.run_scale,
+                num_iters=num_iters * self.run_scale,
+            )
 
             true_probs = get_exact_posterior(data, self.tree_dist)
 

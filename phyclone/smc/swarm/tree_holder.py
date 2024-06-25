@@ -2,8 +2,20 @@ from phyclone.tree import Tree
 
 
 class TreeHolder(object):
-    __slots__ = ('_tree_dist', 'log_p', '_hash_val', '_tree', 'log_pdf', 'log_p_one', '_perm_dist',
-                 "tree_nodes", "tree_roots", "labels", "node_last_added_to", "num_children_on_node_that_matters")
+    __slots__ = (
+        "_tree_dist",
+        "log_p",
+        "_hash_val",
+        "_tree",
+        "log_pdf",
+        "log_p_one",
+        "_perm_dist",
+        "tree_nodes",
+        "tree_roots",
+        "labels",
+        "node_last_added_to",
+        "num_children_on_node_that_matters",
+    )
 
     def __init__(self, tree, tree_dist, perm_dist):
 
@@ -48,7 +60,9 @@ class TreeHolder(object):
             self.log_pdf = self._perm_dist.log_pdf(tree)
         # self.log_p_one = self._tree_dist.log_p_one(tree)
 
-        self.log_p, self.log_p_one = self._tree_dist.compute_both_log_p_and_log_p_one(tree)
+        self.log_p, self.log_p_one = self._tree_dist.compute_both_log_p_and_log_p_one(
+            tree
+        )
 
         # assert check_log_p == self.log_p
         # assert check_log_p_one == self.log_p_one
@@ -60,7 +74,9 @@ class TreeHolder(object):
         self.labels = tree.labels
         self.node_last_added_to = tree.node_last_added_to
         if self.node_last_added_to != -1:
-            self.num_children_on_node_that_matters = tree.get_number_of_children(self.node_last_added_to)
+            self.num_children_on_node_that_matters = tree.get_number_of_children(
+                self.node_last_added_to
+            )
         else:
             self.num_children_on_node_that_matters = 0
 

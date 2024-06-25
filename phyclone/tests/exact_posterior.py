@@ -47,7 +47,7 @@ def get_fscrp_tree(alpha, grid_size, clusters, parent_pointers):
         parent -= 1
 
         if parent == -1:
-            tree._graph.add_edge('root', child)
+            tree._graph.add_edge("root", child)
 
         elif parent >= 0:
             tree._graph.add_edge(parent, child)
@@ -106,7 +106,7 @@ def get_all_partitions(collection):
 
     for smaller in get_all_partitions(collection[1:]):
         for n, subset in enumerate(smaller):
-            yield smaller[:n] + [[first] + subset] + smaller[n + 1:]
+            yield smaller[:n] + [[first] + subset] + smaller[n + 1 :]
 
         yield [[first]] + smaller
 
