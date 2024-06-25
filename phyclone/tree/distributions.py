@@ -124,9 +124,10 @@ class FSCRPDistribution(object):
         log_const = self.c_const
 
         if num_roots == 0:
-            r_term_denominator = log_one - (log_const * 1)
-            r_term_denominator = la + np.log1p(-np.exp(r_term_denominator - la))
-            res = a_term - r_term_denominator
+            # r_term_denominator = log_one - (log_const * 1)
+            # r_term_denominator = la + np.log1p(-np.exp(r_term_denominator - la))
+            # res = a_term - r_term_denominator
+            res = a_term
         else:
 
             r_term_numerator = log_one - (log_const * num_roots)
@@ -141,6 +142,9 @@ class FSCRPDistribution(object):
     def _compute_r_term(self, num_roots, num_nodes):
         z_term = self._compute_z_term(num_roots, num_nodes)
         log_const = self.c_const
+
+        if num_roots == 0:
+            num_roots = 1
 
         return np.log(1) - (z_term + (log_const * (num_roots - 1)))
 

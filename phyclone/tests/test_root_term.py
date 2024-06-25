@@ -11,14 +11,18 @@ class Test(unittest.TestCase):
             r_term = 1 / (1000 ** (i - 1))
             res += a_term * r_term
 
+        if r == 0:
+            res = a_term
+
         return res
 
     def closed_form(self, r, b_term):
         a_term = 1**b_term
 
         if r == 0:
-            r_term_denominator = 1 - (1 / (1000**1))
-            res = a_term / r_term_denominator
+            # r_term_denominator = 1 - (1 / (1000**1))
+            # res = a_term / r_term_denominator
+            res = a_term
         else:
             r_term_numerator = 1 - (1 / (1000**r))
             r_term_denominator = 1 - (1 / (1000**1))
@@ -36,9 +40,10 @@ class Test(unittest.TestCase):
         la = np.log(1)
 
         if r == 0:
-            r_term_denominator = np.log(1) - (np.log(1000) * 1)
-            r_term_denominator = la + np.log1p(-np.exp(r_term_denominator - la))
-            res = a_term - r_term_denominator
+            # r_term_denominator = np.log(1) - (np.log(1000) * 1)
+            # r_term_denominator = la + np.log1p(-np.exp(r_term_denominator - la))
+            # res = a_term - r_term_denominator
+            res = a_term
         else:
 
             r_term_numerator = np.log(1) - (np.log(1000) * r)

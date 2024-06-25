@@ -51,7 +51,13 @@ class Test(unittest.TestCase):
 
         self.tree.add_data_point_to_node(data[2], node)
 
-        self.assertEqual(self.tree_dist.log_p(self.tree), log_factorial(2))
+        tree_multiplicity = self.tree.multiplicity
+
+        actual = log_factorial(2)
+
+        actual -= tree_multiplicity
+
+        self.assertEqual(self.tree_dist.log_p(self.tree), actual)
 
     def test_two_data_point_chain_sigma(self):
         """CRP is 0 and tree term is (n+1)^(n-1) = 3^1"""
@@ -65,7 +71,13 @@ class Test(unittest.TestCase):
 
         self.tree.add_data_point_to_node(data[1], node)
 
-        self.assertEqual(self.tree_dist.log_p(self.tree), -np.log(3))
+        tree_multiplicity = self.tree.multiplicity
+
+        actual = -np.log(3)
+
+        actual -= tree_multiplicity
+
+        self.assertEqual(self.tree_dist.log_p(self.tree), actual)
 
     def test_two_data_point_separate_sigma(self):
         """CRP is 0 and tree term is (n+1)^(n-1) = 3^1"""
@@ -79,7 +91,13 @@ class Test(unittest.TestCase):
 
         self.tree.add_data_point_to_node(data[1], node)
 
-        self.assertEqual(self.tree_dist.log_p(self.tree), -np.log(3))
+        tree_multiplicity = self.tree.multiplicity
+
+        actual = -np.log(3)
+
+        actual -= tree_multiplicity
+
+        self.assertEqual(self.tree_dist.log_p(self.tree), actual)
 
     def _create_data_point(self, idx):
         return DataPoint(idx, np.zeros(self.tree.grid_size))
