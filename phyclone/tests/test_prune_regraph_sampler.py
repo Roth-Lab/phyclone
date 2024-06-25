@@ -1,13 +1,10 @@
 import unittest
-from unittest import mock
 
 import numpy as np
-from unittest.mock import patch, Mock
 
-import phyclone.mcmc
-from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
-from phyclone.tests.simulate import simulate_binomial_data
 from phyclone.mcmc import PruneRegraphSampler
+from phyclone.tests.simulate import simulate_binomial_data
+from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 
 
 class TestPruneRegraph(unittest.TestCase):

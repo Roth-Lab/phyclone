@@ -1,9 +1,9 @@
-import rustworkx as rx
 import numpy as np
+import rustworkx as rx
 
 from phyclone.smc.samplers.base import AbstractSMCSampler
-from phyclone.tree import Tree
 from phyclone.smc.swarm import TreeHolder, ParticleSwarm
+from phyclone.tree import Tree
 
 
 class ConditionalSMCSampler(AbstractSMCSampler):

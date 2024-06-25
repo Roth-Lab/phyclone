@@ -1,4 +1,5 @@
 import numpy as np
+
 from phyclone.utils.math import exp_normalize, log_normalize
 
 

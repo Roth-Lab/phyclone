@@ -1,7 +1,6 @@
 import numpy as np
 
 from phyclone.smc.samplers.base import AbstractSMCSampler
-
 from phyclone.smc.swarm import ParticleSwarm
 
 

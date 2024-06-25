@@ -1,10 +1,12 @@
 import itertools
-import numpy as np
 from functools import lru_cache
-from phyclone.utils.math import log_normalize, discrete_rvs
+
+import numpy as np
+
 from phyclone.smc.kernels.base import Kernel, ProposalDistribution
 from phyclone.smc.swarm import TreeHolder
 from phyclone.tree import Tree
+from phyclone.utils.math import log_normalize, discrete_rvs
 
 
 class FullyAdaptedProposalDistribution(ProposalDistribution):

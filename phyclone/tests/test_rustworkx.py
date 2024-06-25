@@ -1,11 +1,11 @@
+import unittest
+
 import numpy as np
 
 from phyclone.tests.old_implementations import OldTree
-from phyclone.tree.utils import get_clades
-
-import unittest
-from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.tests.simulate import simulate_binomial_data
+from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
+from phyclone.tree.utils import get_clades
 
 
 class Test(unittest.TestCase):

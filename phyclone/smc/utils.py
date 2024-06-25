@@ -4,12 +4,13 @@ Created on 9 Aug 2017
 @author: Andrew Roth
 """
 
+from itertools import repeat
+
 from phyclone.utils.math import (
     log_factorial,
     log_binomial_coefficient,
     log_multinomial_coefficient,
 )
-from itertools import repeat
 
 
 class RootPermutationDistribution(object):

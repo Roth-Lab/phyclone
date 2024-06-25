@@ -1,11 +1,12 @@
-import numpy as np
-import time
-from functools import lru_cache, wraps
-from xxhash import xxh3_64_hexdigest
 import pickle
-from os.path import join, dirname
-from itertools import count
+import time
 from collections import deque
+from functools import lru_cache, wraps
+from itertools import count
+from os.path import join, dirname
+
+import numpy as np
+from xxhash import xxh3_64_hexdigest
 
 
 def read_pickle(file):

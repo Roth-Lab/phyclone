@@ -1,19 +1,20 @@
 import itertools
 from collections import OrderedDict, defaultdict, Counter
+from dataclasses import dataclass
 from operator import itemgetter
+
 import numba
 import numpy as np
 import pandas as pd
 
 import phyclone.data.base
+from phyclone.utils.exceptions import MajorCopyNumberError
 from phyclone.utils.math import (
     log_normalize,
     log_beta_binomial_pdf,
     log_sum_exp,
     log_binomial_pdf,
 )
-from phyclone.utils.exceptions import MajorCopyNumberError
-from dataclasses import dataclass
 
 
 def load_data(

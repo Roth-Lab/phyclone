@@ -1,9 +1,11 @@
-import numpy as np
-from phyclone.utils.math import log_binomial_coefficient, log_normalize
-from phyclone.smc.kernels.base import Kernel, ProposalDistribution
-from phyclone.tree import Tree
 from functools import lru_cache
+
+import numpy as np
+
+from phyclone.smc.kernels.base import Kernel, ProposalDistribution
 from phyclone.smc.swarm import TreeHolder
+from phyclone.tree import Tree
+from phyclone.utils.math import log_binomial_coefficient, log_normalize
 
 
 class SemiAdaptedProposalDistribution(ProposalDistribution):

@@ -1,9 +1,11 @@
 from collections import defaultdict
-import numpy as np
-import rustworkx as rx
 from itertools import chain
 from typing import Union
 
+import numpy as np
+import rustworkx as rx
+
+from phyclone.tree.utils import compute_log_S
 from phyclone.tree.visitors import (
     PostOrderNodeUpdater,
     PreOrderNodeRelabeller,
@@ -11,7 +13,7 @@ from phyclone.tree.visitors import (
     GraphToNewickVisitor,
 )
 from phyclone.utils.math import cached_log_factorial
-from phyclone.tree.utils import compute_log_S
+
 
 # from rustworkx.visualization import mpl_draw
 # import matplotlib.pyplot as plt

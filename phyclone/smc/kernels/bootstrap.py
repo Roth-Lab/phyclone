@@ -1,8 +1,8 @@
 import numpy as np
 
-from phyclone.utils.math import log_binomial_coefficient
 from phyclone.smc.kernels.base import Kernel, ProposalDistribution
 from phyclone.tree import Tree
+from phyclone.utils.math import log_binomial_coefficient
 
 
 class BootstrapProposalDistribution(ProposalDistribution):

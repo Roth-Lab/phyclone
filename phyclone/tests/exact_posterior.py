@@ -1,12 +1,11 @@
+import itertools
 from collections import defaultdict
 
-import itertools
 import numpy as np
 
+from phyclone.tests.old_implementations import OldTree
 from phyclone.tree.utils import get_clades
 from phyclone.utils.math import exp_normalize
-from phyclone.tree import Tree
-from phyclone.tests.old_implementations import OldTree
 
 
 def get_exact_posterior(data, tree_dist, alpha=1.0):

@@ -5,9 +5,10 @@ Created on 8 Dec 2016
 """
 
 import math
+from functools import lru_cache
+
 import numba
 import numpy as np
-from functools import lru_cache
 from scipy.signal import fftconvolve
 
 

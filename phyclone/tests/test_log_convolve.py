@@ -1,5 +1,7 @@
-import numpy as np
 import unittest
+
+import numpy as np
+
 from phyclone.tree.utils import _convolve_two_children
 from phyclone.utils.math import conv_log, non_log_conv
 

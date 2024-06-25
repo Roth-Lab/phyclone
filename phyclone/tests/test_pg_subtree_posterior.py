@@ -1,17 +1,15 @@
 import unittest
-
 from collections import defaultdict, Counter
 
-from phyclone.tree.utils import get_clades
+from numpy import random
+
+import phyclone.tests.simulate as simulate
 from phyclone.mcmc import ParticleGibbsSubtreeSampler
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
 from phyclone.smc.utils import RootPermutationDistribution
-from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
-
 from phyclone.tests.exact_posterior import get_exact_posterior
-
-import phyclone.tests.simulate as simulate
-from numpy import random
+from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
+from phyclone.tree.utils import get_clades
 
 
 class BaseTest(object):

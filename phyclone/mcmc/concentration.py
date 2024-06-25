@@ -5,6 +5,7 @@ Created on 8 Dec 2016
 """
 
 import numpy as np
+
 # import scipy.stats as stats
 from scipy.stats import gamma, beta, bernoulli
 
@@ -31,9 +32,7 @@ class GammaPriorConcentrationSampler(object):
 
     def sample(self, old_value, num_clusters, num_data_points):
         if num_clusters == 0:
-            new_value = gamma.rvs(
-                self.a, scale=(1 / self.b), random_state=self._rng
-            )
+            new_value = gamma.rvs(self.a, scale=(1 / self.b), random_state=self._rng)
 
         else:
             a = self.a

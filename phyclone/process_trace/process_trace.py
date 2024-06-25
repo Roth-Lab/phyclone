@@ -1,5 +1,6 @@
 import gzip
 import pickle
+
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -7,8 +8,8 @@ import pandas as pd
 from phyclone.process_trace.consensus import get_consensus_tree
 from phyclone.process_trace.map import get_map_node_ccfs
 from phyclone.process_trace.utils import print_string_to_file
-from phyclone.utils.math import exp_normalize
 from phyclone.tree import Tree
+from phyclone.utils.math import exp_normalize
 
 
 def write_map_results(

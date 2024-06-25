@@ -4,9 +4,13 @@ Created on 2012-02-08
 @author: Andrew Roth
 """
 
-import numpy as np
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
+from multiprocessing import get_context
 
+import numpy as np
+
+from phyclone.data.pyclone import load_data
 from phyclone.mcmc.concentration import GammaPriorConcentrationSampler
 from phyclone.mcmc.gibbs_mh import DataPointSampler, PruneRegraphSampler
 from phyclone.mcmc.particle_gibbs import (
@@ -18,10 +22,7 @@ from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdapte
 from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
 from phyclone.utils import Timer, read_pickle, save_numpy_rng
-from phyclone.data.pyclone import load_data
 from phyclone.utils.dev import clear_proposal_dist_caches
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from multiprocessing import get_context
 
 
 def run(
@@ -88,7 +89,7 @@ def run(
     results = {}
 
     if num_chains == 1:
-        results[0] = phyclone_go(
+        results[0] = run_phyclone_chain(
             burnin,
             concentration_update,
             concentration_value,
@@ -120,7 +121,7 @@ def run(
         ) as pool:
             chain_results = [
                 pool.submit(
-                    phyclone_go,
+                    run_phyclone_chain,
                     burnin,
                     concentration_update,
                     concentration_value,
@@ -156,7 +157,7 @@ def run(
     create_main_run_output(cluster_file, out_file, results)
 
 
-def phyclone_go(
+def run_phyclone_chain(
     burnin,
     concentration_update,
     concentration_value,

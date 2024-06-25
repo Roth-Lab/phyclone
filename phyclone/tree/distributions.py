@@ -1,4 +1,5 @@
 import numpy as np
+
 from phyclone.utils.math import log_sum_exp, cached_log_factorial
 
 

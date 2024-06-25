@@ -1,5 +1,5 @@
-from scipy.special import logsumexp as log_sum_exp
 import numpy as np
+from scipy.special import logsumexp as log_sum_exp
 
 
 class DataPoint(object):
