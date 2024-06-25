@@ -119,15 +119,12 @@ class FSCRPDistribution(object):
         log_one = np.log(1)
 
         # TODO: 1 raised to the power of anything is still just 1, likely don't need this
-        a_term = (log_one * num_nodes)
+        a_term = log_one * num_nodes
 
         la = log_one
         log_const = self.c_const
 
         if num_roots == 0:
-            # r_term_denominator = log_one - (log_const * 1)
-            # r_term_denominator = la + np.log1p(-np.exp(r_term_denominator - la))
-            # res = a_term - r_term_denominator
             res = a_term
         else:
 
