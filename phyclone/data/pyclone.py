@@ -347,13 +347,13 @@ def load_pyclone_data(file_name):
         lambda x: sorted(x["sample_id"].unique()) == samples
     )
 
-    mutations = sorted(df["mutation_id"].unique())
+    mutations = df["mutation_id"].unique()
 
     print("Num mutations: {}".format(len(mutations)))
 
     _process_required_cols_on_df(df, samples)
 
-    data = _create_loaded_pyclone_data_dict(df, mutations, samples)
+    data = _create_loaded_pyclone_data_dict(df, samples)
 
     return data, samples
 
@@ -380,34 +380,37 @@ def _create_raw_data_df(file_name):
     return df
 
 
-def _create_loaded_pyclone_data_dict(df, mutations, samples):
+def _create_loaded_pyclone_data_dict(df, samples):
     data = OrderedDict()
-    for name in mutations:
-        mut_df = df[df["mutation_id"] == name]
+    df = df.sort_values(by="mutation_id", ascending=True)
+    grouped = df.groupby("mutation_id", sort=False)
 
+    for mutation, group in grouped:
         sample_data_points = []
 
-        mut_df = mut_df.set_index("sample_id")
+        group.set_index("sample_id", inplace=True)
 
         for sample in samples:
-            row = mut_df.loc[sample]
 
-            a = row["ref_counts"]
+            a = group.at[sample, "ref_counts"]
 
-            b = row["alt_counts"]
+            b = group.at[sample, "alt_counts"]
 
             cn, mu, log_pi = get_major_cn_prior(
-                row["major_cn"],
-                row["minor_cn"],
-                row["normal_cn"],
-                error_rate=row["error_rate"],
+                group.at[sample, "major_cn"],
+                group.at[sample, "minor_cn"],
+                group.at[sample, "normal_cn"],
+                error_rate=group.at[sample, "error_rate"],
             )
 
             sample_data_points.append(
-                SampleDataPoint(a, b, cn, mu, log_pi, row["tumour_content"])
+                SampleDataPoint(
+                    a, b, cn, mu, log_pi, group.at[sample, "tumour_content"]
+                )
             )
 
-        data[name] = DataPoint(samples, sample_data_points)
+        data[mutation] = DataPoint(samples, sample_data_points)
+
     return data
 
 
