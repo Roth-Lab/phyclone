@@ -342,10 +342,9 @@ def load_pyclone_data(file_name):
 
     samples = sorted(df["sample_id"].unique())
 
-    # Filter for mutations present in all samples
-    df = df.groupby(by="mutation_id").filter(
-        lambda x: sorted(x["sample_id"].unique()) == samples
-    )
+    samples_len = len(samples)
+
+    df = df.loc[df.groupby(df['mutation_id'])["sample_id"].transform('size') == samples_len]
 
     mutations = df["mutation_id"].unique()
 
