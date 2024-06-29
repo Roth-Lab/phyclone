@@ -337,14 +337,11 @@ def compute_outlier_prob(outlier_prob, cluster_size):
 def load_pyclone_data(file_name):
     df = _create_raw_data_df(file_name)
 
-    # remove any rows where maj copy number == 0
-    df = df.loc[df["major_cn"] > 0]
+    df = _remove_cn_zero_mutations(df)
 
     samples = sorted(df["sample_id"].unique())
 
-    samples_len = len(samples)
-
-    df = df.loc[df.groupby(df['mutation_id'])["sample_id"].transform('size') == samples_len]
+    df = _remove_duplicated_and_partially_absent_mutations(df, samples)
 
     mutations = df["mutation_id"].unique()
 
@@ -355,6 +352,27 @@ def load_pyclone_data(file_name):
     data = _create_loaded_pyclone_data_dict(df, samples)
 
     return data, samples
+
+
+def _remove_duplicated_and_partially_absent_mutations(df, samples):
+    samples_len = len(samples)
+    group_transform = df.groupby(df['mutation_id'])["sample_id"].transform('size')
+    num_not_present_in_all = len(df[group_transform < samples_len]["mutation_id"].unique())
+    num_duplicates = len(df[group_transform > samples_len]["mutation_id"].unique())
+    if num_duplicates > 0:
+        print("Removing {} duplicate mutation IDs".format(num_duplicates))
+    if num_not_present_in_all > 0:
+        print("Removing {} mutations that are not present in all samples".format(num_not_present_in_all))
+    df = df.loc[group_transform == samples_len]
+    return df
+
+
+def _remove_cn_zero_mutations(df):
+    num_dels = sum(df["major_cn"] == 0)
+    if num_dels > 0:
+        print("Removing {} mutations with major copy number zero".format(num_dels))
+    df = df.loc[df["major_cn"] > 0]
+    return df
 
 
 def _process_required_cols_on_df(df, samples):
