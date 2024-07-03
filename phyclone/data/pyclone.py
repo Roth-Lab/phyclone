@@ -360,9 +360,18 @@ def _remove_duplicated_and_partially_absent_mutations(df, samples):
     num_not_present_in_all = len(df[group_transform < samples_len]["mutation_id"].unique())
     num_duplicates = len(df[group_transform > samples_len]["mutation_id"].unique())
     if num_duplicates > 0:
-        print("Removing {} duplicate mutation IDs".format(num_duplicates))
+        if num_duplicates == 1:
+            pl = ''
+        else:
+            pl = 's'
+        print("Removing {} duplicate mutation ID{}".format(num_duplicates, pl))
     if num_not_present_in_all > 0:
-        print("Removing {} mutations that are not present in all samples".format(num_not_present_in_all))
+        if num_not_present_in_all == 1:
+            pl = ('', 'is')
+        else:
+            pl = ('s', 'are')
+        print("Removing {} mutation{} that {} not present in all samples".format(num_not_present_in_all,
+                                                                                 pl[0], pl[1]))
     df = df.loc[group_transform == samples_len]
     return df
 
@@ -370,7 +379,11 @@ def _remove_duplicated_and_partially_absent_mutations(df, samples):
 def _remove_cn_zero_mutations(df):
     num_dels = sum(df["major_cn"] == 0)
     if num_dels > 0:
-        print("Removing {} mutations with major copy number zero".format(num_dels))
+        if num_dels == 1:
+            pl = ''
+        else:
+            pl = 's'
+        print("Removing {} mutation{} with major copy number zero".format(num_dels, pl))
     df = df.loc[df["major_cn"] > 0]
     return df
 
