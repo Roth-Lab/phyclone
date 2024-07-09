@@ -3,22 +3,37 @@ import numpy as np
 from phyclone.process_trace.utils import convert_rustworkx_to_networkx
 
 
+# def get_map_node_ccfs(tree):
+#     graph = tree._graph.copy()
+#
+#     graph = convert_rustworkx_to_networkx(graph)
+#
+#     compute_max_likelihood(graph, "root")
+#
+#     set_max_assignment(graph)
+#
+#     result = {}
+#
+#     get_map_ccfs_dict(graph, "root", result)
+#
+#     del result["root"]
+#
+#     return result, graph
+
 def get_map_node_ccfs(tree):
-    graph = tree._graph.copy()
-
-    graph = convert_rustworkx_to_networkx(graph)
-
-    compute_max_likelihood(graph, "root")
-
-    set_max_assignment(graph)
-
-    result = {}
-
-    get_map_ccfs_dict(graph, "root", result)
-
-    del result["root"]
-
+    graph, result = get_map_node_ccfs_and_graph(tree)
     return result
+
+
+def get_map_node_ccfs_and_graph(tree):
+    graph = tree._graph.copy()
+    graph = convert_rustworkx_to_networkx(graph)
+    compute_max_likelihood(graph, "root")
+    set_max_assignment(graph)
+    result = {}
+    get_map_ccfs_dict(graph, "root", result)
+    del result["root"]
+    return graph, result
 
 
 def compute_max_likelihood(graph, node_id):

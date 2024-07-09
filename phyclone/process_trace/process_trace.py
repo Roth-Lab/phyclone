@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from phyclone.process_trace.consensus import get_consensus_tree
-from phyclone.process_trace.map import get_map_node_ccfs
+from phyclone.process_trace.map import get_map_node_ccfs_and_graph
 from phyclone.process_trace.utils import print_string_to_file
 from phyclone.tree import Tree
 from phyclone.utils.math import exp_normalize
@@ -231,7 +231,8 @@ def from_dict_nx(data, tree_dict):
 def get_clone_table(data, samples, tree, clusters=None):
     labels = get_labels_table(data, tree, clusters=clusters)
 
-    ccfs = get_map_node_ccfs(tree)
+    # ccfs = get_map_node_ccfs(tree)
+    clonal_prevs, ccfs = get_clonal_and_cellular_prevs(tree)
 
     table = []
 
@@ -243,13 +244,72 @@ def get_clone_table(data, samples, tree, clusters=None):
 
             if new_row["clone_id"] in ccfs:
                 new_row["ccf"] = ccfs[new_row["clone_id"]][i]
+                new_row["clonal_cf"] = clonal_prevs[new_row["clone_id"]][i]
 
             else:
                 new_row["ccf"] = -1
+                new_row["clonal_cf"] = -1
 
             table.append(new_row)
 
     return pd.DataFrame(table)
+
+
+def get_clonal_and_cellular_prevs(tree):
+    """ Convert a Phyclone tree object to a graph for benchmarking.
+
+    Parameters
+    ----------
+    tree: (phyclone.tree.Tree)
+
+    Returns
+    -------
+    nx.Digraph representing clone phylogeny with nodes "snvs", "cellular_prev" and "clonal_prev" set for each node
+    """
+    graph, ccfs = get_map_node_ccfs_and_graph(tree)
+
+    G = nx.DiGraph()
+
+    for n in graph.nodes:
+        if n == "root":
+            continue
+        G.add_node(n)
+
+        G.nodes[n]["cellular_prev"] = ccfs[n]
+
+        G.nodes[n]["snvs"] = [x.name for x in tree.node_data[n]]
+
+    for u, v in graph.edges:
+        if u == "root" or v == "root":
+            continue
+        G.add_edge(u, v)
+
+    roots = []
+
+    for n in G.nodes:
+        if G.in_degree(n) == 0:
+            roots.append(n)
+
+    for r in roots:
+        set_clonal_prev(G, r)
+
+    clonal_prevs = {}
+
+    for n in G.nodes:
+        clonal_prevs[n] = G.nodes[n]["clonal_prev"]
+
+    return clonal_prevs, ccfs
+
+
+def set_clonal_prev(G, node):
+    clonal_prev = G.nodes[node]["cellular_prev"].copy()
+
+    for child in G.successors(node):
+        clonal_prev -= G.nodes[child]["cellular_prev"]
+
+        set_clonal_prev(G, child)
+
+    G.nodes[node]["clonal_prev"] = clonal_prev
 
 
 def get_labels_table(data, tree, clusters=None):
