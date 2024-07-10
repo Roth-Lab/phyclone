@@ -123,7 +123,7 @@ def log_normalize(log_p):
     return log_p - log_sum_exp(log_p)
 
 
-@numba.vectorize(["float64(float64)"], cache=True)
+@numba.vectorize(cache=True)
 def log_gamma(x):
     return math.lgamma(x)
 
