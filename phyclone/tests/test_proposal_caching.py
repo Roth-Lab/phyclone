@@ -1,12 +1,13 @@
 import unittest
+
 import numpy as np
 
-from phyclone.smc.swarm import Particle
-from phyclone.tree import TreeJointDistribution, FSCRPDistribution, Tree
+from phyclone.smc.kernels import FullyAdaptedKernel, SemiAdaptedKernel
 from phyclone.smc.kernels.fully_adapted import _get_cached_full_proposal_dist
 from phyclone.smc.kernels.semi_adapted import _get_cached_semi_proposal_dist
-from phyclone.smc.kernels import FullyAdaptedKernel, SemiAdaptedKernel
+from phyclone.smc.swarm import Particle
 from phyclone.tests.simulate import simulate_binomial_data
+from phyclone.tree import TreeJointDistribution, FSCRPDistribution, Tree
 
 
 class BaseTest(object):
@@ -29,8 +30,12 @@ class BaseTest(object):
 
             self.tree_dist = TreeJointDistribution(FSCRPDistribution(1.0))
 
-            kernel = kernel_cls(self.tree_dist, outlier_proposal_prob=self.outlier_prob, perm_dist=None,
-                                rng=self._rng)
+            kernel = kernel_cls(
+                self.tree_dist,
+                outlier_proposal_prob=self.outlier_prob,
+                perm_dist=None,
+                rng=self._rng,
+            )
 
             return kernel
 
@@ -98,19 +103,25 @@ class BaseTest(object):
 
             parent_tree = Tree.get_single_node_tree(tree_data)
 
-            parent_particle = Particle(0, None, parent_tree, self.tree_dist, self.kernel.perm_dist)
+            parent_particle = Particle(
+                0, None, parent_tree, self.tree_dist, self.kernel.perm_dist
+            )
 
             cache_size, num_hits = self.get_cache_info()
             self.assertEqual(num_hits, 0)
             self.assertEqual(cache_size, 0)
 
-            prop_1 = self.kernel.get_proposal_distribution(datapoint, parent_particle, parent_tree)
+            prop_1 = self.kernel.get_proposal_distribution(
+                datapoint, parent_particle, parent_tree
+            )
 
             cache_size, num_hits = self.get_cache_info()
             self.assertEqual(num_hits, 0)
             self.assertEqual(cache_size, 1)
 
-            prop_2 = self.kernel.get_proposal_distribution(datapoint, parent_particle, parent_tree)
+            prop_2 = self.kernel.get_proposal_distribution(
+                datapoint, parent_particle, parent_tree
+            )
 
             self.assertEqual(prop_2, prop_1)
 
@@ -125,13 +136,17 @@ class BaseTest(object):
 
             parent_tree = Tree.get_single_node_tree(tree_data)
 
-            parent_particle = Particle(0, None, parent_tree, self.tree_dist, self.kernel.perm_dist)
+            parent_particle = Particle(
+                0, None, parent_tree, self.tree_dist, self.kernel.perm_dist
+            )
 
             cache_size, num_hits = self.get_cache_info()
             self.assertEqual(num_hits, 0)
             self.assertEqual(cache_size, 0)
 
-            prop_1 = self.kernel.get_proposal_distribution(datapoint, parent_particle, parent_tree)
+            prop_1 = self.kernel.get_proposal_distribution(
+                datapoint, parent_particle, parent_tree
+            )
 
             cache_size, num_hits = self.get_cache_info()
             self.assertEqual(num_hits, 0)
@@ -139,9 +154,13 @@ class BaseTest(object):
 
             parent_tree2 = Tree.get_single_node_tree(tree_data)
 
-            parent_particle2 = Particle(0, None, parent_tree2, self.tree_dist, self.kernel.perm_dist)
+            parent_particle2 = Particle(
+                0, None, parent_tree2, self.tree_dist, self.kernel.perm_dist
+            )
 
-            prop_2 = self.kernel.get_proposal_distribution(datapoint, parent_particle2, parent_tree)
+            prop_2 = self.kernel.get_proposal_distribution(
+                datapoint, parent_particle2, parent_tree
+            )
 
             self.assertEqual(prop_2, prop_1)
 
@@ -156,13 +175,17 @@ class BaseTest(object):
 
             parent_tree = Tree.get_single_node_tree(tree_data)
 
-            parent_particle = Particle(0, None, parent_tree, self.tree_dist, self.kernel.perm_dist)
+            parent_particle = Particle(
+                0, None, parent_tree, self.tree_dist, self.kernel.perm_dist
+            )
 
             cache_size, num_hits = self.get_cache_info()
             self.assertEqual(num_hits, 0)
             self.assertEqual(cache_size, 0)
 
-            prop_1 = self.kernel.get_proposal_distribution(datapoint, parent_particle, parent_tree)
+            prop_1 = self.kernel.get_proposal_distribution(
+                datapoint, parent_particle, parent_tree
+            )
 
             cache_size, num_hits = self.get_cache_info()
             self.assertEqual(num_hits, 0)
@@ -170,7 +193,9 @@ class BaseTest(object):
 
             self.kernel.tree_dist.prior.alpha = 2.0
 
-            prop_2 = self.kernel.get_proposal_distribution(datapoint, parent_particle, parent_tree)
+            prop_2 = self.kernel.get_proposal_distribution(
+                datapoint, parent_particle, parent_tree
+            )
 
             self.assertNotEqual(prop_1, prop_2)
 

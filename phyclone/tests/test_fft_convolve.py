@@ -1,15 +1,13 @@
-import numpy as np
 import unittest
-from phyclone.tree.utils import _conv_two_children_jit
+
+import numpy as np
+
+from phyclone.tree.utils import _np_conv_dims
 from phyclone.utils.math import fft_convolve_two_children
-from numba import set_num_threads
 
 
 def run_direct_two_child_convolve(child_1, child_2):
-    num_dims = child_1.shape[0]
-    set_num_threads(num_dims)
-    res_arr = np.empty_like(child_1)
-    _conv_two_children_jit(child_1, child_2, num_dims, res_arr)
+    res_arr = _np_conv_dims(child_1, child_2)
     return res_arr
 
 
@@ -51,8 +49,12 @@ class Test(unittest.TestCase):
         grid_size = self.default_grid_size
         dim = 1
 
-        child_1 = np.log(self.rng.uniform(low=0.1, high=1000, size=(dim, grid_size)), order='C')
-        child_2 = np.log(self.rng.uniform(low=0.1, high=1000, size=(dim, grid_size)), order='C')
+        child_1 = np.log(
+            self.rng.uniform(low=0.1, high=1000, size=(dim, grid_size)), order="C"
+        )
+        child_2 = np.log(
+            self.rng.uniform(low=0.1, high=1000, size=(dim, grid_size)), order="C"
+        )
 
         actual = fft_convolve_two_children(child_1, child_2)
 
@@ -64,8 +66,12 @@ class Test(unittest.TestCase):
         grid_size = self.big_grid
         dim = 1
 
-        child_1 = np.log(self.rng.uniform(low=0.1, high=1000, size=(dim, grid_size)), order='C')
-        child_2 = np.log(self.rng.uniform(low=0.1, high=1000, size=(dim, grid_size)), order='C')
+        child_1 = np.log(
+            self.rng.uniform(low=0.1, high=1000, size=(dim, grid_size)), order="C"
+        )
+        child_2 = np.log(
+            self.rng.uniform(low=0.1, high=1000, size=(dim, grid_size)), order="C"
+        )
 
         actual = fft_convolve_two_children(child_1, child_2)
 
@@ -77,8 +83,12 @@ class Test(unittest.TestCase):
         grid_size = self.big_grid
         dim = 4
 
-        child_1 = np.log(self.rng.uniform(low=0.1, high=1000, size=(dim, grid_size)), order='C')
-        child_2 = np.log(self.rng.uniform(low=0.1, high=1000, size=(dim, grid_size)), order='C')
+        child_1 = np.log(
+            self.rng.uniform(low=0.1, high=1000, size=(dim, grid_size)), order="C"
+        )
+        child_2 = np.log(
+            self.rng.uniform(low=0.1, high=1000, size=(dim, grid_size)), order="C"
+        )
 
         actual = fft_convolve_two_children(child_1, child_2)
 

@@ -1,8 +1,9 @@
-'''
+"""
 Created on 3 Jan 2018
 
 @author: andrew
-'''
+"""
+
 import unittest
 
 import numpy as np
@@ -39,19 +40,19 @@ class Test(unittest.TestCase):
 
         subtree = tree.get_subtree(tree.nodes[0])
 
-        print('x', [x.idx for x in tree.node_data[node]])
+        print("x", [x.idx for x in tree.node_data[node]])
 
-        print('a', get_clades(tree))
+        print("a", get_clades(tree))
 
-        print('b', get_clades(subtree))
+        print("b", get_clades(subtree))
 
-        print('y', tree.roots)
+        print("y", tree.roots)
 
         tree.remove_subtree(subtree)
 
-        print('y', tree.roots)
+        print("y", tree.roots)
 
-        print('c', get_clades(tree))
+        print("c", get_clades(tree))
 
         get_clades(tree)
 

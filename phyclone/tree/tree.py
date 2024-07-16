@@ -1,21 +1,34 @@
 from collections import defaultdict
-import matplotlib.pyplot as plt
+from itertools import chain
+from typing import Union
+
 import numpy as np
 import rustworkx as rx
 
-from phyclone.tree.visitors import (PostOrderNodeUpdater, PreOrderNodeRelabeller,
-                                    GraphToCladesVisitor, GraphToNewickVisitor)
-from phyclone.utils.math import log_factorial, cached_log_factorial
 from phyclone.tree.utils import compute_log_S
-import itertools
-from typing import Union
-from rustworkx.visualization import mpl_draw
-from scipy.special import gammaln
+from phyclone.tree.visitors import (
+    PostOrderNodeUpdater,
+    PreOrderNodeRelabeller,
+    GraphToCladesVisitor,
+    GraphToNewickVisitor,
+)
+from phyclone.utils.math import cached_log_factorial
+
+
+# from rustworkx.visualization import mpl_draw
+# import matplotlib.pyplot as plt
 
 
 class Tree(object):
-    __slots__ = ("grid_size", "_data", "_log_prior", "_graph", "_node_indices", "_node_indices_rev",
-                 "_last_node_added_to")
+    __slots__ = (
+        "grid_size",
+        "_data",
+        "_log_prior",
+        "_graph",
+        "_node_indices",
+        "_node_indices_rev",
+        "_last_node_added_to",
+    )
 
     def __init__(self, grid_size):
         self.grid_size = grid_size
@@ -57,10 +70,10 @@ class Tree(object):
         vis_clades = frozenset(vis.clades)
         return vis_clades
 
-    def quick_draw_tree(self):
-        mpl_draw(self._graph, labels=lambda node: str(node.node_id), with_labels=True)
-        plt.show()
-        plt.close()
+    # def quick_draw_tree(self):
+    #     mpl_draw(self._graph, labels=lambda node: str(node.node_id), with_labels=True)
+    #     plt.show()
+    #     plt.close()
 
     @staticmethod
     def get_single_node_tree(data):
@@ -94,7 +107,7 @@ class Tree(object):
 
     @property
     def data(self):
-        result = sorted(itertools.chain.from_iterable(self._data.values()), key=lambda x: x.idx)
+        result = sorted(chain.from_iterable(self._data.values()), key=lambda x: x.idx)
         return result
 
     @property
@@ -112,28 +125,21 @@ class Tree(object):
     def leafs(self):
         return [x for x in self.nodes if self.get_number_of_children(x) == 0]
 
-    # @property
-    # def multiplicity(self):
-    #     return self._get_multiplicity("root")
-    #
-    # def _get_multiplicity(self, node):
-    #     children = self.get_children(node)
-    #
-    #     result = log_factorial(len(children))
-    #
-    #     for child in children:
-    #         result += self._get_multiplicity(child)
-    #
-    #     return result
-
     @property
     def multiplicity(self):
-        mult = sum(map(cached_log_factorial, map(self._graph.out_degree, self._graph.node_indices())))
+        mult = sum(
+            map(
+                cached_log_factorial,
+                map(self._graph.out_degree, self._graph.node_indices()),
+            )
+        )
         return mult
 
     @property
     def nodes(self):
-        result = [node.node_id for node in self._graph.nodes() if node.node_id != "root"]
+        result = [
+            node.node_id for node in self._graph.nodes() if node.node_id != "root"
+        ]
         return result
 
     @property
@@ -169,10 +175,9 @@ class Tree(object):
         if len(tree_dict["graph"]) > 0:
 
             new_graph = new._graph
-            node_idxs = tree_dict['node_idx']
-            # assert node_idxs["root"] == new._node_indices["root"]
+            node_idxs = tree_dict["node_idx"]
 
-            new_graph.extend_from_edge_list(tree_dict['graph'])
+            new_graph.extend_from_edge_list(tree_dict["graph"])
 
             log_prior = new._log_prior
             new_data = new._data
@@ -187,18 +192,18 @@ class Tree(object):
                 for dp in data_list:
                     log_p += dp.value
 
-                node_obj = TreeNode(log_p,
-                                    np.zeros(grid_size, order="C"),
-                                    node)
+                node_obj = TreeNode(log_p, np.zeros(grid_size, order="C"), node)
                 node_idx = node_idxs[node]
                 new_graph[node_idx] = node_obj
 
-            new._node_indices_rev = tree_dict['node_idx_rev'].copy()
+            new._node_indices_rev = tree_dict["node_idx_rev"].copy()
             new._node_indices = node_idxs.copy()
 
-            # node_index_holes = set(new_graph.node_indices()).difference(tree_dict['node_idx_rev'].keys())
-
-            node_index_holes = [idx for idx in new_graph.node_indices() if idx not in tree_dict['node_idx_rev']]
+            node_index_holes = [
+                idx
+                for idx in new_graph.node_indices()
+                if idx not in tree_dict["node_idx_rev"]
+            ]
 
             if len(node_index_holes) > 0:
                 new_graph.remove_nodes_from(node_index_holes)
@@ -207,7 +212,7 @@ class Tree(object):
             for node, data_list in tree_dict["node_data"].items():
                 new._data[node] = list(data_list)
 
-        new._last_node_added_to = tree_dict['node_last_added_to']
+        new._last_node_added_to = tree_dict["node_last_added_to"]
 
         new.update()
 
@@ -216,12 +221,14 @@ class Tree(object):
     def to_dict(self):
         node_data = {k: v.copy() for k, v in self._data.items() if k != "root"}
 
-        res = {"graph": self._graph.edge_list(),
-               "node_idx": self._node_indices.copy(),
-               "node_idx_rev": self._node_indices_rev.copy(),
-               "node_data": node_data,
-               "grid_size": self.grid_size,
-               "node_last_added_to": self._last_node_added_to}
+        res = {
+            "graph": self._graph.edge_list(),
+            "node_idx": self._node_indices.copy(),
+            "node_idx_rev": self._node_indices_rev.copy(),
+            "node_data": node_data,
+            "grid_size": self.grid_size,
+            "node_last_added_to": self._last_node_added_to,
+        }
         return res
 
     def add_data_point_to_node(self, data_point, node):
@@ -247,41 +254,20 @@ class Tree(object):
         self._data[-1].append(data_point)
         self._last_node_added_to = -1
 
-    # def add_subtree(self, subtree, parent=None):
-    #
-    #     subtree = subtree.copy()
-    #
-    #     # Connect subtree
-    #     if parent is None:
-    #         parent = "root"
-    #
-    #     parent_idx = self._node_indices[parent]
-    #
-    #     parent_node = self._graph[parent_idx]
-    #
-    #     subtree_root = subtree.roots[0]
-    #
-    #     subtree_dummy_root = subtree._node_indices["root"]
-    #
-    #     subtree._graph.remove_node(subtree_dummy_root)
-    #
-    #     node_map_idx = self._graph.compose(subtree._graph, {parent_idx: (subtree._node_indices[subtree_root], None)})
-    #
-    #     for old_idx, new_idx in node_map_idx.items():
-    #         node_obj = self._graph[new_idx]
-    #         node_name = node_obj.node_id
-    #         # assert node_name not in self._data
-    #         self._data[node_name] = subtree._data[node_name]
-    #         self._node_indices[node_name] = new_idx
-    #         self._node_indices_rev[new_idx] = node_name
-    #
-    #     self._update_path_to_root(parent_node.node_id)
-
     def add_subtree(self, subtree, parent=None):
 
         subtree = subtree.copy()
 
-        first_label = (max(self.nodes + subtree.nodes + [-1, ]) + 1) - 1
+        first_label = (
+            max(
+                self.nodes
+                + subtree.nodes
+                + [
+                    -1,
+                ]
+            )
+            + 1
+        ) - 1
 
         # Connect subtree
         if parent is None:
@@ -293,7 +279,9 @@ class Tree(object):
 
         subtree_dummy_root = subtree._node_indices["root"]
 
-        node_map_idx = self._graph.compose(subtree._graph, {parent_idx: (subtree_dummy_root, None)})
+        node_map_idx = self._graph.compose(
+            subtree._graph, {parent_idx: (subtree_dummy_root, None)}
+        )
 
         self._graph.remove_node_retain_edges(node_map_idx[subtree_dummy_root])
 
@@ -426,9 +414,13 @@ class Tree(object):
 
         subtree_root_idx = self._node_indices[subtree_root]
 
-        subtree_graph_node_indices = [subtree_root_idx] + list(rx.descendants(self._graph, subtree_root_idx))
+        subtree_graph_node_indices = [subtree_root_idx] + list(
+            rx.descendants(self._graph, subtree_root_idx)
+        )
 
-        subtree_graph = self._graph.subgraph(subtree_graph_node_indices, preserve_attrs=True)
+        subtree_graph = self._graph.subgraph(
+            subtree_graph_node_indices, preserve_attrs=True
+        )
 
         new_root_idx = new._node_indices["root"]
 
@@ -515,7 +507,9 @@ class Tree(object):
                     del self._node_indices[node_id]
                     del self._node_indices_rev[curr_idx]
 
-            indices_to_remove = list(rx.descendants(self._graph, sub_root_idx)) + [sub_root_idx]
+            indices_to_remove = list(rx.descendants(self._graph, sub_root_idx)) + [
+                sub_root_idx
+            ]
 
             self._graph.remove_nodes_from(indices_to_remove)
 
@@ -527,9 +521,11 @@ class Tree(object):
         rx.dfs_search(self._graph, [root_idx], vis)
 
     def _add_node(self, node):
-        node_obj = TreeNode(np.full(self.grid_size, self._log_prior, order="C"),
-                            np.zeros(self.grid_size, order="C"),
-                            node)
+        node_obj = TreeNode(
+            np.full(self.grid_size, self._log_prior, order="C"),
+            np.zeros(self.grid_size, order="C"),
+            node,
+        )
         new_node = self._graph.add_node(node_obj)
         self._node_indices[node] = new_node
         self._node_indices_rev[new_node] = node
@@ -566,7 +562,9 @@ class Tree(object):
         else:
             log_s = compute_log_S(child_log_r_values)
 
-        self._graph[node_idx].log_r = np.add(log_p, log_s, out=self._graph[node_idx].log_r, order="C")
+        self._graph[node_idx].log_r = np.add(
+            log_p, log_s, out=self._graph[node_idx].log_r, order="C"
+        )
 
 
 class TreeNode(object):
@@ -578,20 +576,15 @@ class TreeNode(object):
         self.node_id = node_id
 
     def __copy__(self):
-        return TreeNode(self.log_p.copy(),
-                        self.log_r.copy(),
-                        self.node_id)
+        return TreeNode(self.log_p.copy(), self.log_r.copy(), self.node_id)
 
     def __eq__(self, other):
         log_p_compare = np.array_equal(self.log_p, other.log_p)
         log_r_compare = np.array_equal(self.log_r, other.log_r)
-        # id_compare = self.node_id == other.node_id
         return log_p_compare and log_r_compare
 
     def copy(self):
-        return TreeNode(self.log_p.copy(),
-                        self.log_r.copy(),
-                        self.node_id)
+        return TreeNode(self.log_p.copy(), self.log_r.copy(), self.node_id)
 
     def to_dict(self):
         return {"log_p": self.log_p, "log_R": self.log_r, "node_id": self.node_id}

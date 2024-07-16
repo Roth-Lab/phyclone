@@ -61,7 +61,9 @@ class OldTree(object):
 
     @property
     def data(self):
-        result = sorted(itertools.chain.from_iterable(self._data.values()), key=lambda x: x.idx)
+        result = sorted(
+            itertools.chain.from_iterable(self._data.values()), key=lambda x: x.idx
+        )
         return result
 
     @property
@@ -160,7 +162,16 @@ class OldTree(object):
         self._data[-1].append(data_point)
 
     def add_subtree(self, subtree, parent=None):
-        first_label = (max(self.nodes + subtree.nodes + [-1,]) + 1)
+        first_label = (
+            max(
+                self.nodes
+                + subtree.nodes
+                + [
+                    -1,
+                ]
+            )
+            + 1
+        )
 
         node_map = {}
 
@@ -357,7 +368,9 @@ class OldTree(object):
 
     def _add_node(self, node):
         self._graph.add_node(node)
-        self._graph.nodes[node]["log_p"] = np.full(self.grid_size, self._log_prior, order="C")
+        self._graph.nodes[node]["log_p"] = np.full(
+            self.grid_size, self._log_prior, order="C"
+        )
         self._graph.nodes[node]["log_R"] = np.zeros(self.grid_size, order="C")
 
     def _update_path_to_root(self, source):
@@ -394,6 +407,8 @@ class OldTree(object):
             log_s = compute_log_S(child_log_r_values)
 
         if "log_R" in self._graph.nodes[node]:
-            self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, out=self._graph.nodes[node]["log_R"], order="C")
+            self._graph.nodes[node]["log_R"] = np.add(
+                log_p, log_s, out=self._graph.nodes[node]["log_R"], order="C"
+            )
         else:
             self._graph.nodes[node]["log_R"] = np.add(log_p, log_s, order="C")

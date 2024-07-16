@@ -1,6 +1,6 @@
-from phyclone.utils.math import discrete_rvs
 from phyclone.smc.samplers import SMCSampler
 from phyclone.smc.utils import RootPermutationDistribution
+from phyclone.utils.math import discrete_rvs
 
 
 class UnconditionalSMCSampler(object):
@@ -19,7 +19,10 @@ class UnconditionalSMCSampler(object):
         data_sigma = RootPermutationDistribution.sample(tree, self._rng)
 
         smc_sampler = SMCSampler(
-            data_sigma, self.kernel, num_particles=self.num_particles, resample_threshold=self.resample_threshold
+            data_sigma,
+            self.kernel,
+            num_particles=self.num_particles,
+            resample_threshold=self.resample_threshold,
         )
 
         swarm = smc_sampler.sample()

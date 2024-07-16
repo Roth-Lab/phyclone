@@ -1,8 +1,16 @@
 class AbstractSMCSampler(object):
-    """ Abstract class for an SMC sampler.
-    """
-    __slots__ = ("data_points", "kernel", "num_particles", "_rng",
-                 "resample_threshold", "iteration", "num_iterations", "swarm")
+    """Abstract class for an SMC sampler."""
+
+    __slots__ = (
+        "data_points",
+        "kernel",
+        "num_particles",
+        "_rng",
+        "resample_threshold",
+        "iteration",
+        "num_iterations",
+        "swarm",
+    )
 
     def __init__(self, data_points, kernel, num_particles, resample_threshold=0.5):
         self.data_points = data_points
@@ -50,16 +58,13 @@ class AbstractSMCSampler(object):
             return particle.log_w - particle.log_p + particle.log_p_one
 
     def _init_swarm(self):
-        """ Initialize `self.swarm` by adding first data point.
-        """
+        """Initialize `self.swarm` by adding first data point."""
         raise NotImplementedError
 
     def _resample_swarm(self):
-        """ Resample a new `self.swarm` with uniform weights if relative ESS drops below `self.resample_threshold`.
-        """
+        """Resample a new `self.swarm` with uniform weights if relative ESS drops below `self.resample_threshold`."""
         raise NotImplementedError
 
     def _update_swarm(self):
-        """ Update `self.swarm` by adding next data point.
-        """
+        """Update `self.swarm` by adding next data point."""
         raise NotImplementedError

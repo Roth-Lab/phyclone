@@ -14,6 +14,3 @@ dependencies:
   - scikit-learn
   - scipy
   - python-xxhash
-  - pip
-  - pip:
-      - "."

@@ -1,12 +1,12 @@
 import numpy as np
-import numba
+
 from phyclone.utils import two_np_arr_cache, list_of_np_cache
-from phyclone.utils.math import conv_log, fft_convolve_two_children
+from phyclone.utils.math import fft_convolve_two_children
 
 
 @list_of_np_cache(maxsize=4096)
 def compute_log_S(child_log_R_values):
-    """ Compute log(S) recursion.
+    """Compute log(S) recursion.
 
     Parameters
     ----------
@@ -47,7 +47,7 @@ def compute_log_D(child_log_R_values):
     return log_D
 
 
-@two_np_arr_cache(maxsize=4096)
+@two_np_arr_cache(maxsize=1024)
 def _convolve_two_children(child_1, child_2):
     grid_size = child_1.shape[-1]
     if grid_size < 1000:
@@ -70,25 +70,22 @@ def _np_conv_dims(child_1, child_2):
 
     grid_size = child_1.shape[-1]
 
-    arr_list = [np.convolve(child_2_norm[i, :], child_1_norm[i, :])[:grid_size] for i in range(num_dims)]
+    arr_list = [
+        np.convolve(child_2_norm[i, :], child_1_norm[i, :])[:grid_size]
+        for i in range(num_dims)
+    ]
 
     log_D = np.ascontiguousarray(arr_list)
 
     log_D[log_D <= 0] = 1e-100
 
-    log_D = np.log(log_D, order='C', dtype=np.float64, out=log_D)
+    log_D = np.log(log_D, order="C", dtype=np.float64, out=log_D)
 
     log_D += child_1_maxes
 
     log_D += child_2_maxes
 
     return log_D
-
-
-@numba.jit(cache=True, nopython=True, parallel=True)
-def _conv_two_children_jit(child_1, child_2, num_dims, res_arr):
-    for i in numba.prange(num_dims):
-        conv_log(child_1[i, :], child_2[i, :], res_arr[i, :])
 
 
 def get_clades(tree):

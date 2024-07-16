@@ -1,27 +1,38 @@
 import itertools
-import numpy as np
 from functools import lru_cache
-from phyclone.utils.math import log_normalize, discrete_rvs
+
+import numpy as np
+
 from phyclone.smc.kernels.base import Kernel, ProposalDistribution
 from phyclone.smc.swarm import TreeHolder
 from phyclone.tree import Tree
+from phyclone.utils.math import log_normalize, discrete_rvs
 
 
 class FullyAdaptedProposalDistribution(ProposalDistribution):
-    """ Fully adapted proposal density.
+    """Fully adapted proposal density.
 
     Considers all possible proposals and weight according to log probability.
     """
+
     __slots__ = "_log_p"
 
-    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, parent_tree=None):
-        super().__init__(data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree)
+    def __init__(
+        self,
+        data_point,
+        kernel,
+        parent_particle,
+        outlier_proposal_prob=0.0,
+        parent_tree=None,
+    ):
+        super().__init__(
+            data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree
+        )
 
         self._init_dist()
 
     def log_p(self, tree):
-        """ Get the log probability of the tree.
-        """
+        """Get the log probability of the tree."""
         if isinstance(tree, Tree):
             tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
         else:
@@ -29,8 +40,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         return self._log_p[tree_particle]
 
     def sample(self):
-        """ Sample a new tree from the proposal distribution.
-        """
+        """Sample a new tree from the proposal distribution."""
         p = np.exp(np.array(list(self._log_p.values())))
 
         idx = discrete_rvs(p, self._rng)
@@ -54,8 +64,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         self.parent_tree = None
 
     def _get_existing_node_trees(self):
-        """ Enumerate all trees obtained by adding the data point to an existing node.
-        """
+        """Enumerate all trees obtained by adding the data point to an existing node."""
         trees = []
 
         if self.parent_particle is None:
@@ -72,8 +81,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         return trees
 
     def _get_new_node_trees(self):
-        """ Enumerate all trees obtained by adding the data point to a new node.
-        """
+        """Enumerate all trees obtained by adding the data point to a new node."""
         trees = []
 
         if self.parent_particle is None:
@@ -88,7 +96,9 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
             num_roots = len(self.parent_particle.tree_roots)
 
             for r in range(0, num_roots + 1):
-                for children in itertools.combinations(self.parent_particle.tree_roots, r):
+                for children in itertools.combinations(
+                    self.parent_particle.tree_roots, r
+                ):
                     tree = self.parent_tree.copy()
 
                     tree.create_root_node(children=children, data=[self.data_point])
@@ -99,8 +109,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         return trees
 
     def _get_outlier_tree(self):
-        """ Get the tree obtained by adding data point as outlier
-        """
+        """Get the tree obtained by adding data point as outlier"""
         if self.parent_particle is None:
             tree = Tree(self.data_point.grid_size)
 
@@ -125,19 +134,26 @@ class FullyAdaptedKernel(Kernel):
     def get_proposal_distribution(self, data_point, parent_particle, parent_tree=None):
         if parent_particle is not None:
             parent_particle.built_tree = parent_tree
-        return _get_cached_full_proposal_dist(data_point, self, parent_particle, self.outlier_proposal_prob,
-                                              self.tree_dist.prior.alpha)
+        return _get_cached_full_proposal_dist(
+            data_point,
+            self,
+            parent_particle,
+            self.outlier_proposal_prob,
+            self.tree_dist.prior.alpha,
+        )
 
 
 @lru_cache(maxsize=1024)
-def _get_cached_full_proposal_dist(data_point, kernel, parent_particle, outlier_proposal_prob, alpha):
+def _get_cached_full_proposal_dist(
+    data_point, kernel, parent_particle, outlier_proposal_prob, alpha
+):
     if parent_particle is not None:
         ret = FullyAdaptedProposalDistribution(
             data_point,
             kernel,
             parent_particle,
             outlier_proposal_prob=outlier_proposal_prob,
-            parent_tree=parent_particle.built_tree
+            parent_tree=parent_particle.built_tree,
         )
     else:
         ret = FullyAdaptedProposalDistribution(
@@ -145,6 +161,6 @@ def _get_cached_full_proposal_dist(data_point, kernel, parent_particle, outlier_
             kernel,
             parent_particle,
             outlier_proposal_prob=outlier_proposal_prob,
-            parent_tree=None
+            parent_tree=None,
         )
     return ret

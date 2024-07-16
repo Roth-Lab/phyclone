@@ -1,24 +1,29 @@
-import rustworkx as rx
 import numpy as np
+import rustworkx as rx
 
 from phyclone.smc.samplers.base import AbstractSMCSampler
+from phyclone.smc.swarm import TreeHolder, ParticleSwarm
 from phyclone.tree import Tree
-from phyclone.smc.swarm import TreeHolder
-import phyclone.smc.swarm
 
 
 class ConditionalSMCSampler(AbstractSMCSampler):
-    """ SMC sampler which conditions a fixed path.
-    """
+    """SMC sampler which conditions a fixed path."""
+
     __slots__ = "constrained_path"
 
-    def __init__(self, current_tree, data_points, kernel, num_particles, resample_threshold=0.5):
-        super().__init__(data_points, kernel, num_particles, resample_threshold=resample_threshold)
+    def __init__(
+        self, current_tree, data_points, kernel, num_particles, resample_threshold=0.5
+    ):
+        super().__init__(
+            data_points, kernel, num_particles, resample_threshold=resample_threshold
+        )
 
         self.constrained_path = self._get_constrained_path(current_tree)
 
     def _get_constrained_path(self, tree):
-        constrained_path = [None, ]
+        constrained_path = [
+            None,
+        ]
 
         data_to_node = tree.labels
 
@@ -56,14 +61,18 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
             parent_particle = constrained_path[-1]
 
-            proposal_dist = self.kernel.get_proposal_distribution(data_point, parent_particle, parent_tree)
+            proposal_dist = self.kernel.get_proposal_distribution(
+                data_point, parent_particle, parent_tree
+            )
 
             # log_q = proposal_dist.log_p(new_tree)
             new_tree_holder = TreeHolder(new_tree, tree_dist, perm_dist)
             log_q = proposal_dist.log_p(new_tree_holder)
 
             # particle = self.kernel.create_particle(log_q, parent_particle, new_tree)
-            particle = self.kernel.create_particle(log_q, parent_particle, new_tree_holder)
+            particle = self.kernel.create_particle(
+                log_q, parent_particle, new_tree_holder
+            )
 
             constrained_path.append(particle)
 
@@ -74,7 +83,7 @@ class ConditionalSMCSampler(AbstractSMCSampler):
         return constrained_path
 
     def _init_swarm(self):
-        self.swarm = phyclone.smc.swarm.ParticleSwarm()
+        self.swarm = ParticleSwarm()
 
         uniform_weight = -np.log(self.num_particles)
 
@@ -90,15 +99,19 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
     def _resample_swarm(self):
         if self.swarm.relative_ess <= self.resample_threshold:
-            new_swarm = phyclone.smc.swarm.ParticleSwarm()
+            new_swarm = ParticleSwarm()
 
             log_uniform_weight = -np.log(self.num_particles)
 
-            multiplicities = self._rng.multinomial(self.num_particles - 1, self.swarm.weights)
+            multiplicities = self._rng.multinomial(
+                self.num_particles - 1, self.swarm.weights
+            )
 
             assert not np.isneginf(self.constrained_path[self.iteration + 1].log_w)
 
-            new_swarm.add_particle(log_uniform_weight, self.constrained_path[self.iteration + 1])
+            new_swarm.add_particle(
+                log_uniform_weight, self.constrained_path[self.iteration + 1]
+            )
 
             for particle, multiplicity in zip(self.swarm.particles, multiplicities):
                 for _ in range(multiplicity):
@@ -109,7 +122,7 @@ class ConditionalSMCSampler(AbstractSMCSampler):
             self.swarm = new_swarm
 
     def _update_swarm(self):
-        new_swarm = phyclone.smc.swarm.ParticleSwarm()
+        new_swarm = ParticleSwarm()
 
         particle = self.constrained_path[self.iteration + 1]
 
@@ -117,7 +130,9 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
         new_swarm.add_particle(parent_log_W + self._get_log_w(particle), particle)
 
-        for parent_log_W, parent_particle in zip(self.swarm.log_weights[1:], self.swarm.particles[1:]):
+        for parent_log_W, parent_particle in zip(
+            self.swarm.log_weights[1:], self.swarm.particles[1:]
+        ):
             particle = self._propose_particle(parent_particle)
 
             new_swarm.add_particle(parent_log_W + self._get_log_w(particle), particle)

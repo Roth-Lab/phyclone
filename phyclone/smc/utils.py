@@ -1,10 +1,16 @@
-'''
+"""
 Created on 9 Aug 2017
 
 @author: Andrew Roth
-'''
-from phyclone.utils.math import log_factorial, log_binomial_coefficient, log_multinomial_coefficient
+"""
+
 from itertools import repeat
+
+from phyclone.utils.math import (
+    log_factorial,
+    log_binomial_coefficient,
+    log_multinomial_coefficient,
+)
 
 
 class RootPermutationDistribution(object):
@@ -84,7 +90,9 @@ class RootPermutationDistribution(object):
             children = tree.get_children(source)
 
             for child in children:
-                child_sigma.append(RootPermutationDistribution.sample(tree, rng, source=child))
+                child_sigma.append(
+                    RootPermutationDistribution.sample(tree, rng, source=child)
+                )
 
             # Bridge shuffle
             sigma = interleave_lists(child_sigma, rng)

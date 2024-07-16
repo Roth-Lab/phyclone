@@ -20,24 +20,31 @@ PhyClone is currently in development so the following procedure has a few steps.
 1. Ensure you have a working `conda` or (preferably) `mamba` installation.
 You can do this by installing [Miniforge](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html)
 
-2. Get the latest PhyClone code from the [git repository](https://github.com/elhurtado/phyclone_dev).
+
+2. Install the required dependencies using mamba/conda.
+We will create a new `conda` environment with the dependencies. Download the [environment.yaml](environment.yaml) file, and navigate into its save location. 
+Run the following command:
 ```
-git clone git@github.com:elhurtado/phyclone_dev.git
+mamba env create --file environment.yaml
 ```
 
-3. Install the required dependencies using mamba/conda.
-We will create a new `conda` environment with the dependencies.
-From inside the checked out PhyClone repository folder run the following.
-```
-mamba env create --file environment.yaml --yes
-```
-
-4. Activate the `conda` environment.
+3. Activate the `conda` environment.
 ```
 mamba activate phyclone
 ```
 > [!NOTE]
 > You will have to do this whenever you open a new terminal and want to run PhyClone. 
+
+4. Install PhyClone
+```
+pip install git+https://github.com/elhurtado/phyclone_dev.git
+```
+
+Or, SSH command:
+
+```
+pip install git+ssh://git@github.com/elhurtado/phyclone_dev.git
+```
 
 5. If everything worked PhyClone should be available on the command line.
 ```

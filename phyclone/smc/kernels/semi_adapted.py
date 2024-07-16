@@ -1,29 +1,40 @@
-import numpy as np
-from phyclone.utils.math import log_binomial_coefficient, log_normalize
-from phyclone.smc.kernels.base import Kernel, ProposalDistribution
-from phyclone.tree import Tree
 from functools import lru_cache
+
+import numpy as np
+
+from phyclone.smc.kernels.base import Kernel, ProposalDistribution
 from phyclone.smc.swarm import TreeHolder
+from phyclone.tree import Tree
+from phyclone.utils.math import log_binomial_coefficient, log_normalize
 
 
 class SemiAdaptedProposalDistribution(ProposalDistribution):
-    """ Semi adapted proposal density.
+    """Semi adapted proposal density.
 
     Considers all possible choice of existing nodes and one option for a new node proposed at random. This
     should provide a computational advantage over the fully adapted proposal.
     """
-    __slots__ = ("_log_p", 'log_half', '_q_dist', '_curr_trees')
 
-    def __init__(self, data_point, kernel, parent_particle, outlier_proposal_prob=0.0, parent_tree=None):
-        super().__init__(data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree)
+    __slots__ = ("_log_p", "log_half", "_q_dist", "_curr_trees")
+
+    def __init__(
+        self,
+        data_point,
+        kernel,
+        parent_particle,
+        outlier_proposal_prob=0.0,
+        parent_tree=None,
+    ):
+        super().__init__(
+            data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree
+        )
 
         self.log_half = kernel.log_half
 
         self._init_dist()
 
     def log_p(self, tree):
-        """ Get the log probability of proposing the tree.
-        """
+        """Get the log probability of proposing the tree."""
 
         if self._empty_tree():
             log_p = self._get_log_p(tree)
@@ -46,13 +57,14 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
                 num_children = tree.num_children_on_node_that_matters
 
-                log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
+                log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(
+                    old_num_roots, num_children
+                )
 
         return log_p
 
     def _get_log_p(self, tree):
-        """ Get the log probability of the given tree. From stored dict, using TreeHolder intermediate.
-        """
+        """Get the log probability of the given tree. From stored dict, using TreeHolder intermediate."""
         if isinstance(tree, Tree):
             tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
         else:
@@ -60,8 +72,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         return self._log_p[tree_particle]
 
     def sample(self):
-        """ Sample a new tree from the proposal distribution.
-        """
+        """Sample a new tree from the proposal distribution."""
         if self._empty_tree():
             tree = self._propose_existing_node()
         else:
@@ -97,8 +108,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         self.parent_tree = None
 
     def _get_existing_node_trees(self):
-        """ Enumerate all trees obtained by adding the data point to an existing node.
-        """
+        """Enumerate all trees obtained by adding the data point to an existing node."""
         trees = []
 
         if self.parent_particle is None:
@@ -115,8 +125,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         return trees
 
     def _get_outlier_tree(self):
-        """ Get the tree obtained by adding data point as outlier
-        """
+        """Get the tree obtained by adding data point as outlier"""
         if self.parent_particle is None:
             tree = Tree(self.data_point.grid_size)
 
@@ -157,18 +166,22 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         num_children = self._rng.integers(0, num_roots + 1)
 
-        children = self._rng.choice(self.parent_particle.tree_roots, num_children, replace=False)
+        children = self._rng.choice(
+            self.parent_particle.tree_roots, num_children, replace=False
+        )
 
-        tree_container = get_cached_new_tree(self.parent_particle,
-                                             self.data_point,
-                                             frozenset(children),
-                                             self.tree_dist,
-                                             self.perm_dist)
+        tree_container = get_cached_new_tree(
+            self.parent_particle,
+            self.data_point,
+            frozenset(children),
+            self.tree_dist,
+            self.perm_dist,
+        )
 
         return tree_container
 
 
-@lru_cache(maxsize=256)
+@lru_cache(maxsize=1024)
 def get_cached_new_tree(parent_particle, data_point, children, tree_dist, perm_dist):
     tree = parent_particle.tree
 
@@ -192,19 +205,26 @@ class SemiAdaptedKernel(Kernel):
     def get_proposal_distribution(self, data_point, parent_particle, parent_tree=None):
         if parent_particle is not None:
             parent_particle.built_tree = parent_tree
-        return _get_cached_semi_proposal_dist(data_point, self, parent_particle, self.outlier_proposal_prob,
-                                              self.tree_dist.prior.alpha)
+        return _get_cached_semi_proposal_dist(
+            data_point,
+            self,
+            parent_particle,
+            self.outlier_proposal_prob,
+            self.tree_dist.prior.alpha,
+        )
 
 
 @lru_cache(maxsize=1024)
-def _get_cached_semi_proposal_dist(data_point, kernel, parent_particle, outlier_proposal_prob, alpha):
+def _get_cached_semi_proposal_dist(
+    data_point, kernel, parent_particle, outlier_proposal_prob, alpha
+):
     if parent_particle is not None:
         ret = SemiAdaptedProposalDistribution(
             data_point,
             kernel,
             parent_particle,
             outlier_proposal_prob=outlier_proposal_prob,
-            parent_tree=parent_particle.built_tree
+            parent_tree=parent_particle.built_tree,
         )
     else:
         ret = SemiAdaptedProposalDistribution(
@@ -212,6 +232,6 @@ def _get_cached_semi_proposal_dist(data_point, kernel, parent_particle, outlier_
             kernel,
             parent_particle,
             outlier_proposal_prob=outlier_proposal_prob,
-            parent_tree=None
+            parent_tree=None,
         )
     return ret

@@ -1,26 +1,27 @@
-import numpy as np
-import time
-from functools import lru_cache, wraps
-import xxhash
 import pickle
-from os.path import join, dirname
-from itertools import count
+import time
 from collections import deque
+from functools import lru_cache, wraps
+from itertools import count
+from os.path import join, dirname
+
+import numpy as np
+from xxhash import xxh3_64_hexdigest
 
 
 def read_pickle(file):
-    with open(file, 'rb') as f:
+    with open(file, "rb") as f:
         loaded = pickle.load(f)
     return loaded
 
 
 def write_pickle(obj, filename):
-    with open(filename, 'wb') as f:
+    with open(filename, "wb") as f:
         pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def save_numpy_rng(out_file, rng):
-    rng_pickle_fn = join(dirname(out_file), 'numpy_bit_generator.pkl')
+    rng_pickle_fn = join(dirname(out_file), "numpy_bit_generator.pkl")
     state = rng.bit_generator
     write_pickle(state, rng_pickle_fn)
 
@@ -32,8 +33,7 @@ def get_iterator_length(iterable):
 
 
 class Timer:
-    """ Taken from https://www.safaribooksonline.com/library/view/python-cookbook-3rd/9781449357337/ch13s13.html
-    """
+    """Taken from https://www.safaribooksonline.com/library/view/python-cookbook-3rd/9781449357337/ch13s13.html"""
 
     def __init__(self, func=time.time):
         self.elapsed = 0.0
@@ -51,13 +51,13 @@ class Timer:
 
     def start(self):
         if self._start is not None:
-            raise RuntimeError('Already started')
+            raise RuntimeError("Already started")
 
         self._start = self._func()
 
     def stop(self):
         if self._start is None:
-            raise RuntimeError('Not started')
+            raise RuntimeError("Not started")
 
         end = self._func()
 
@@ -81,7 +81,9 @@ class NumpyArrayListHasher:
 
     @staticmethod
     def _create_hashable(list_of_np_arrays):
-        hashable = np.array([xxhash.xxh3_64_hexdigest(arr) for arr in list_of_np_arrays], order='C')
+        hashable = np.array(
+            [xxh3_64_hexdigest(arr) for arr in list_of_np_arrays], order="C"
+        )
         hashable.sort()
         ret = tuple(hashable)
         return ret
@@ -105,7 +107,7 @@ def list_of_np_cache(*args, **kwargs):
 
         @lru_cache(*args, **kwargs)
         def cached_wrapper(hashable_set, *args, **kwargs):
-            array = np.array(hashable_set.values, order='C')
+            array = np.array(hashable_set.values, order="C")
             hashable_set.clear_inputs()
             return function(array, *args, **kwargs)
 
@@ -121,7 +123,9 @@ class NumpyTwoArraysHasher:
     def __init__(self, arr_1, arr_2) -> None:
         self.input_1 = arr_1
         self.input_2 = arr_2
-        self.h = frozenset([xxhash.xxh3_64_hexdigest(arr_1), xxhash.xxh3_64_hexdigest(arr_2)])
+        self.h = frozenset(
+            [xxh3_64_hexdigest(arr_1), xxh3_64_hexdigest(arr_2)]
+        )
 
     def __hash__(self) -> int:
         return hash(self.h)
