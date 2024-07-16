@@ -145,14 +145,14 @@ You can include the following optional column:
 ### Running PhyClone
 
 PhyClone analyses are broken into two parts. 
-First sampling is performed using the `run` sub-command.
-Second a consensus tree is constructed from the trace using the `consensus` sub-command.
+First, sampling is performed using the `run` sub-command.
+Second, a MAP tree is constructed from the trace using the `map` sub-command.
 
 Sampling can be run as follows
 ```
-phyclone run -i INPUT.tsv -t TRACE.pkl 
+phyclone run -i INPUT.tsv -c CLUSTERS.tsv -o TRACE.pkl 
 ``` 
-which will take the file `INPUT.tsv` as described above and write the trace file `TRACE.pkl` in a Python pickle format.
+which will take the `INPUT.tsv` and (optionally) the `CLUSTERS.tsv` file, as described above and write the trace file `TRACE.pkl` in a Python pickle format.
 
 The `-n` command can be used to control the number of iterations of sampling to perform.
 
@@ -169,11 +169,11 @@ As in PyClone the `binomial` and `beta-binomial` densities are available.
 > Unlike PyClone, PhyClone does not estimate the precision parameter of the Beta-Binomial.
 This parameter can be set with the --precision flag.
 
-To build the final results of PhyClone you can run the `consensus` command as follows.
+To build the final results of PhyClone you can run the `map` command as follows.
 ```
-phyclone consensus -d INPUT.tsv -t TRACE.pkl -n TREE.nwk -o TABLE.tsv
+phyclone map -i TRACE.pkl -t TREE.nwk -o TABLE.tsv
 ``` 
-where `INPUT.tsv` and `TRACE.pkl` are the same as the previous step and `TREE.nwk` is the clone tree in newick format and `TABLE.tsv` the assignment of mutations to clones.
+where `TRACE.pkl` is the result from the previous step, `TREE.nwk` is the output clone tree in newick format, and `TABLE.tsv` the assignment of mutations to clones.
 
 # License
 
@@ -181,5 +181,5 @@ PhyClone is licensed under the GPL v3, see the LICENSE.txt file for details.
 
 # Versions
 
-## 0.1.0
+## 0.5.0
 
