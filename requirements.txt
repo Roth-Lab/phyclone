@@ -9,4 +9,3 @@ scikit-learn
 scipy
 python-xxhash
 rustworkx
-pip

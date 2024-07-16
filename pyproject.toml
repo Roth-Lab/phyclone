@@ -32,7 +32,7 @@ classifiers = [
 ]
 
 [project.urls]
-Repository = "https://github.com/elhurtado/phyclone_dev.git"
+Repository = "https://github.com/Roth-Lab/phyclone.git"
 
 [project.scripts]
 phyclone = "phyclone.cli:main"

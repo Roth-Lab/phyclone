@@ -37,13 +37,13 @@ mamba activate phyclone
 
 4. Install PhyClone
 ```
-pip install git+https://github.com/elhurtado/phyclone_dev.git
+pip install git+https://github.com/Roth-Lab/phyclone.git
 ```
 
 Or, SSH command:
 
 ```
-pip install git+ssh://git@github.com/elhurtado/phyclone_dev.git
+pip install git+ssh://git@github.com/Roth-Lab/phyclone.git
 ```
 
 5. If everything worked PhyClone should be available on the command line.
