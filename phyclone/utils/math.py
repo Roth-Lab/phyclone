@@ -21,7 +21,7 @@ def discrete_rvs(p, rng):
     return rng.multinomial(1, p).argmax()
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(nopython=True)
 def simple_log_factorial(n, arr):
     idxs = np.nonzero(arr == -math.inf)[0]
 
@@ -34,7 +34,7 @@ def simple_log_factorial(n, arr):
             arr[i] = np.log(i) + arr[i - 1]
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(nopython=True)
 def exp_normalize(log_p):
     """Normalize a vector numerically safely.
 
@@ -59,7 +59,7 @@ def exp_normalize(log_p):
     return p, log_norm
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(nopython=True)
 def lse(log_x):
     inf_check = np.all(np.isinf(log_x))
     if inf_check:
@@ -81,7 +81,7 @@ def lse(log_x):
     return ans
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(nopython=True)
 def lse_accumulate(log_x, out_arr):
     len_arr = len(log_x)
     t = log_x[0]
@@ -99,7 +99,7 @@ def lse_accumulate(log_x, out_arr):
     return out_arr
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(nopython=True)
 def log_sum_exp(log_X):
     """Given a list of values in log space, log_X. Compute exp(log_X[0] + log_X[1] + ... log_X[n])
 
@@ -118,17 +118,17 @@ def log_sum_exp(log_X):
     return np.log(total) + max_exp
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(nopython=True)
 def log_normalize(log_p):
     return log_p - log_sum_exp(log_p)
 
 
-@numba.vectorize(cache=True)
+@numba.vectorize()
 def log_gamma(x):
     return math.lgamma(x)
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(nopython=True)
 def log_beta(a, b):
     if a <= 0 or b <= 0:
         return -np.inf
@@ -136,7 +136,7 @@ def log_beta(a, b):
     return log_gamma(a) + log_gamma(b) - log_gamma(a + b)
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(nopython=True)
 def log_factorial(x):
     return log_gamma(x + 1)
 
@@ -146,7 +146,7 @@ def cached_log_factorial(x):
     return log_factorial(x)
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(nopython=True)
 def log_binomial_coefficient(n, x):
     return log_factorial(n) - log_factorial(x) - log_factorial(n - x)
 
@@ -172,12 +172,12 @@ def log_multinomial_coefficient(x):
     return result
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(nopython=True)
 def log_beta_binomial_likelihood(n, x, a, b):
     return log_beta(a + x, b + n - x) - log_beta(a, b)
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(nopython=True)
 def log_binomial_likelihood(n, x, p):
     if p == 0:
         if x == 0:
@@ -194,17 +194,17 @@ def log_binomial_likelihood(n, x, p):
     return x * np.log(p) + (n - x) * np.log(1 - p)
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(nopython=True)
 def log_binomial_pdf(n, x, p):
     return log_binomial_coefficient(n, x) + log_binomial_likelihood(n, x, p)
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(nopython=True)
 def log_beta_binomial_pdf(n, x, a, b):
     return log_binomial_coefficient(n, x) + log_beta_binomial_likelihood(n, x, a, b)
 
 
-@numba.jit(cache=True, nopython=True, fastmath=True)
+@numba.jit(nopython=True, fastmath=True)
 def conv_log(log_x, log_y, ans):
     """Direct convolution in log space."""
     n = len(log_x)

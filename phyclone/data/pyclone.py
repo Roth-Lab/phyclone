@@ -516,7 +516,7 @@ class DataPoint(object):
         return log_ll
 
 
-@numba.jit(cache=True, nopython=True)
+@numba.jit(nopython=True)
 def _compute_liklihood_grid(ccf_grid, density, log_ll, precision, sample_data_points):
     for s_idx, data_point in enumerate(sample_data_points):
         for i, ccf in enumerate(ccf_grid):
@@ -550,7 +550,7 @@ class SampleDataPoint(object):
         self.t = t
 
 
-@numba.jit(nopython=True, cache=True)
+@numba.jit(nopython=True)
 def log_pyclone_beta_binomial_pdf(data, f, s):
     t = data.t
 
@@ -586,7 +586,7 @@ def log_pyclone_beta_binomial_pdf(data, f, s):
     return log_sum_exp(ll)
 
 
-@numba.jit(nopython=True, cache=True)
+@numba.jit(nopython=True)
 def log_pyclone_binomial_pdf(data, f):
     t = data.t
 
