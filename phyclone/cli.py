@@ -28,9 +28,6 @@ from phyclone.run import run as run_prog
     "-t", "--out-tree-file", required=True, type=click.Path(resolve_path=True)
 )
 @click.option(
-    "-p", "--out-log-probs-file", default=None, type=click.Path(resolve_path=True)
-)
-@click.option(
     "--consensus-threshold",
     default=0.5,
     type=click.FloatRange(0.0, 1.0, clamp=True),
@@ -68,9 +65,6 @@ def consensus(**kwargs):
 )
 @click.option(
     "-t", "--out-tree-file", required=True, type=click.Path(resolve_path=True)
-)
-@click.option(
-    "-p", "--out-log-probs-file", default=None, type=click.Path(resolve_path=True)
 )
 @click.option(
     "--map-type",
@@ -157,7 +151,7 @@ def topology_report(**kwargs):
     "--cluster-file",
     default=None,
     type=click.Path(resolve_path=True, exists=True),
-    help="""Path to file with pre-computed cluster assignments of mutations is located.""",
+    help="""Path to file with pre-computed cluster assignments of mutations.""",
 )
 @click.option(
     "-d",

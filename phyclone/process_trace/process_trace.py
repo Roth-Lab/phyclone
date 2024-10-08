@@ -16,8 +16,7 @@ def write_map_results(
     in_file,
     out_table_file,
     out_tree_file,
-    out_log_probs_file=None,
-    map_type="frequency",
+    map_type="joint-likelihood",
 ):
 
     with gzip.GzipFile(in_file, "rb") as fh:
@@ -55,9 +54,7 @@ def write_map_results(
 
     table = get_clone_table(data, results[0]["samples"], tree, clusters=clusters)
 
-    _create_results_output_files(
-        out_log_probs_file, out_table_file, out_tree_file, results, table, tree
-    )
+    _create_results_output_files(out_table_file, out_tree_file, table, tree)
 
 
 def create_topology_dict_from_trace(trace):
@@ -105,16 +102,9 @@ def count_topology(topologies, x, i, x_top, chain_num=0):
         }
 
 
-def _create_results_output_files(
-    out_log_probs_file, out_table_file, out_tree_file, results, table, tree
-):
+def _create_results_output_files(out_table_file, out_tree_file, table, tree):
     table.to_csv(out_table_file, index=False, sep="\t")
     print_string_to_file(tree.to_newick_string(), out_tree_file)
-    if out_log_probs_file:
-        log_probs_table = pd.DataFrame(
-            results["trace"], columns=["iter", "time", "log_p_one"]
-        )
-        log_probs_table.to_csv(out_log_probs_file, index=False, sep="\t")
 
 
 def create_topology_dataframe(topologies):
@@ -130,7 +120,6 @@ def write_consensus_results(
     in_file,
     out_table_file,
     out_tree_file,
-    out_log_probs_file=None,
     consensus_threshold=0.5,
     weight_type="counts",
 ):
@@ -173,9 +162,7 @@ def write_consensus_results(
 
     table = pd.DataFrame(table)
 
-    _create_results_output_files(
-        out_log_probs_file, out_table_file, out_tree_file, results, table, tree
-    )
+    _create_results_output_files(out_table_file, out_tree_file, table, tree)
 
 
 def get_tree_from_consensus_graph(data, graph):
