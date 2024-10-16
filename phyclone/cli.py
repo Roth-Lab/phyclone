@@ -1,3 +1,5 @@
+from sys import maxsize
+
 import click
 
 from phyclone.process_trace import (
@@ -92,6 +94,21 @@ def map(**kwargs):
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file.""",
 )
 @click.option("-o", "--out-file", required=True, type=click.Path(resolve_path=True))
+@click.option(
+    "-t",
+    "--topologies-archive",
+    default=None,
+    type=click.Path(resolve_path=True),
+    help="""To produce the results tables and newick trees for each uniquely sampled topology in the report, provide a
+    path to where archive file will be written in tar.gz compressed format.""",
+)
+@click.option(
+    "--top-trees",
+    default=maxsize,
+    type=click.IntRange(1),
+    help="""Number of uniquely sampled topologies to archive. Default is to produce an archive of all unique 
+    topologies.""",
+)
 def topology_report(**kwargs):
     """Build topology report."""
     write_topology_report(**kwargs)
