@@ -75,7 +75,6 @@ def write_topology_report(in_file, out_file):
     topologies = create_topology_dict_from_trace(results)
 
     df = create_topology_dataframe(topologies.values())
-    df = df.sort_values(by="count", ascending=False)
     df.to_csv(out_file, index=False, sep="\t")
 
 
@@ -113,6 +112,8 @@ def create_topology_dataframe(topologies):
         topology["topology"] = tree.to_newick_string()
 
     df = pd.DataFrame(topologies)
+    df = df.sort_values(by="log_p_joint_max", ascending=False, ignore_index=True)
+    df.insert(0, 'topology_id', 't_' + df.index.astype(str))
     return df
 
 
