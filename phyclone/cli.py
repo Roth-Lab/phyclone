@@ -136,7 +136,7 @@ def topology_report(**kwargs):
 @click.option(
     "-b",
     "--burnin",
-    default=1,
+    default=100,
     type=int,
     show_default=True,
     help="""Number of burnin iterations using unconditional SMC sampler. Default is 1.""",
@@ -144,7 +144,7 @@ def topology_report(**kwargs):
 @click.option(
     "-n",
     "--num-iters",
-    default=1000,
+    default=5000,
     type=int,
     show_default=True,
     help="""Number of iterations of the MCMC sampler to perform. Default is 1,000.""",
@@ -314,8 +314,8 @@ def topology_report(**kwargs):
 )
 @click.option(
     "--low-loss-prob",
-    default=0.01,
-    type=click.FloatRange(0.001, 1.0, clamp=True),
+    default=0.001,
+    type=click.FloatRange(0.0001, 1.0, clamp=True),
     show_default=True,
     help="""Lower loss probability setting. 
     Used when allowing PhyClone to assign loss prior probability from cluster data.
@@ -323,8 +323,8 @@ def topology_report(**kwargs):
 )
 @click.option(
     "--high-loss-prob",
-    default=0.5,
-    type=click.FloatRange(0.001, 1.0, clamp=True),
+    default=0.4,
+    type=click.FloatRange(0.0001, 1.0, clamp=True),
     show_default=True,
     help="""Higher loss probability setting. 
     Used when allowing PhyClone to assign loss prior probability from cluster data.
