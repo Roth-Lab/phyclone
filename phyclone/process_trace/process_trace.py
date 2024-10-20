@@ -118,7 +118,9 @@ def create_topologies_archive(df, results, top_trees, topologies, topologies_arc
     with tarfile.open(topologies_archive, "w:gz") as archive:
         with tempfile.TemporaryDirectory() as tmp_dir:
             for tree, values in topologies.items():
-                row = df.loc[df["topology"] == values['topology']]
+                row = df.loc[(df["topology"] == values['topology'])
+                             & (df["count"] == values['count'])
+                             & (df["log_p_joint_max"] == values['log_p_joint_max'])]
                 assert len(row) == 1
                 topology_id = row['topology_id'].values[0]
                 topology_rank = int(topology_id[2:])
