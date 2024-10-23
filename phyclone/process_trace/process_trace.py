@@ -120,7 +120,9 @@ def create_topologies_archive(df, results, top_trees, topologies, topologies_arc
             for tree, values in topologies.items():
                 row = df.loc[(df["topology"] == values['topology'])
                              & (df["count"] == values['count'])
-                             & (df["log_p_joint_max"] == values['log_p_joint_max'])]
+                             & (df["log_p_joint_max"] == values['log_p_joint_max'])
+                             & (df["iter"] == values['iter'])
+                             & (df["chain_num"] == values['chain_num'])]
                 assert len(row) == 1
                 topology_id = row['topology_id'].values[0]
                 topology_rank = int(topology_id[2:])
