@@ -282,23 +282,26 @@ def get_clone_table(data, samples, tree, clusters=None):
 
     ccfs = get_map_node_ccfs(tree)
 
-    table = []
+    samples_idx_dict = {k: v for v, k in enumerate(samples)}
 
-    for _, row in labels.iterrows():
-        for i, sample_id in enumerate(samples):
-            new_row = row.copy()
+    labels["sample_id"] = [samples]*len(labels)
 
-            new_row["sample_id"] = sample_id
+    labels = labels.explode("sample_id")
+    grouped = labels.groupby(["clone_id", 'sample_id'])
 
-            if new_row["clone_id"] in ccfs:
-                new_row["ccf"] = ccfs[new_row["clone_id"]][i]
+    df_list = []
 
-            else:
-                new_row["ccf"] = -1
+    for name, group in grouped:
+        clone_id, sample_id = name
 
-            table.append(new_row)
+        if clone_id in ccfs:
+            group["ccf"] = ccfs[clone_id][samples_idx_dict[sample_id]]
+        else:
+            group["ccf"] = -1
 
-    return pd.DataFrame(table)
+        df_list.append(group)
+
+    return pd.concat(df_list, ignore_index=True)
 
 
 def get_labels_table(data, tree, clusters=None):
@@ -307,11 +310,12 @@ def get_labels_table(data, tree, clusters=None):
     clone_muts = set()
 
     if clusters is None:
-        for idx in tree.labels:
+        tree_labels = tree.labels
+        for idx in tree_labels:
             df.append(
                 {
                     "mutation_id": data[idx].name,
-                    "clone_id": tree.labels[idx],
+                    "clone_id": tree_labels[idx],
                 }
             )
 
@@ -326,33 +330,30 @@ def get_labels_table(data, tree, clusters=None):
         df = df.sort_values(by=["clone_id", "mutation_id"])
 
     else:
-        for idx in tree.labels:
-            muts = clusters[clusters["cluster_id"] == int(data[idx].name)][
-                "mutation_id"
-            ]
+        tree_labels = tree.labels
 
-            for mut in muts:
-                df.append(
-                    {
-                        "mutation_id": mut,
-                        "clone_id": tree.labels[idx],
-                        "cluster_id": int(data[idx].name),
-                    }
-                )
+        clusters_grouped = clusters.groupby("cluster_id")
+        for idx in tree_labels:
 
-                clone_muts.add(mut)
+            cluster_id = int(data[idx].name)
+            clone_id = tree_labels[idx]
 
-        clusters = clusters.set_index("mutation_id")
+            muts = clusters_grouped.get_group(cluster_id)["mutation_id"]
 
-        for mut in clusters.index.values:
-            if mut not in clone_muts:
-                df.append(
-                    {
-                        "mutation_id": mut,
-                        "clone_id": -1,
-                        "cluster_id": clusters.loc[mut].values[0],
-                    }
-                )
+            muts_set = muts.unique()
+
+            curr_muts_records = [{"mutation_id": mut, "clone_id": clone_id, "cluster_id": cluster_id}
+                                 for mut in muts_set]
+
+            clone_muts.update(muts_set)
+
+            df.extend(curr_muts_records)
+
+        missing_muts_df = clusters.loc[~clusters['mutation_id'].isin(clone_muts)]
+
+        missing_muts_df["clone_id"] = -1
+
+        df.extend(missing_muts_df.to_dict("records"))
 
         df = pd.DataFrame(df, columns=["mutation_id", "clone_id", "cluster_id"])
 
