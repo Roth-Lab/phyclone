@@ -10,10 +10,11 @@ from phyclone.process_trace.consensus import get_consensus_tree
 from phyclone.process_trace.map import get_map_node_ccfs
 from phyclone.process_trace.utils import print_string_to_file
 from phyclone.tree import Tree
-from phyclone.utils.math import exp_normalize
+# from phyclone.utils.math import exp_normalize
 import tarfile
 import os
 import tempfile
+from scipy.special import softmax
 
 
 def write_map_results(
@@ -183,7 +184,7 @@ def write_consensus_results(
     out_table_file,
     out_tree_file,
     consensus_threshold=0.5,
-    weight_type="counts",
+    weight_type="joint-likelihood",
 ):
 
     with gzip.GzipFile(in_file, "rb") as fh:
@@ -200,13 +201,21 @@ def write_consensus_results(
             trees.extend([Tree.from_dict(x["tree"]) for x in chain_results["trace"]])
     else:
         weighted_consensus = True
-        for chain_results in results.values():
-            trees.extend([Tree.from_dict(x["tree"]) for x in chain_results["trace"]])
-            probs.extend([x["log_p_one"] for x in chain_results["trace"]])
+        # for chain_results in results.values():
+        #     trees.extend([Tree.from_dict(x["tree"]) for x in chain_results["trace"]])
+        #     probs.extend([x["log_p_one"] for x in chain_results["trace"]])
+        topologies = create_topology_dict_from_trace(results)
+
+        for tree, top_info in topologies.items():
+            trees.append(tree)
+            probs.append(top_info["log_p_joint_max"] + np.log(top_info["count"]))
+            # trees.extend([tree] * top_info["count"])
+            # probs.extend([top_info["log_p_joint_max"]] * top_info["count"])
 
     if weighted_consensus:
         probs = np.array(probs)
-        probs, norm = exp_normalize(probs)
+        probs = softmax(probs)
+        # probs, norm = exp_normalize(probs)
 
     graph = get_consensus_tree(
         trees,
