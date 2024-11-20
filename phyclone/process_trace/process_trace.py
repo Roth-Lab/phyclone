@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from phyclone.process_trace.consensus import get_consensus_tree
-from phyclone.process_trace.map import get_map_node_ccfs
+from phyclone.process_trace.map import get_map_node_ccfs_and_clonal_prev_dicts
 from phyclone.process_trace.utils import print_string_to_file
 from phyclone.tree import Tree
 import tarfile
@@ -282,7 +282,7 @@ def from_dict_nx(data, tree_dict):
 def get_clone_table(data, samples, tree, clusters=None):
     labels = get_labels_table(data, tree, clusters=clusters)
 
-    ccfs = get_map_node_ccfs(tree)
+    ccfs, clonal_prev_dict = get_map_node_ccfs_and_clonal_prev_dicts(tree)
 
     samples_idx_dict = {k: v for v, k in enumerate(samples)}
 
@@ -298,8 +298,10 @@ def get_clone_table(data, samples, tree, clusters=None):
 
         if clone_id in ccfs:
             group["ccf"] = ccfs[clone_id][samples_idx_dict[sample_id]]
+            group["clonal_prev"] = clonal_prev_dict[clone_id][samples_idx_dict[sample_id]]
         else:
             group["ccf"] = -1
+            group["clonal_prev"] = -1
 
         df_list.append(group)
 
