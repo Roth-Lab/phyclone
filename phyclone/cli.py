@@ -286,18 +286,6 @@ def topology_report(**kwargs):
     help="""Set random seed so results can be reproduced. By default a random seed is chosen.""",
 )
 @click.option(
-    "--rng-pickle",
-    default=None,
-    type=click.Path(exists=True, resolve_path=True),
-    help="""Set numpy random generator from pickled instance, supersedes seed if also provided.""",
-)
-@click.option(
-    "--save-rng/--no-save-rng",
-    default=True,
-    show_default=True,
-    help="Whether the numpy RNG BitGenerator should be pickled for reproducibility.",
-)
-@click.option(
     "--assign-loss-prob/--no-assign-loss-prob",
     default=False,
     show_default=True,

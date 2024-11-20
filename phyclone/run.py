@@ -21,7 +21,7 @@ from phyclone.process_trace import create_main_run_output
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
 from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
-from phyclone.utils import Timer, read_pickle, save_numpy_rng
+from phyclone.utils import Timer
 from phyclone.utils.dev import clear_proposal_dist_caches
 
 
@@ -47,8 +47,6 @@ def run(
     seed=None,
     thin=1,
     num_chains=1,
-    rng_pickle=None,
-    save_rng=True,
     subtree_update_prob=0.0,
     low_loss_prob=0.01,
     high_loss_prob=0.5,
@@ -56,7 +54,7 @@ def run(
     user_provided_loss_prob=False,
 ):
 
-    rng_main = instantiate_and_seed_RNG(seed, rng_pickle)
+    rng_main = instantiate_and_seed_RNG(seed)
 
     if assign_loss_prob and user_provided_loss_prob:
         raise Exception(
@@ -69,9 +67,6 @@ def run(
 
     if user_provided_loss_prob and outlier_prob == 0:
         outlier_prob = 0.01
-
-    if save_rng:
-        save_numpy_rng(out_file, rng_main)
 
     data, samples = load_data(
         in_file,
@@ -250,7 +245,6 @@ def _run_main_sampler(
 
             clear_proposal_dist_caches()
 
-            # tree = tree_sampler.sample_tree(tree)
             if rng.random() < subtree_update_prob:
                 tree = subtree_sampler.sample_tree(tree)
             else:
@@ -408,12 +402,9 @@ def setup_kernel(outlier_prob, proposal, rng, tree_dist):
     return kernel
 
 
-def instantiate_and_seed_RNG(seed, rng_pickle):
-    if (seed is not None) and (rng_pickle is None):
+def instantiate_and_seed_RNG(seed):
+    if seed is not None:
         rng = np.random.default_rng(seed)
-    elif rng_pickle is not None:
-        loaded = read_pickle(rng_pickle)
-        rng = np.random.default_rng(loaded)
     else:
         rng = np.random.default_rng()
     return rng

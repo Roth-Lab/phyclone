@@ -3,7 +3,6 @@ import time
 from collections import deque
 from functools import lru_cache, wraps
 from itertools import count
-from os.path import join, dirname
 
 import numpy as np
 from xxhash import xxh3_64_hexdigest
@@ -18,12 +17,6 @@ def read_pickle(file):
 def write_pickle(obj, filename):
     with open(filename, "wb") as f:
         pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-def save_numpy_rng(out_file, rng):
-    rng_pickle_fn = join(dirname(out_file), "numpy_bit_generator.pkl")
-    state = rng.bit_generator
-    write_pickle(state, rng_pickle_fn)
 
 
 def get_iterator_length(iterable):
