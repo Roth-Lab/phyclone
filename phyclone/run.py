@@ -35,8 +35,8 @@ def run(
     density="beta-binomial",
     grid_size=101,
     max_time=float("inf"),
-    num_iters=1000,
-    num_particles=20,
+    num_iters=5000,
+    num_particles=100,
     num_samples_data_point=1,
     num_samples_prune_regraph=1,
     outlier_prob=0,
@@ -48,8 +48,8 @@ def run(
     thin=1,
     num_chains=1,
     subtree_update_prob=0.0,
-    low_loss_prob=0.01,
-    high_loss_prob=0.5,
+    low_loss_prob=0.0001,
+    high_loss_prob=0.4,
     assign_loss_prob=False,
     user_provided_loss_prob=False,
 ):
@@ -63,10 +63,10 @@ def run(
         )
 
     if assign_loss_prob and outlier_prob == 0:
-        outlier_prob = 0.01
+        outlier_prob = 0.0001
 
     if user_provided_loss_prob and outlier_prob == 0:
-        outlier_prob = 0.01
+        outlier_prob = 0.0001
 
     data, samples = load_data(
         in_file,

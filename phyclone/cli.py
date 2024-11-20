@@ -230,10 +230,10 @@ def topology_report(**kwargs):
 )
 @click.option(
     "--num-particles",
-    default=20,
+    default=100,
     type=int,
     show_default=True,
-    help="""Number of particles to use during PG sampling. Default is 20.""",
+    help="""Number of particles to use during PG sampling. Default is 100.""",
 )
 @click.option(
     "--num-samples-data-point",
@@ -302,7 +302,7 @@ def topology_report(**kwargs):
 )
 @click.option(
     "--low-loss-prob",
-    default=0.001,
+    default=0.0001,
     type=click.FloatRange(0.0001, 1.0, clamp=True),
     show_default=True,
     help="""Lower loss probability setting. 
