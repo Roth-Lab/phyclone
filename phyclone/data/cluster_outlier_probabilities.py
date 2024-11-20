@@ -80,8 +80,9 @@ def _finalize_loss_prob_on_cluster_df(
             possessive = "its"
         print(
             "{num} potentially lost/outlier cluster{pl} identified,"
-            " setting {pos} prior loss prob to {pr}.".format(
-                num=len(lost_clusters), pl=pluralize, pr=high_loss_prob, pos=possessive
+            " setting {pos} prior loss prob to {pr}."
+            "\nRemaining cluster(s) will have a prior loss prob of {prl}.".format(
+                num=len(lost_clusters), pl=pluralize, pr=high_loss_prob, pos=possessive, prl=low_loss_prob
             )
         )
         print(
