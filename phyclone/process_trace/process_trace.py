@@ -13,7 +13,7 @@ from phyclone.tree import Tree
 import tarfile
 import os
 import tempfile
-from scipy.special import softmax
+from phyclone.utils.math import exp_normalize
 
 
 def write_map_results(
@@ -208,7 +208,7 @@ def write_consensus_results(
 
     if weighted_consensus:
         probs = np.array(probs)
-        probs = softmax(probs)
+        probs, _ = exp_normalize(probs)
 
     graph = get_consensus_tree(
         trees,
