@@ -24,10 +24,10 @@ from phyclone.run import run as run_prog
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file.""",
 )
 @click.option(
-    "-o", "--out-table-file", required=True, type=click.Path(resolve_path=True)
+    "-o", "--out-table-file", required=True, type=click.Path(resolve_path=True, writable=True),
 )
 @click.option(
-    "-t", "--out-tree-file", required=True, type=click.Path(resolve_path=True)
+    "-t", "--out-tree-file", required=True, type=click.Path(resolve_path=True, writable=True),
 )
 @click.option(
     "--consensus-threshold",
@@ -63,10 +63,10 @@ def consensus(**kwargs):
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file.""",
 )
 @click.option(
-    "-o", "--out-table-file", required=True, type=click.Path(resolve_path=True)
+    "-o", "--out-table-file", required=True, type=click.Path(resolve_path=True, writable=True)
 )
 @click.option(
-    "-t", "--out-tree-file", required=True, type=click.Path(resolve_path=True)
+    "-t", "--out-tree-file", required=True, type=click.Path(resolve_path=True, writable=True)
 )
 @click.option(
     "--map-type",
@@ -93,19 +93,23 @@ def map(**kwargs):
     type=click.Path(resolve_path=True, exists=True),
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file.""",
 )
-@click.option("-o", "--out-file", required=True, type=click.Path(resolve_path=True))
+@click.option("-o",
+              "--out-file",
+              required=True,
+              type=click.Path(resolve_path=True, writable=True),
+              help="""Path/filename to where topology report will be written in .tsv format""")
 @click.option(
     "-t",
     "--topologies-archive",
     default=None,
-    type=click.Path(resolve_path=True),
+    type=click.Path(resolve_path=True, writable=True),
     help="""To produce the results tables and newick trees for each uniquely sampled topology in the report, provide a
-    path to where archive file will be written in tar.gz compressed format.""",
+    path to where the archive file will be written in tar.gz compressed format.""",
 )
 @click.option(
     "--top-trees",
     default=maxsize,
-    type=click.IntRange(1),
+    type=click.IntRange(1, clamp=True),
     help="""Number of uniquely sampled topologies to archive. Default is to produce an archive of all unique 
     topologies.""",
 )
@@ -130,14 +134,14 @@ def topology_report(**kwargs):
     "-o",
     "--out-file",
     required=True,
-    type=click.Path(resolve_path=True),
+    type=click.Path(resolve_path=True, writable=True),
     help="""Path to where trace file will be written in gzip compressed pickle format.""",
 )
 @click.option(
     "-b",
     "--burnin",
-    default=100,
-    type=int,
+    default=1,
+    type=click.IntRange(1,clamp=True),
     show_default=True,
     help="""Number of burnin iterations using unconditional SMC sampler. Default is 1.""",
 )
@@ -145,15 +149,15 @@ def topology_report(**kwargs):
     "-n",
     "--num-iters",
     default=5000,
-    type=int,
+    type=click.IntRange(1,clamp=True),
     show_default=True,
-    help="""Number of iterations of the MCMC sampler to perform. Default is 1,000.""",
+    help="""Number of iterations of the MCMC sampler to perform. Default is 5,000.""",
 )
 @click.option(
     "-t",
     "--thin",
     default=1,
-    type=int,
+    type=click.IntRange(1,clamp=True),
     show_default=True,
     help="""Thinning parameter for storing entries in trace. Default is 1.""",
 )
@@ -161,7 +165,7 @@ def topology_report(**kwargs):
     "--num-chains",
     default=1,
     type=click.IntRange(1,clamp=True),
-    help="""Number of parallel chains for sampling. Default is 1.""",
+    help="""Number of parallel chains for sampling. Recommended to use 4. Default is 1.""",
 )
 @click.option(
     "-c",
@@ -223,15 +227,15 @@ def topology_report(**kwargs):
 @click.option(
     "--grid-size",
     default=101,
-    type=int,
+    type=click.IntRange(11,clamp=True),
     show_default=True,
     help="""Grid size for discrete approximation. This will numerically marginalise the cancer cell fraction. 
     Higher values lead to more accurate approximations at the expense of run time.""",
 )
 @click.option(
     "--num-particles",
-    default=80,
-    type=int,
+    default=100,
+    type=click.IntRange(1,clamp=True),
     show_default=True,
     help="""Number of particles to use during PG sampling.""",
 )

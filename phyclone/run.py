@@ -68,7 +68,7 @@ def run(
     if user_provided_loss_prob and outlier_prob == 0:
         outlier_prob = 0.0001
 
-    print_welcome_message(burnin, density, num_chains, num_iters, num_particles, seed)
+    print_welcome_message(burnin, density, num_chains, num_iters, num_particles, seed, outlier_prob)
 
     data, samples = load_data(
         in_file,
@@ -154,7 +154,7 @@ def run(
     create_main_run_output(cluster_file, out_file, results)
 
 
-def print_welcome_message(burnin, density, num_chains, num_iters, num_particles, seed):
+def print_welcome_message(burnin, density, num_chains, num_iters, num_particles, seed, outlier_prob):
     print()
     print("#" * 100)
     print("PhyClone - Analysis Run")
@@ -164,12 +164,14 @@ def print_welcome_message(burnin, density, num_chains, num_iters, num_particles,
     print("Number of independent chains: {}".format(num_chains))
     print("Number of PG particles: {}".format(num_particles))
     print("Density: {}".format(density))
-    print("Number of MCMC iterations: {}".format(num_iters))
     print("Number of burn-in iterations: {}".format(burnin))
+    print("Number of MCMC iterations: {}".format(num_iters))
     if seed is not None:
         print("Random seed: {}".format(seed))
     else:
         print("Random seed: None (unseeded)")
+    outlier_modelling_status = outlier_prob > 0
+    print("Outlier modelling allowed: {}".format(outlier_modelling_status))
     print()
     print("#" * 100)
     print()

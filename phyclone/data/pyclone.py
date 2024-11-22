@@ -65,7 +65,7 @@ def load_data(
         ].to_dict()
 
         print(
-            "Using input clustering with {} clusters".format(
+            "\nUsing input clustering with {} clusters\n".format(
                 cluster_df["cluster_id"].nunique()
             )
         )

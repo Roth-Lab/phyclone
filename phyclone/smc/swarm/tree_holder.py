@@ -53,19 +53,15 @@ class TreeHolder(object):
 
     @tree.setter
     def tree(self, tree):
-        # self.log_p = self._tree_dist.log_p(tree)
+
         if self._perm_dist is None:
             self.log_pdf = 0.0
         else:
             self.log_pdf = self._perm_dist.log_pdf(tree)
-        # self.log_p_one = self._tree_dist.log_p_one(tree)
 
         self.log_p, self.log_p_one = self._tree_dist.compute_both_log_p_and_log_p_one(
             tree
         )
-
-        # assert check_log_p == self.log_p
-        # assert check_log_p_one == self.log_p_one
 
         self.tree_roots = tree.roots
         self.tree_nodes = tree.nodes
