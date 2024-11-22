@@ -17,12 +17,10 @@ dependencies = [
     "numpy",
     "scipy",
     "click",
-    "matplotlib",
     "xxhash",
     "networkx",
     "rustworkx",
-    "pandas",
-    "scikit-learn"
+    "pandas"
 ]
 classifiers = [
     "Private :: Do Not Upload",
@@ -32,7 +30,7 @@ classifiers = [
 ]
 
 [project.urls]
-Repository = "https://github.com/Roth-Lab/phyclone.git"
+Repository = "https://github.com/Roth-Lab/PhyClone.git"
 
 [project.scripts]
 phyclone = "phyclone.cli:main"

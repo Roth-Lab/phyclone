@@ -5,8 +5,6 @@ Created on 8 Dec 2016
 """
 
 import numpy as np
-
-# import scipy.stats as stats
 from scipy.stats import gamma, beta, bernoulli
 
 

@@ -15,10 +15,6 @@ from phyclone.tree.visitors import (
 from phyclone.utils.math import cached_log_factorial
 
 
-# from rustworkx.visualization import mpl_draw
-# import matplotlib.pyplot as plt
-
-
 class Tree(object):
     __slots__ = (
         "grid_size",
@@ -69,11 +65,6 @@ class Tree(object):
         rx.dfs_search(self._graph, [root_idx], vis)
         vis_clades = frozenset(vis.clades)
         return vis_clades
-
-    # def quick_draw_tree(self):
-    #     mpl_draw(self._graph, labels=lambda node: str(node.node_id), with_labels=True)
-    #     plt.show()
-    #     plt.close()
 
     @staticmethod
     def get_single_node_tree(data):
