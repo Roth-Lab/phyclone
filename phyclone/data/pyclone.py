@@ -60,15 +60,9 @@ def load_data(
 
         clusters = cluster_df.set_index("mutation_id")["cluster_id"].to_dict()
 
-        cluster_outlier_probs = cluster_df.set_index("cluster_id")[
-            "outlier_prob"
-        ].to_dict()
+        cluster_outlier_probs = cluster_df.set_index("cluster_id")["outlier_prob"].to_dict()
 
-        print(
-            "\nUsing input clustering with {} clusters\n".format(
-                cluster_df["cluster_id"].nunique()
-            )
-        )
+        print("\nUsing input clustering with {} clusters\n".format(cluster_df["cluster_id"].nunique()))
 
         data = _create_clustered_data_arr(
             cluster_outlier_probs,
@@ -94,16 +88,12 @@ def _create_clustered_data_arr(
 ):
     raw_data = defaultdict(list)
     for mut, val in pyclone_data.items():
-        raw_data[clusters[mut]].append(
-            val.to_likelihood_grid(density, grid_size, precision=precision)
-        )
+        raw_data[clusters[mut]].append(val.to_likelihood_grid(density, grid_size, precision=precision))
     data = []
     for idx, cluster_id in enumerate(sorted(raw_data.keys())):
         val = np.sum(np.array(raw_data[cluster_id]), axis=0)
         cluster_outlier_prob = cluster_outlier_probs[cluster_id]
-        out_probs = compute_outlier_prob(
-            cluster_outlier_prob, cluster_sizes[cluster_id]
-        )
+        out_probs = compute_outlier_prob(cluster_outlier_prob, cluster_sizes[cluster_id])
 
         data_point = phyclone.data.base.DataPoint(
             idx,
@@ -134,9 +124,7 @@ def _setup_cluster_df(
                 data_df = pd.read_table(data_file)
                 if "chrom" in data_df.columns:
                     data_df = data_df[["mutation_id", "chrom", "coord"]]
-                    cluster_df = pd.merge(
-                        cluster_df, data_df, how="inner", on=["mutation_id"]
-                    )
+                    cluster_df = pd.merge(cluster_df, data_df, how="inner", on=["mutation_id"])
                     cluster_df = cluster_df.drop_duplicates()
                 else:
                     column_checks = False
@@ -153,22 +141,14 @@ def _setup_cluster_df(
                 )
                 cluster_df.loc[:, "outlier_prob"] = low_loss_prob
         else:
-            print(
-                "\nCluster level outlier probability column not found. Setting values to {p}".format(
-                    p=outlier_prob
-                )
-            )
+            print("\nCluster level outlier probability column not found. Setting values to {p}".format(p=outlier_prob))
             cluster_df.loc[:, "outlier_prob"] = outlier_prob
     if not assign_loss_prob:
         if outlier_prob == 0:
             cluster_df.loc[:, "outlier_prob"] = outlier_prob
         else:
-            cluster_df.loc[cluster_df["outlier_prob"] == 0, "outlier_prob"] = (
-                outlier_prob
-            )
-    cluster_df = cluster_df[
-        ["mutation_id", "cluster_id", "outlier_prob"]
-    ].drop_duplicates()
+            cluster_df.loc[cluster_df["outlier_prob"] == 0, "outlier_prob"] = outlier_prob
+    cluster_df = cluster_df[["mutation_id", "cluster_id", "outlier_prob"]].drop_duplicates()
     return cluster_df
 
 
@@ -203,22 +183,21 @@ def load_pyclone_data(file_name):
 
 def _remove_duplicated_and_partially_absent_mutations(df, samples):
     samples_len = len(samples)
-    group_transform = df.groupby(df['mutation_id'])["sample_id"].transform('size')
+    group_transform = df.groupby(df["mutation_id"])["sample_id"].transform("size")
     num_not_present_in_all = len(df[group_transform < samples_len]["mutation_id"].unique())
     num_duplicates = len(df[group_transform > samples_len]["mutation_id"].unique())
     if num_duplicates > 0:
         if num_duplicates == 1:
-            pl = ''
+            pl = ""
         else:
-            pl = 's'
+            pl = "s"
         print("Removing {} duplicate mutation ID{}".format(num_duplicates, pl))
     if num_not_present_in_all > 0:
         if num_not_present_in_all == 1:
-            pl = ('', 'is')
+            pl = ("", "is")
         else:
-            pl = ('s', 'are')
-        print("Removing {} mutation{} that {} not present in all samples".format(num_not_present_in_all,
-                                                                                 pl[0], pl[1]))
+            pl = ("s", "are")
+        print("Removing {} mutation{} that {} not present in all samples".format(num_not_present_in_all, pl[0], pl[1]))
     df = df.loc[group_transform == samples_len]
     return df
 
@@ -227,9 +206,9 @@ def _remove_cn_zero_mutations(df):
     num_dels = sum(df["major_cn"] == 0)
     if num_dels > 0:
         if num_dels == 1:
-            pl = ''
+            pl = ""
         else:
-            pl = 's'
+            pl = "s"
         print("Removing {} mutation{} with major copy number zero".format(num_dels, pl))
     df = df.loc[df["major_cn"] > 0]
     return df
@@ -280,11 +259,7 @@ def _create_loaded_pyclone_data_dict(df, samples):
                 error_rate=group.at[sample, "error_rate"],
             )
 
-            sample_data_points.append(
-                SampleDataPoint(
-                    a, b, cn, mu, log_pi, group.at[sample, "tumour_content"]
-                )
-            )
+            sample_data_points.append(SampleDataPoint(a, b, cn, mu, log_pi, group.at[sample, "tumour_content"]))
 
         data[mutation] = DataPoint(samples, sample_data_points)
 
@@ -356,9 +331,7 @@ class DataPoint(object):
         sample_data_points = self.sample_data_points
         ccf_grid = self.get_ccf_grid(grid_size)
 
-        _compute_liklihood_grid(
-            ccf_grid, density, log_ll, precision, numba.typed.List(sample_data_points)
-        )
+        _compute_liklihood_grid(ccf_grid, density, log_ll, precision, numba.typed.List(sample_data_points))
 
         return log_ll
 
@@ -368,9 +341,7 @@ def _compute_liklihood_grid(ccf_grid, density, log_ll, precision, sample_data_po
     for s_idx, data_point in enumerate(sample_data_points):
         for i, ccf in enumerate(ccf_grid):
             if density == "beta-binomial":
-                log_ll[s_idx, i] = log_pyclone_beta_binomial_pdf(
-                    data_point, ccf, precision
-                )
+                log_ll[s_idx, i] = log_pyclone_beta_binomial_pdf(data_point, ccf, precision)
 
             elif density == "binomial":
                 log_ll[s_idx, i] = log_pyclone_binomial_pdf(data_point, ccf)

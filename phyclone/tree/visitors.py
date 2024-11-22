@@ -119,9 +119,7 @@ class GraphToNewickVisitor(DFSVisitor):
         if node_idx in self.parents:
             curr_list = self.dict_of_lists[node_idx]
             child_strings = ",".join(curr_list)
-            curr_node_string = "({child_strings}){node_idx}".format(
-                child_strings=child_strings, node_idx=node_idx
-            )
+            curr_node_string = "({child_strings}){node_idx}".format(child_strings=child_strings, node_idx=node_idx)
         else:
             curr_node_string = "{node_idx}".format(node_idx=node_idx)
 

@@ -58,8 +58,7 @@ def run(
 
     if assign_loss_prob and user_provided_loss_prob:
         raise Exception(
-            "Cannot use both --assign-loss-prob and --user-provided-loss-prob,"
-            " these options are mutually exclusive"
+            "Cannot use both --assign-loss-prob and --user-provided-loss-prob," " these options are mutually exclusive"
         )
 
     if assign_loss_prob and outlier_prob == 0:
@@ -113,9 +112,7 @@ def run(
 
         rng_list = rng_main.spawn(num_chains)
 
-        with ProcessPoolExecutor(
-            max_workers=num_chains, mp_context=get_context("spawn")
-        ) as pool:
+        with ProcessPoolExecutor(max_workers=num_chains, mp_context=get_context("spawn")) as pool:
             chain_results = [
                 pool.submit(
                     run_phyclone_chain,
@@ -199,9 +196,7 @@ def run_phyclone_chain(
 ):
     tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
     kernel = setup_kernel(outlier_prob, proposal, rng, tree_dist)
-    samplers = setup_samplers(
-        kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist
-    )
+    samplers = setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist)
     tree = Tree.get_single_node_tree(data)
     timer = Timer()
     tree = _run_burnin(
@@ -315,9 +310,7 @@ def update_concentration_value(conc_sampler, tree, tree_dist):
 
         node_sizes.append(len(node_data))
 
-    tree_dist.prior.alpha = conc_sampler.sample(
-        tree_dist.prior.alpha, len(node_sizes), sum(node_sizes)
-    )
+    tree_dist.prior.alpha = conc_sampler.sample(tree_dist.prior.alpha, len(node_sizes), sum(node_sizes))
 
 
 def setup_trace(timer, tree, tree_dist):
@@ -385,15 +378,11 @@ class SamplersHolder:
     subtree_sampler: ParticleGibbsSubtreeSampler
 
 
-def setup_samplers(
-    kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist
-):
+def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist):
     dp_sampler = DataPointSampler(tree_dist, rng, outliers=(outlier_prob > 0))
     prg_sampler = PruneRegraphSampler(tree_dist, rng)
     conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
-    burnin_sampler = UnconditionalSMCSampler(
-        kernel, num_particles=num_particles, resample_threshold=resample_threshold
-    )
+    burnin_sampler = UnconditionalSMCSampler(kernel, num_particles=num_particles, resample_threshold=resample_threshold)
     tree_sampler = ParticleGibbsTreeSampler(
         kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
     )

@@ -74,9 +74,7 @@ class NumpyArrayListHasher:
 
     @staticmethod
     def _create_hashable(list_of_np_arrays):
-        hashable = np.array(
-            [xxh3_64_hexdigest(arr) for arr in list_of_np_arrays], order="C"
-        )
+        hashable = np.array([xxh3_64_hexdigest(arr) for arr in list_of_np_arrays], order="C")
         hashable.sort()
         ret = tuple(hashable)
         return ret
@@ -116,9 +114,7 @@ class NumpyTwoArraysHasher:
     def __init__(self, arr_1, arr_2) -> None:
         self.input_1 = arr_1
         self.input_2 = arr_2
-        self.h = frozenset(
-            [xxh3_64_hexdigest(arr_1), xxh3_64_hexdigest(arr_2)]
-        )
+        self.h = frozenset([xxh3_64_hexdigest(arr_1), xxh3_64_hexdigest(arr_2)])
 
     def __hash__(self) -> int:
         return hash(self.h)

@@ -24,10 +24,16 @@ from phyclone.run import run as run_prog
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file.""",
 )
 @click.option(
-    "-o", "--out-table-file", required=True, type=click.Path(resolve_path=True, writable=True),
+    "-o",
+    "--out-table-file",
+    required=True,
+    type=click.Path(resolve_path=True, writable=True),
 )
 @click.option(
-    "-t", "--out-tree-file", required=True, type=click.Path(resolve_path=True, writable=True),
+    "-t",
+    "--out-tree-file",
+    required=True,
+    type=click.Path(resolve_path=True, writable=True),
 )
 @click.option(
     "--consensus-threshold",
@@ -63,10 +69,16 @@ def consensus(**kwargs):
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file.""",
 )
 @click.option(
-    "-o", "--out-table-file", required=True, type=click.Path(resolve_path=True, writable=True)
+    "-o",
+    "--out-table-file",
+    required=True,
+    type=click.Path(resolve_path=True, writable=True),
 )
 @click.option(
-    "-t", "--out-tree-file", required=True, type=click.Path(resolve_path=True, writable=True)
+    "-t",
+    "--out-tree-file",
+    required=True,
+    type=click.Path(resolve_path=True, writable=True),
 )
 @click.option(
     "--map-type",
@@ -93,11 +105,13 @@ def map(**kwargs):
     type=click.Path(resolve_path=True, exists=True),
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file.""",
 )
-@click.option("-o",
-              "--out-file",
-              required=True,
-              type=click.Path(resolve_path=True, writable=True),
-              help="""Path/filename to where topology report will be written in .tsv format""")
+@click.option(
+    "-o",
+    "--out-file",
+    required=True,
+    type=click.Path(resolve_path=True, writable=True),
+    help="""Path/filename to where topology report will be written in .tsv format""",
+)
 @click.option(
     "-t",
     "--topologies-archive",
@@ -141,7 +155,7 @@ def topology_report(**kwargs):
     "-b",
     "--burnin",
     default=1,
-    type=click.IntRange(1,clamp=True),
+    type=click.IntRange(1, clamp=True),
     show_default=True,
     help="""Number of burnin iterations using unconditional SMC sampler. Default is 1.""",
 )
@@ -149,7 +163,7 @@ def topology_report(**kwargs):
     "-n",
     "--num-iters",
     default=5000,
-    type=click.IntRange(1,clamp=True),
+    type=click.IntRange(1, clamp=True),
     show_default=True,
     help="""Number of iterations of the MCMC sampler to perform. Default is 5,000.""",
 )
@@ -157,14 +171,14 @@ def topology_report(**kwargs):
     "-t",
     "--thin",
     default=1,
-    type=click.IntRange(1,clamp=True),
+    type=click.IntRange(1, clamp=True),
     show_default=True,
     help="""Thinning parameter for storing entries in trace. Default is 1.""",
 )
 @click.option(
     "--num-chains",
     default=1,
-    type=click.IntRange(1,clamp=True),
+    type=click.IntRange(1, clamp=True),
     help="""Number of parallel chains for sampling. Recommended to use 4. Default is 1.""",
 )
 @click.option(
@@ -227,7 +241,7 @@ def topology_report(**kwargs):
 @click.option(
     "--grid-size",
     default=101,
-    type=click.IntRange(11,clamp=True),
+    type=click.IntRange(11, clamp=True),
     show_default=True,
     help="""Grid size for discrete approximation. This will numerically marginalise the cancer cell fraction. 
     Higher values lead to more accurate approximations at the expense of run time.""",
@@ -235,7 +249,7 @@ def topology_report(**kwargs):
 @click.option(
     "--num-particles",
     default=100,
-    type=click.IntRange(1,clamp=True),
+    type=click.IntRange(1, clamp=True),
     show_default=True,
     help="""Number of particles to use during PG sampling.""",
 )

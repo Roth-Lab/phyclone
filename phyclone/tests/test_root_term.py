@@ -127,9 +127,7 @@ class Test(unittest.TestCase):
 
         print("One root: {}; Two roots: {}".format(one_root_overall, two_root_overall))
 
-        np.testing.assert_allclose(
-            one_root_overall / 1000, two_root_overall, atol=1e-05
-        )
+        np.testing.assert_allclose(one_root_overall / 1000, two_root_overall, atol=1e-05)
 
     def test_log_vs_not(self):
 
@@ -175,9 +173,7 @@ class Test(unittest.TestCase):
         expected_log_z = np.log(expected)
         actual_log_z = self.closed_form_log(r, b_term)
 
-        print(
-            "Z-terms || Expected: {}, Actual: {}".format(expected_log_z, actual_log_z)
-        )
+        print("Z-terms || Expected: {}, Actual: {}".format(expected_log_z, actual_log_z))
 
         np.testing.assert_allclose(actual_log_z, expected_log_z)
 
@@ -186,10 +182,6 @@ class Test(unittest.TestCase):
 
         actual_prob_log = self.overall_prob_log(r, actual_log_z)
 
-        print(
-            "Prob || Expected: {}, Actual: {}".format(
-                expected_prob_log, actual_prob_log
-            )
-        )
+        print("Prob || Expected: {}, Actual: {}".format(expected_prob_log, actual_prob_log))
 
         np.testing.assert_allclose(actual_prob_log, expected_prob_log)

@@ -13,16 +13,12 @@ def _assign_out_prob(df, rng, low_loss_prob, high_loss_prob):
 
     truncal_dists = _get_truncal_chrom_arr(df, truncal_cluster)
 
-    lost_clusters = _define_possibly_lost_clusters(
-        cluster_info_dict, rng, truncal_cluster, truncal_dists
-    )
+    lost_clusters = _define_possibly_lost_clusters(cluster_info_dict, rng, truncal_cluster, truncal_dists)
 
     _finalize_loss_prob_on_cluster_df(df, high_loss_prob, lost_clusters, low_loss_prob)
 
 
-def _define_possibly_lost_clusters(
-    cluster_info_dict, rng, truncal_cluster, truncal_dists
-):
+def _define_possibly_lost_clusters(cluster_info_dict, rng, truncal_cluster, truncal_dists):
     truncal_dist_len = len(truncal_dists)
     lost_clusters = list()
     min_clust_size = 4
@@ -44,9 +40,7 @@ def _define_possibly_lost_clusters(
         num_unique_sum = 0
 
         for i in range(test_iters):
-            sample_drawn = rng.choice(
-                truncal_dist_tester, size=cluster_dist_len, replace=False
-            )
+            sample_drawn = rng.choice(truncal_dist_tester, size=cluster_dist_len, replace=False)
             unique_vals = np.unique(sample_drawn)
             num_unique = len(unique_vals)
             num_unique_sum += num_unique
@@ -65,9 +59,7 @@ def _define_possibly_lost_clusters(
     return lost_clusters
 
 
-def _finalize_loss_prob_on_cluster_df(
-    cluster_df, high_loss_prob, lost_clusters, low_loss_prob
-):
+def _finalize_loss_prob_on_cluster_df(cluster_df, high_loss_prob, lost_clusters, low_loss_prob):
     cluster_df["outlier_prob"] = low_loss_prob
     value_filter = cluster_df["cluster_id"].isin(lost_clusters)
     cluster_df.loc[value_filter, "outlier_prob"] = high_loss_prob
@@ -85,11 +77,7 @@ def _finalize_loss_prob_on_cluster_df(
                 num=len(lost_clusters), pl=pluralize, pr=high_loss_prob, pos=possessive, prl=low_loss_prob
             )
         )
-        print(
-            "Cluster{pl} identified as potentially lost/outlier{pl}: {lost}".format(
-                pl=pluralize, lost=lost_clusters
-            )
-        )
+        print("Cluster{pl} identified as potentially lost/outlier{pl}: {lost}".format(pl=pluralize, lost=lost_clusters))
     else:
         print(
             "No potentially lost/outlier clusters identified,"

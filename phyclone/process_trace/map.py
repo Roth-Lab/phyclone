@@ -60,9 +60,7 @@ def compute_max_likelihood(graph, node_id):
     else:
         child_log_R = [graph.nodes[child_id]["log_R_max"] for child_id in children]
 
-        node["log_D_choice"], node["log_S_choice"], node["log_S_max"] = compute_log_S(
-            child_log_R
-        )
+        node["log_D_choice"], node["log_S_choice"], node["log_S_max"] = compute_log_S(child_log_R)
 
         node["log_R_max"] = node["log_p"] + node["log_S_max"]
 
@@ -150,9 +148,7 @@ def _set_max_assignment(graph, idxs, node):
     if len(children) == 0:
         return
 
-    child_total_idx = [
-        graph.nodes[node]["log_S_choice"][d, idxs[d]] for d in range(num_dims)
-    ]
+    child_total_idx = [graph.nodes[node]["log_S_choice"][d, idxs[d]] for d in range(num_dims)]
 
     for i in range(len(children) - 1, -1, -1):
         child = children[i]
@@ -160,9 +156,7 @@ def _set_max_assignment(graph, idxs, node):
         graph.nodes[child]["max_idx"] = np.zeros(num_dims, dtype=int)
 
         for d in range(num_dims):
-            graph.nodes[child]["max_idx"][d] = graph.nodes[node]["log_D_choice"][i][
-                d, child_total_idx[d]
-            ]
+            graph.nodes[child]["max_idx"][d] = graph.nodes[node]["log_D_choice"][i][d, child_total_idx[d]]
 
             child_total_idx[d] -= graph.nodes[child]["max_idx"][d]
 

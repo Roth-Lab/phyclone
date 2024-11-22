@@ -37,3 +37,6 @@ Repository = "https://github.com/Roth-Lab/phyclone.git"
 [project.scripts]
 phyclone = "phyclone.cli:main"
 
+[tool.black]
+line-length = 120
+

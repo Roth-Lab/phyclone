@@ -34,7 +34,7 @@ class DataPoint(object):
 
         sub_comp = _sub_compute_S(tmp)
 
-        self.outlier_marginal_prob = np.sum(log_sum_exp(sub_comp+log_prior, axis=1))
+        self.outlier_marginal_prob = np.sum(log_sum_exp(sub_comp + log_prior, axis=1))
 
     def __hash__(self):
         return hash(self.name)

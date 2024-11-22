@@ -90,9 +90,7 @@ class RootPermutationDistribution(object):
             children = tree.get_children(source)
 
             for child in children:
-                child_sigma.append(
-                    RootPermutationDistribution.sample(tree, rng, source=child)
-                )
+                child_sigma.append(RootPermutationDistribution.sample(tree, rng, source=child))
 
             # Bridge shuffle
             sigma = interleave_lists(child_sigma, rng)

@@ -137,9 +137,7 @@ class Tree(object):
 
     @property
     def nodes(self):
-        result = [
-            node.node_id for node in self._graph.nodes() if node.node_id != "root"
-        ]
+        result = [node.node_id for node in self._graph.nodes() if node.node_id != "root"]
         return result
 
     @property
@@ -199,11 +197,7 @@ class Tree(object):
             new._node_indices_rev = tree_dict["node_idx_rev"].copy()
             new._node_indices = node_idxs.copy()
 
-            node_index_holes = [
-                idx
-                for idx in new_graph.node_indices()
-                if idx not in tree_dict["node_idx_rev"]
-            ]
+            node_index_holes = [idx for idx in new_graph.node_indices() if idx not in tree_dict["node_idx_rev"]]
 
             if len(node_index_holes) > 0:
                 new_graph.remove_nodes_from(node_index_holes)
@@ -279,9 +273,7 @@ class Tree(object):
 
         subtree_dummy_root = subtree._node_indices["root"]
 
-        node_map_idx = self._graph.compose(
-            subtree._graph, {parent_idx: (subtree_dummy_root, None)}
-        )
+        node_map_idx = self._graph.compose(subtree._graph, {parent_idx: (subtree_dummy_root, None)})
 
         self._graph.remove_node_retain_edges(node_map_idx[subtree_dummy_root])
 
@@ -414,13 +406,9 @@ class Tree(object):
 
         subtree_root_idx = self._node_indices[subtree_root]
 
-        subtree_graph_node_indices = [subtree_root_idx] + list(
-            rx.descendants(self._graph, subtree_root_idx)
-        )
+        subtree_graph_node_indices = [subtree_root_idx] + list(rx.descendants(self._graph, subtree_root_idx))
 
-        subtree_graph = self._graph.subgraph(
-            subtree_graph_node_indices, preserve_attrs=True
-        )
+        subtree_graph = self._graph.subgraph(subtree_graph_node_indices, preserve_attrs=True)
 
         new_root_idx = new._node_indices["root"]
 
@@ -507,9 +495,7 @@ class Tree(object):
                     del self._node_indices[node_id]
                     del self._node_indices_rev[curr_idx]
 
-            indices_to_remove = list(rx.descendants(self._graph, sub_root_idx)) + [
-                sub_root_idx
-            ]
+            indices_to_remove = list(rx.descendants(self._graph, sub_root_idx)) + [sub_root_idx]
 
             self._graph.remove_nodes_from(indices_to_remove)
 
@@ -562,9 +548,7 @@ class Tree(object):
         else:
             log_s = compute_log_S(child_log_r_values)
 
-        self._graph[node_idx].log_r = np.add(
-            log_p, log_s, out=self._graph[node_idx].log_r, order="C"
-        )
+        self._graph[node_idx].log_r = np.add(log_p, log_s, out=self._graph[node_idx].log_r, order="C")
 
 
 class TreeNode(object):

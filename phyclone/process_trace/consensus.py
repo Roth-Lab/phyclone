@@ -5,13 +5,9 @@ import networkx as nx
 from phyclone.tree.utils import get_clades
 
 
-def get_consensus_tree(
-    trees, data=None, threshold=0.5, weighted=False, log_p_list=None
-):
+def get_consensus_tree(trees, data=None, threshold=0.5, weighted=False, log_p_list=None):
 
-    clades_counter = clade_probabilities(
-        trees, weighted=weighted, log_p_list=log_p_list
-    )
+    clades_counter = clade_probabilities(trees, weighted=weighted, log_p_list=log_p_list)
 
     consensus_clades = key_above_threshold(clades_counter, threshold)
 

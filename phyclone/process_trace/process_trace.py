@@ -71,9 +71,9 @@ def create_topology_dict_from_trace(trace):
     return topologies
 
 
-def write_topology_report(in_file, out_file, topologies_archive=None, top_trees=float('inf')):
+def write_topology_report(in_file, out_file, topologies_archive=None, top_trees=float("inf")):
     if top_trees == maxsize:
-        top_trees = float('inf')
+        top_trees = float("inf")
     print()
     print("#" * 100)
     print("PhyClone - Topology Report")
@@ -93,38 +93,42 @@ def write_topology_report(in_file, out_file, topologies_archive=None, top_trees=
     if topologies_archive is not None:
         print()
         print("#" * 50)
-        if top_trees == float('inf'):
+        if top_trees == float("inf"):
             top_trees_statement = "for all {}".format(len(topologies_dict))
         else:
             top_trees_statement = "for the top {}".format(top_trees)
             if top_trees > len(topologies_dict):
-                print("Warning: Number of top trees requested ({}) "
-                      "is greater than the total number of "
-                      "uniquely sampled topologies ({}).".format(top_trees, len(topologies_dict)))
+                print(
+                    "Warning: Number of top trees requested ({}) "
+                    "is greater than the total number of "
+                    "uniquely sampled topologies ({}).".format(top_trees, len(topologies_dict))
+                )
                 top_trees_statement = "for all {}".format(len(topologies_dict))
         print("\nBuilding PhyClone topologies archive {} uniquely sampled topologies.".format(top_trees_statement))
         create_topologies_archive(topology_df, results, top_trees, topologies_dict, topologies_archive)
         print("Topologies archive created, saved as: {}".format(topologies_archive))
-    print('\nFinished.')
+    print("\nFinished.")
     print("#" * 100)
 
 
 def create_topologies_archive(topology_df, results, top_trees, topologies_dict, topologies_archive):
-    filename_template = '{}_results_table.tsv'
-    nwk_template = '{}.nwk'
+    filename_template = "{}_results_table.tsv"
+    nwk_template = "{}.nwk"
     clusters = results[0].get("clusters", None)
     data = results[0]["data"]
     samples = results[0]["samples"]
     with tarfile.open(topologies_archive, "w:gz") as archive:
         with tempfile.TemporaryDirectory() as tmp_dir:
             for tree, values in topologies_dict.items():
-                row = topology_df.loc[(topology_df["topology"] == values['topology'])
-                                      & (topology_df["count"] == values['count'])
-                                      & (topology_df["log_p_joint_max"] == values['log_p_joint_max'])
-                                      & (topology_df["iter"] == values['iter'])
-                                      & (topology_df["chain_num"] == values['chain_num'])]
+                row = topology_df.loc[
+                    (topology_df["topology"] == values["topology"])
+                    & (topology_df["count"] == values["count"])
+                    & (topology_df["log_p_joint_max"] == values["log_p_joint_max"])
+                    & (topology_df["iter"] == values["iter"])
+                    & (topology_df["chain_num"] == values["chain_num"])
+                ]
                 assert len(row) == 1
-                topology_id = row['topology_id'].values[0]
+                topology_id = row["topology_id"].values[0]
                 topology_rank = int(topology_id[2:])
                 if topology_rank >= top_trees:
                     continue
@@ -174,7 +178,7 @@ def create_topology_dataframe(topologies):
 
     df = pd.DataFrame(topologies)
     df = df.sort_values(by="log_p_joint_max", ascending=False, ignore_index=True)
-    df.insert(0, 'topology_id', 't_' + df.index.astype(str))
+    df.insert(0, "topology_id", "t_" + df.index.astype(str))
     return df
 
 
@@ -286,10 +290,10 @@ def get_clone_table(data, samples, tree, clusters=None):
 
     samples_idx_dict = {k: v for v, k in enumerate(samples)}
 
-    labels["sample_id"] = [samples]*len(labels)
+    labels["sample_id"] = [samples] * len(labels)
 
     labels = labels.explode("sample_id")
-    grouped = labels.groupby(["clone_id", 'sample_id'])
+    grouped = labels.groupby(["clone_id", "sample_id"])
 
     df_list = []
 
@@ -346,14 +350,15 @@ def get_labels_table(data, tree, clusters=None):
 
             muts_set = muts.unique()
 
-            curr_muts_records = [{"mutation_id": mut, "clone_id": clone_id, "cluster_id": cluster_id}
-                                 for mut in muts_set]
+            curr_muts_records = [
+                {"mutation_id": mut, "clone_id": clone_id, "cluster_id": cluster_id} for mut in muts_set
+            ]
 
             clone_muts.update(muts_set)
 
             df_records_list.extend(curr_muts_records)
 
-        missing_muts_df = clusters.loc[~clusters['mutation_id'].isin(clone_muts)]
+        missing_muts_df = clusters.loc[~clusters["mutation_id"].isin(clone_muts)]
 
         missing_muts_df = missing_muts_df.copy()
 

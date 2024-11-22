@@ -51,13 +51,7 @@ class Kernel(object):
                 log_w = particle.log_p + particle.log_pdf - log_q
 
             else:
-                log_w = (
-                    particle.log_p
-                    - parent_particle.log_p
-                    + particle.log_pdf
-                    - parent_particle.log_pdf
-                    - log_q
-                )
+                log_w = particle.log_p - parent_particle.log_p + particle.log_pdf - parent_particle.log_pdf - log_q
 
         particle.log_w = log_w
         return particle
@@ -114,9 +108,7 @@ class ProposalDistribution(object):
 
     def _empty_tree(self):
         """Tree has no nodes"""
-        return (self.parent_particle is None) or (
-            len(self.parent_particle.tree_roots) == 0
-        )
+        return (self.parent_particle is None) or (len(self.parent_particle.tree_roots) == 0)
 
     def _set_parent_tree(self, parent_tree):
         if self.parent_particle is not None:
