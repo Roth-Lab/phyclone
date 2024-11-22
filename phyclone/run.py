@@ -36,7 +36,7 @@ def run(
     grid_size=101,
     max_time=float("inf"),
     num_iters=5000,
-    num_particles=100,
+    num_particles=80,
     num_samples_data_point=1,
     num_samples_prune_regraph=1,
     outlier_prob=0,
@@ -67,6 +67,8 @@ def run(
 
     if user_provided_loss_prob and outlier_prob == 0:
         outlier_prob = 0.0001
+
+    print_welcome_message(burnin, density, num_chains, num_iters, num_particles, seed)
 
     data, samples = load_data(
         in_file,
@@ -150,6 +152,27 @@ def run(
                     print("Finished chain", res_chain)
 
     create_main_run_output(cluster_file, out_file, results)
+
+
+def print_welcome_message(burnin, density, num_chains, num_iters, num_particles, seed):
+    print()
+    print("#" * 100)
+    print("PhyClone - Analysis Run")
+    print("#" * 100)
+    print()
+    print("Running with the following parameters:\n")
+    print("Number of independent chains: {}".format(num_chains))
+    print("Number of PG particles: {}".format(num_particles))
+    print("Density: {}".format(density))
+    print("Number of MCMC iterations: {}".format(num_iters))
+    print("Number of burn-in iterations: {}".format(burnin))
+    if seed is not None:
+        print("Random seed: {}".format(seed))
+    else:
+        print("Random seed: None (unseeded)")
+    print()
+    print("#" * 100)
+    print()
 
 
 def run_phyclone_chain(

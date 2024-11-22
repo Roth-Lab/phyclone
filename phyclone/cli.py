@@ -160,7 +160,7 @@ def topology_report(**kwargs):
 @click.option(
     "--num-chains",
     default=1,
-    type=int,
+    type=click.IntRange(1,clamp=True),
     help="""Number of parallel chains for sampling. Default is 1.""",
 )
 @click.option(
@@ -230,10 +230,10 @@ def topology_report(**kwargs):
 )
 @click.option(
     "--num-particles",
-    default=100,
+    default=80,
     type=int,
     show_default=True,
-    help="""Number of particles to use during PG sampling. Default is 100.""",
+    help="""Number of particles to use during PG sampling.""",
 )
 @click.option(
     "--num-samples-data-point",
@@ -267,7 +267,7 @@ def topology_report(**kwargs):
 )
 @click.option(
     "--print-freq",
-    default=10,
+    default=100,
     type=int,
     show_default=True,
     help="""How frequently to print information about fitting. Default every 10 iterations.""",
