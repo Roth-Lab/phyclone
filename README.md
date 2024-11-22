@@ -177,7 +177,7 @@ where `TRACE.pkl` is the result from the previous step, `TREE.nwk` is the output
 
 # License
 
-PhyClone is licensed under the GPL v3, see the LICENSE.txt file for details.
+PhyClone is licensed under the GPL v3, see the [LICENSE](LICENSE.md) file for details.
 
 # Versions
 
