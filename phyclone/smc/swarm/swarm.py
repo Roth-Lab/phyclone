@@ -21,7 +21,7 @@ class ParticleSwarm(object):
     @property
     def ess(self):
         """Effective sample size of swarm."""
-        return 1 / np.sum(np.square(self.weights))
+        return 1 / np.square(self.weights).sum()
 
     @property
     def log_norm_const(self):
@@ -49,14 +49,14 @@ class ParticleSwarm(object):
     @property
     def unnormalized_log_weights(self):
         """Raw log weights of particles."""
-        return np.array(self._unnormalized_log_weights)
+        return np.fromiter(self._unnormalized_log_weights, dtype=np.float64, count=len(self._unnormalized_log_weights))
 
     @property
     def weights(self):
         """Particle weights."""
         weights = np.exp(self.log_weights)
 
-        weights = weights / weights.sum()
+        weights /= weights.sum()
 
         return weights
 

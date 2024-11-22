@@ -21,7 +21,7 @@ from phyclone.process_trace import create_main_run_output
 from phyclone.smc.kernels import BootstrapKernel, FullyAdaptedKernel, SemiAdaptedKernel
 from phyclone.smc.samplers import UnconditionalSMCSampler
 from phyclone.tree import FSCRPDistribution, Tree, TreeJointDistribution
-from phyclone.utils import Timer, read_pickle, save_numpy_rng
+from phyclone.utils import Timer
 from phyclone.utils.dev import clear_proposal_dist_caches
 
 
@@ -35,8 +35,8 @@ def run(
     density="beta-binomial",
     grid_size=101,
     max_time=float("inf"),
-    num_iters=1000,
-    num_particles=20,
+    num_iters=5000,
+    num_particles=80,
     num_samples_data_point=1,
     num_samples_prune_regraph=1,
     outlier_prob=0,
@@ -47,31 +47,27 @@ def run(
     seed=None,
     thin=1,
     num_chains=1,
-    rng_pickle=None,
-    save_rng=True,
     subtree_update_prob=0.0,
-    low_loss_prob=0.01,
-    high_loss_prob=0.5,
+    low_loss_prob=0.0001,
+    high_loss_prob=0.4,
     assign_loss_prob=False,
     user_provided_loss_prob=False,
 ):
 
-    rng_main = instantiate_and_seed_RNG(seed, rng_pickle)
+    rng_main = instantiate_and_seed_RNG(seed)
 
     if assign_loss_prob and user_provided_loss_prob:
         raise Exception(
-            "Cannot use both --assign-loss-prob and --user-provided-loss-prob,"
-            " these options are mutually exclusive"
+            "Cannot use both --assign-loss-prob and --user-provided-loss-prob," " these options are mutually exclusive"
         )
 
     if assign_loss_prob and outlier_prob == 0:
-        outlier_prob = 0.01
+        outlier_prob = 0.0001
 
     if user_provided_loss_prob and outlier_prob == 0:
-        outlier_prob = 0.01
+        outlier_prob = 0.0001
 
-    if save_rng:
-        save_numpy_rng(out_file, rng_main)
+    print_welcome_message(burnin, density, num_chains, num_iters, num_particles, seed, outlier_prob)
 
     data, samples = load_data(
         in_file,
@@ -116,9 +112,7 @@ def run(
 
         rng_list = rng_main.spawn(num_chains)
 
-        with ProcessPoolExecutor(
-            max_workers=num_chains, mp_context=get_context("spawn")
-        ) as pool:
+        with ProcessPoolExecutor(max_workers=num_chains, mp_context=get_context("spawn")) as pool:
             chain_results = [
                 pool.submit(
                     run_phyclone_chain,
@@ -157,6 +151,29 @@ def run(
     create_main_run_output(cluster_file, out_file, results)
 
 
+def print_welcome_message(burnin, density, num_chains, num_iters, num_particles, seed, outlier_prob):
+    print()
+    print("#" * 100)
+    print("PhyClone - Analysis Run")
+    print("#" * 100)
+    print()
+    print("Running with the following parameters:\n")
+    print("Number of independent chains: {}".format(num_chains))
+    print("Number of PG particles: {}".format(num_particles))
+    print("Density: {}".format(density))
+    print("Number of burn-in iterations: {}".format(burnin))
+    print("Number of MCMC iterations: {}".format(num_iters))
+    if seed is not None:
+        print("Random seed: {}".format(seed))
+    else:
+        print("Random seed: None (unseeded)")
+    outlier_modelling_status = outlier_prob > 0
+    print("Outlier modelling allowed: {}".format(outlier_modelling_status))
+    print()
+    print("#" * 100)
+    print()
+
+
 def run_phyclone_chain(
     burnin,
     concentration_update,
@@ -179,9 +196,7 @@ def run_phyclone_chain(
 ):
     tree_dist = TreeJointDistribution(FSCRPDistribution(concentration_value))
     kernel = setup_kernel(outlier_prob, proposal, rng, tree_dist)
-    samplers = setup_samplers(
-        kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist
-    )
+    samplers = setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist)
     tree = Tree.get_single_node_tree(data)
     timer = Timer()
     tree = _run_burnin(
@@ -250,7 +265,6 @@ def _run_main_sampler(
 
             clear_proposal_dist_caches()
 
-            # tree = tree_sampler.sample_tree(tree)
             if rng.random() < subtree_update_prob:
                 tree = subtree_sampler.sample_tree(tree)
             else:
@@ -296,9 +310,7 @@ def update_concentration_value(conc_sampler, tree, tree_dist):
 
         node_sizes.append(len(node_data))
 
-    tree_dist.prior.alpha = conc_sampler.sample(
-        tree_dist.prior.alpha, len(node_sizes), sum(node_sizes)
-    )
+    tree_dist.prior.alpha = conc_sampler.sample(tree_dist.prior.alpha, len(node_sizes), sum(node_sizes))
 
 
 def setup_trace(timer, tree, tree_dist):
@@ -366,15 +378,11 @@ class SamplersHolder:
     subtree_sampler: ParticleGibbsSubtreeSampler
 
 
-def setup_samplers(
-    kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist
-):
+def setup_samplers(kernel, num_particles, outlier_prob, resample_threshold, rng, tree_dist):
     dp_sampler = DataPointSampler(tree_dist, rng, outliers=(outlier_prob > 0))
     prg_sampler = PruneRegraphSampler(tree_dist, rng)
     conc_sampler = GammaPriorConcentrationSampler(0.01, 0.01, rng=rng)
-    burnin_sampler = UnconditionalSMCSampler(
-        kernel, num_particles=num_particles, resample_threshold=resample_threshold
-    )
+    burnin_sampler = UnconditionalSMCSampler(kernel, num_particles=num_particles, resample_threshold=resample_threshold)
     tree_sampler = ParticleGibbsTreeSampler(
         kernel, rng, num_particles=num_particles, resample_threshold=resample_threshold
     )
@@ -408,12 +416,9 @@ def setup_kernel(outlier_prob, proposal, rng, tree_dist):
     return kernel
 
 
-def instantiate_and_seed_RNG(seed, rng_pickle):
-    if (seed is not None) and (rng_pickle is None):
+def instantiate_and_seed_RNG(seed):
+    if seed is not None:
         rng = np.random.default_rng(seed)
-    elif rng_pickle is not None:
-        loaded = read_pickle(rng_pickle)
-        rng = np.random.default_rng(loaded)
     else:
         rng = np.random.default_rng()
     return rng

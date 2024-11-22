@@ -70,10 +70,7 @@ def _np_conv_dims(child_1, child_2):
 
     grid_size = child_1.shape[-1]
 
-    arr_list = [
-        np.convolve(child_2_norm[i, :], child_1_norm[i, :])[:grid_size]
-        for i in range(num_dims)
-    ]
+    arr_list = [np.convolve(child_2_norm[i, :], child_1_norm[i, :])[:grid_size] for i in range(num_dims)]
 
     log_D = np.ascontiguousarray(arr_list)
 

@@ -25,9 +25,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
         outlier_proposal_prob=0.0,
         parent_tree=None,
     ):
-        super().__init__(
-            data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree
-        )
+        super().__init__(data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree)
 
         self._init_dist()
 
@@ -96,9 +94,7 @@ class FullyAdaptedProposalDistribution(ProposalDistribution):
             num_roots = len(self.parent_particle.tree_roots)
 
             for r in range(0, num_roots + 1):
-                for children in itertools.combinations(
-                    self.parent_particle.tree_roots, r
-                ):
+                for children in itertools.combinations(self.parent_particle.tree_roots, r):
                     tree = self.parent_tree.copy()
 
                     tree.create_root_node(children=children, data=[self.data_point])
@@ -144,9 +140,7 @@ class FullyAdaptedKernel(Kernel):
 
 
 @lru_cache(maxsize=1024)
-def _get_cached_full_proposal_dist(
-    data_point, kernel, parent_particle, outlier_proposal_prob, alpha
-):
+def _get_cached_full_proposal_dist(data_point, kernel, parent_particle, outlier_proposal_prob, alpha):
     if parent_particle is not None:
         ret = FullyAdaptedProposalDistribution(
             data_point,

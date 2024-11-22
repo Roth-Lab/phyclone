@@ -3,7 +3,6 @@ import time
 from collections import deque
 from functools import lru_cache, wraps
 from itertools import count
-from os.path import join, dirname
 
 import numpy as np
 from xxhash import xxh3_64_hexdigest
@@ -18,12 +17,6 @@ def read_pickle(file):
 def write_pickle(obj, filename):
     with open(filename, "wb") as f:
         pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-def save_numpy_rng(out_file, rng):
-    rng_pickle_fn = join(dirname(out_file), "numpy_bit_generator.pkl")
-    state = rng.bit_generator
-    write_pickle(state, rng_pickle_fn)
 
 
 def get_iterator_length(iterable):
@@ -81,9 +74,7 @@ class NumpyArrayListHasher:
 
     @staticmethod
     def _create_hashable(list_of_np_arrays):
-        hashable = np.array(
-            [xxh3_64_hexdigest(arr) for arr in list_of_np_arrays], order="C"
-        )
+        hashable = np.array([xxh3_64_hexdigest(arr) for arr in list_of_np_arrays], order="C")
         hashable.sort()
         ret = tuple(hashable)
         return ret
@@ -123,9 +114,7 @@ class NumpyTwoArraysHasher:
     def __init__(self, arr_1, arr_2) -> None:
         self.input_1 = arr_1
         self.input_2 = arr_2
-        self.h = frozenset(
-            [xxh3_64_hexdigest(arr_1), xxh3_64_hexdigest(arr_2)]
-        )
+        self.h = frozenset([xxh3_64_hexdigest(arr_1), xxh3_64_hexdigest(arr_2)])
 
     def __hash__(self) -> int:
         return hash(self.h)

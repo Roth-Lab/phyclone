@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.special import logsumexp as log_sum_exp
 
+from phyclone.tree.utils import _sub_compute_S
+
 
 class DataPoint(object):
     __slots__ = (
@@ -28,7 +30,11 @@ class DataPoint(object):
 
         log_prior = -np.log(value.shape[1])
 
-        self.outlier_marginal_prob = np.sum(log_sum_exp(self.value + log_prior, axis=1))
+        tmp = self.value + log_prior
+
+        sub_comp = _sub_compute_S(tmp)
+
+        self.outlier_marginal_prob = np.sum(log_sum_exp(sub_comp + log_prior, axis=1))
 
     def __hash__(self):
         return hash(self.name)

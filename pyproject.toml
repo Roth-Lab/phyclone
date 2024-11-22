@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "PhyClone"
-version = "0.5.0"
+version = "0.5.1"
 description='A method for inferring clonal phylogenies from bulk SNV data.'
 authors = [
     {name = "Andrew Roth", email = "aroth@bccrc.ca"},
@@ -36,4 +36,7 @@ Repository = "https://github.com/Roth-Lab/phyclone.git"
 
 [project.scripts]
 phyclone = "phyclone.cli:main"
+
+[tool.black]
+line-length = 120
 

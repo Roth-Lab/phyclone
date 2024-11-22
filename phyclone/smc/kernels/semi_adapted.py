@@ -25,9 +25,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
         outlier_proposal_prob=0.0,
         parent_tree=None,
     ):
-        super().__init__(
-            data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree
-        )
+        super().__init__(data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree)
 
         self.log_half = kernel.log_half
 
@@ -57,9 +55,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
                 num_children = tree.num_children_on_node_that_matters
 
-                log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(
-                    old_num_roots, num_children
-                )
+                log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
 
         return log_p
 
@@ -166,9 +162,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         num_children = self._rng.integers(0, num_roots + 1)
 
-        children = self._rng.choice(
-            self.parent_particle.tree_roots, num_children, replace=False
-        )
+        children = self._rng.choice(self.parent_particle.tree_roots, num_children, replace=False)
 
         tree_container = get_cached_new_tree(
             self.parent_particle,
@@ -215,9 +209,7 @@ class SemiAdaptedKernel(Kernel):
 
 
 @lru_cache(maxsize=1024)
-def _get_cached_semi_proposal_dist(
-    data_point, kernel, parent_particle, outlier_proposal_prob, alpha
-):
+def _get_cached_semi_proposal_dist(data_point, kernel, parent_particle, outlier_proposal_prob, alpha):
     if parent_particle is not None:
         ret = SemiAdaptedProposalDistribution(
             data_point,

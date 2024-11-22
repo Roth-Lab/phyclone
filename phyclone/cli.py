@@ -1,3 +1,5 @@
+from sys import maxsize
+
 import click
 
 from phyclone.process_trace import (
@@ -22,13 +24,16 @@ from phyclone.run import run as run_prog
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file.""",
 )
 @click.option(
-    "-o", "--out-table-file", required=True, type=click.Path(resolve_path=True)
+    "-o",
+    "--out-table-file",
+    required=True,
+    type=click.Path(resolve_path=True, writable=True),
 )
 @click.option(
-    "-t", "--out-tree-file", required=True, type=click.Path(resolve_path=True)
-)
-@click.option(
-    "-p", "--out-log-probs-file", default=None, type=click.Path(resolve_path=True)
+    "-t",
+    "--out-tree-file",
+    required=True,
+    type=click.Path(resolve_path=True, writable=True),
 )
 @click.option(
     "--consensus-threshold",
@@ -40,7 +45,7 @@ from phyclone.run import run as run_prog
 @click.option(
     "-w",
     "--weight-type",
-    default="counts",
+    default="joint-likelihood",
     type=click.Choice(["counts", "joint-likelihood"]),
     show_default=True,
     help="""Which measure to use as the consensus tree weights. Counts is the same as an unweighted consensus.""",
@@ -64,13 +69,16 @@ def consensus(**kwargs):
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file.""",
 )
 @click.option(
-    "-o", "--out-table-file", required=True, type=click.Path(resolve_path=True)
+    "-o",
+    "--out-table-file",
+    required=True,
+    type=click.Path(resolve_path=True, writable=True),
 )
 @click.option(
-    "-t", "--out-tree-file", required=True, type=click.Path(resolve_path=True)
-)
-@click.option(
-    "-p", "--out-log-probs-file", default=None, type=click.Path(resolve_path=True)
+    "-t",
+    "--out-tree-file",
+    required=True,
+    type=click.Path(resolve_path=True, writable=True),
 )
 @click.option(
     "--map-type",
@@ -97,7 +105,28 @@ def map(**kwargs):
     type=click.Path(resolve_path=True, exists=True),
     help="""Path to trace file from MCMC analysis. Format is gzip compressed Python pickle file.""",
 )
-@click.option("-o", "--out-file", required=True, type=click.Path(resolve_path=True))
+@click.option(
+    "-o",
+    "--out-file",
+    required=True,
+    type=click.Path(resolve_path=True, writable=True),
+    help="""Path/filename to where topology report will be written in .tsv format""",
+)
+@click.option(
+    "-t",
+    "--topologies-archive",
+    default=None,
+    type=click.Path(resolve_path=True, writable=True),
+    help="""To produce the results tables and newick trees for each uniquely sampled topology in the report, provide a
+    path to where the archive file will be written in tar.gz compressed format.""",
+)
+@click.option(
+    "--top-trees",
+    default=maxsize,
+    type=click.IntRange(1, clamp=True),
+    help="""Number of uniquely sampled topologies to archive. Default is to produce an archive of all unique 
+    topologies.""",
+)
 def topology_report(**kwargs):
     """Build topology report."""
     write_topology_report(**kwargs)
@@ -119,45 +148,45 @@ def topology_report(**kwargs):
     "-o",
     "--out-file",
     required=True,
-    type=click.Path(resolve_path=True),
+    type=click.Path(resolve_path=True, writable=True),
     help="""Path to where trace file will be written in gzip compressed pickle format.""",
 )
 @click.option(
     "-b",
     "--burnin",
     default=1,
-    type=int,
+    type=click.IntRange(1, clamp=True),
     show_default=True,
     help="""Number of burnin iterations using unconditional SMC sampler. Default is 1.""",
 )
 @click.option(
     "-n",
     "--num-iters",
-    default=1000,
-    type=int,
+    default=5000,
+    type=click.IntRange(1, clamp=True),
     show_default=True,
-    help="""Number of iterations of the MCMC sampler to perform. Default is 1,000.""",
+    help="""Number of iterations of the MCMC sampler to perform. Default is 5,000.""",
 )
 @click.option(
     "-t",
     "--thin",
     default=1,
-    type=int,
+    type=click.IntRange(1, clamp=True),
     show_default=True,
     help="""Thinning parameter for storing entries in trace. Default is 1.""",
 )
 @click.option(
     "--num-chains",
     default=1,
-    type=int,
-    help="""Number of parallel chains for sampling. Default is 1.""",
+    type=click.IntRange(1, clamp=True),
+    help="""Number of parallel chains for sampling. Recommended to use 4. Default is 1.""",
 )
 @click.option(
     "-c",
     "--cluster-file",
     default=None,
     type=click.Path(resolve_path=True, exists=True),
-    help="""Path to file with pre-computed cluster assignments of mutations is located.""",
+    help="""Path to file with pre-computed cluster assignments of mutations.""",
 )
 @click.option(
     "-d",
@@ -212,17 +241,17 @@ def topology_report(**kwargs):
 @click.option(
     "--grid-size",
     default=101,
-    type=int,
+    type=click.IntRange(11, clamp=True),
     show_default=True,
     help="""Grid size for discrete approximation. This will numerically marginalise the cancer cell fraction. 
     Higher values lead to more accurate approximations at the expense of run time.""",
 )
 @click.option(
     "--num-particles",
-    default=20,
-    type=int,
+    default=100,
+    type=click.IntRange(1, clamp=True),
     show_default=True,
-    help="""Number of particles to use during PG sampling. Default is 20.""",
+    help="""Number of particles to use during PG sampling.""",
 )
 @click.option(
     "--num-samples-data-point",
@@ -256,7 +285,7 @@ def topology_report(**kwargs):
 )
 @click.option(
     "--print-freq",
-    default=10,
+    default=100,
     type=int,
     show_default=True,
     help="""How frequently to print information about fitting. Default every 10 iterations.""",
@@ -275,18 +304,6 @@ def topology_report(**kwargs):
     help="""Set random seed so results can be reproduced. By default a random seed is chosen.""",
 )
 @click.option(
-    "--rng-pickle",
-    default=None,
-    type=click.Path(exists=True, resolve_path=True),
-    help="""Set numpy random generator from pickled instance, supersedes seed if also provided.""",
-)
-@click.option(
-    "--save-rng/--no-save-rng",
-    default=True,
-    show_default=True,
-    help="Whether the numpy RNG BitGenerator should be pickled for reproducibility.",
-)
-@click.option(
     "--assign-loss-prob/--no-assign-loss-prob",
     default=False,
     show_default=True,
@@ -303,8 +320,8 @@ def topology_report(**kwargs):
 )
 @click.option(
     "--low-loss-prob",
-    default=0.01,
-    type=click.FloatRange(0.001, 1.0, clamp=True),
+    default=0.0001,
+    type=click.FloatRange(0.0001, 1.0, clamp=True),
     show_default=True,
     help="""Lower loss probability setting. 
     Used when allowing PhyClone to assign loss prior probability from cluster data.
@@ -312,8 +329,8 @@ def topology_report(**kwargs):
 )
 @click.option(
     "--high-loss-prob",
-    default=0.5,
-    type=click.FloatRange(0.001, 1.0, clamp=True),
+    default=0.4,
+    type=click.FloatRange(0.0001, 1.0, clamp=True),
     show_default=True,
     help="""Higher loss probability setting. 
     Used when allowing PhyClone to assign loss prior probability from cluster data.

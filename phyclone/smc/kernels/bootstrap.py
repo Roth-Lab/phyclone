@@ -19,9 +19,7 @@ class BootstrapProposalDistribution(ProposalDistribution):
         outlier_proposal_prob=0.0,
         parent_tree=None,
     ):
-        super().__init__(
-            data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree
-        )
+        super().__init__(data_point, kernel, parent_particle, outlier_proposal_prob, parent_tree)
 
     def log_p(self, tree):
         """Get the log probability of the tree."""
@@ -58,9 +56,7 @@ class BootstrapProposalDistribution(ProposalDistribution):
                     else:
                         num_children = tree.num_children_on_node_that_matters
 
-                    log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(
-                        old_num_roots, num_children
-                    )
+                    log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
 
         return log_p
 
@@ -118,9 +114,7 @@ class BootstrapProposalDistribution(ProposalDistribution):
 
         num_children = self._rng.integers(0, num_roots + 1)
 
-        children = self._rng.choice(
-            self.parent_particle.tree_roots, num_children, replace=False
-        )
+        children = self._rng.choice(self.parent_particle.tree_roots, num_children, replace=False)
 
         tree = self.parent_tree.copy()
 

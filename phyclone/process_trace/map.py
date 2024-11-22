@@ -1,24 +1,47 @@
 import numpy as np
-
 from phyclone.process_trace.utils import convert_rustworkx_to_networkx
 
 
-def get_map_node_ccfs(tree):
+def get_map_node_ccfs_and_clonal_prev_dicts(tree):
+    graph = compute_map_tree_features(tree)
+
+    ccf_dict = get_map_node_ccfs_dict(graph)
+    clonal_prev_dict = get_map_node_clonal_prevs_dict(ccf_dict, graph)
+
+    del ccf_dict["root"]
+    del clonal_prev_dict["root"]
+    return ccf_dict, clonal_prev_dict
+
+
+def compute_map_tree_features(tree):
     graph = tree._graph.copy()
-
     graph = convert_rustworkx_to_networkx(graph)
-
     compute_max_likelihood(graph, "root")
-
     set_max_assignment(graph)
+    return graph
 
-    result = {}
 
-    get_map_ccfs_dict(graph, "root", result)
+def get_map_node_ccfs_dict(graph):
+    ccf_dict = {}
+    get_map_ccfs(graph, "root", ccf_dict)
+    return ccf_dict
 
-    del result["root"]
 
-    return result
+def get_map_node_clonal_prevs_dict(ccf_dict, graph):
+    clonal_prev_dict = {}
+    get_map_clonal_prev(graph, "root", ccf_dict, clonal_prev_dict)
+    return clonal_prev_dict
+
+
+def get_map_clonal_prev(tree, node, ccf_dict, result):
+    clonal_prev = ccf_dict[node].copy()
+
+    for child in tree.successors(node):
+        clonal_prev -= ccf_dict[child]
+
+        get_map_clonal_prev(tree, child, ccf_dict, result)
+
+    result[node] = clonal_prev
 
 
 def compute_max_likelihood(graph, node_id):
@@ -37,9 +60,7 @@ def compute_max_likelihood(graph, node_id):
     else:
         child_log_R = [graph.nodes[child_id]["log_R_max"] for child_id in children]
 
-        node["log_D_choice"], node["log_S_choice"], node["log_S_max"] = compute_log_S(
-            child_log_R
-        )
+        node["log_D_choice"], node["log_S_choice"], node["log_S_max"] = compute_log_S(child_log_R)
 
         node["log_R_max"] = node["log_p"] + node["log_S_max"]
 
@@ -127,9 +148,7 @@ def _set_max_assignment(graph, idxs, node):
     if len(children) == 0:
         return
 
-    child_total_idx = [
-        graph.nodes[node]["log_S_choice"][d, idxs[d]] for d in range(num_dims)
-    ]
+    child_total_idx = [graph.nodes[node]["log_S_choice"][d, idxs[d]] for d in range(num_dims)]
 
     for i in range(len(children) - 1, -1, -1):
         child = children[i]
@@ -137,19 +156,17 @@ def _set_max_assignment(graph, idxs, node):
         graph.nodes[child]["max_idx"] = np.zeros(num_dims, dtype=int)
 
         for d in range(num_dims):
-            graph.nodes[child]["max_idx"][d] = graph.nodes[node]["log_D_choice"][i][
-                d, child_total_idx[d]
-            ]
+            graph.nodes[child]["max_idx"][d] = graph.nodes[node]["log_D_choice"][i][d, child_total_idx[d]]
 
             child_total_idx[d] -= graph.nodes[child]["max_idx"][d]
 
         _set_max_assignment(graph, graph.nodes[child]["max_idx"], children[i])
 
 
-def get_map_ccfs_dict(graph, node, result):
+def get_map_ccfs(graph, node, result):
     num_dims = graph.nodes[node]["log_R"].shape[1]
 
     result[node] = np.array([x / (num_dims - 1) for x in graph.nodes[node]["max_idx"]])
 
     for child in graph.successors(node):
-        get_map_ccfs_dict(graph, child, result)
+        get_map_ccfs(graph, child, result)
