@@ -8,7 +8,10 @@ version = "0.5.1"
 description='A method for inferring clonal phylogenies from bulk SNV data.'
 authors = [
     {name = "Andrew Roth", email = "aroth@bccrc.ca"},
-    {name = "Emilia Hurtado"}
+    {name = "Emilia Hurtado", email = "ehurtado@bccrc.ca"}
+]
+maintainers = [
+  {name = "Emilia Hurtado", email = "ehurtado@bccrc.ca"}
 ]
 readme = "README.md"
 requires-python = ">=3.10"
@@ -38,3 +41,5 @@ phyclone = "phyclone.cli:main"
 [tool.black]
 line-length = 120
 
+[tool.setuptools.packages.find]
+exclude = ["*.tests*", "*examples*"]
