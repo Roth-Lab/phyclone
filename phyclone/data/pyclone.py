@@ -123,7 +123,7 @@ def _setup_cluster_df(
             if "chrom" not in cluster_df.columns:
                 data_df = pd.read_table(data_file)
                 if "chrom" in data_df.columns:
-                    data_df = data_df[["mutation_id", "chrom", "coord"]]
+                    data_df = data_df[["mutation_id", "chrom"]]
                     cluster_df = pd.merge(cluster_df, data_df, how="inner", on=["mutation_id"])
                     cluster_df = cluster_df.drop_duplicates()
                 else:

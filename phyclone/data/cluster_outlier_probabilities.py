@@ -73,7 +73,7 @@ def _finalize_loss_prob_on_cluster_df(cluster_df, high_loss_prob, lost_clusters,
         print(
             "{num} potentially lost/outlier cluster{pl} identified,"
             " setting {pos} prior loss prob to {pr}."
-            "\nRemaining cluster(s) will have a prior loss prob of {prl}.".format(
+            "\nRemaining cluster(s) will use a prior loss prob of {prl}.".format(
                 num=len(lost_clusters), pl=pluralize, pr=high_loss_prob, pos=possessive, prl=low_loss_prob
             )
         )
@@ -86,7 +86,7 @@ def _finalize_loss_prob_on_cluster_df(cluster_df, high_loss_prob, lost_clusters,
 
 
 def _get_truncal_chrom_arr(df, truncal_cluster):
-    df = df[["cluster_id", "chrom", "coord", "mutation_id"]].drop_duplicates()
+    df = df[["cluster_id", "chrom", "mutation_id"]].drop_duplicates()
     df = df.loc[df["cluster_id"] == truncal_cluster]
     truncal_dists = list()
     grouped = df.groupby("chrom", sort=False)
