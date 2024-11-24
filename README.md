@@ -75,7 +75,7 @@ PhyClone analysis has two possible input files:
 To run a PhyClone analysis you will need to prepare an input file.
 The file should be in tab delimited tidy data frame format and have the following columns:
 
-1. mutation_id - Unique identifier for the mutation. 
+1. `mutation_id` - Unique identifier for the mutation. 
 This is free form but should match across all samples.
 
 > [!WARNING]
@@ -83,28 +83,28 @@ This is free form but should match across all samples.
 > If there are mutations with no data in a subset of the samples, the correct procedure is to extract ref and alt counts for these mutations from each affected sample's associated BAM file.
 > Please refer to [this thread](https://groups.google.com/g/pyclone-user-group/c/wgXV7tq470Y) for further detail.
 
-2. sample_id - Unique identifier for the sample.
+2. `sample_id` - Unique identifier for the sample.
 
-3. ref_counts - Number of reads matching the reference allele.
+3. `ref_counts` - Number of reads matching the reference allele.
 
-4. alt_counts - Number of reads matching the alternate allele.
+4. `alt_counts` - Number of reads matching the alternate allele.
 
-5. major_cn - Major copy number of segment overlapping mutation.
+5. `major_cn` - Major copy number of segment overlapping mutation.
 
-6. minor_cn - Minor copy number of segment overlapping mutation.
+6. `minor_cn` - Minor copy number of segment overlapping mutation.
 
-7. normal_cn - Total copy number of segment in healthy tissue.
+7. `normal_cn` - Total copy number of segment in healthy tissue.
 For autosome this will be two and male sex chromosome one.
 
 You can include the following optional columns:
 
-8. tumour_content - The tumour content (cellularity) of the sample.
+8. `tumour_content` - The tumour content (cellularity) of the sample.
 Default value is 1.0 if column is not present.
 > [!NOTE]
 > In principle this could be different for each mutation/sample.
 However, in most cases it should be the same for all mutations in a sample.
 
-9. error_rate - Sequencing error rate.
+9. `error_rate` - Sequencing error rate.
 Default value is 0.001 if column is not present. 
 
 ------------------
@@ -122,20 +122,20 @@ Default value is 0.001 if column is not present.
 
 The file should be in tab delimited tidy data frame format and have the following columns:
 
-1. mutation_id - Unique identifier for the mutation. 
+1. `mutation_id` - Unique identifier for the mutation. 
 
     This is free form but should match across all samples and **must** match the identifiers provided
     in the [main input file](#main-input-format).
 
-2. sample_id - Unique identifier for the sample.
+2. `sample_id` - Unique identifier for the sample.
    
-3. cluster_id - Cluster that the mutation has been assigned to.
+3. `cluster_id` - Cluster that the mutation has been assigned to.
 
 You can include the following optional columns:
 
-4. chrom - Chromosome on which mutation_id is found
+4. `chrom` - Chromosome on which mutation_id is found
    
-5. ccf - Cluster cellular prevalence estimate (included in all [PyClone-VI](https://github.com/Roth-Lab/pyclone-vi) clustering results)
+5. `ccf` - Cluster cellular prevalence estimate (included in all [PyClone-VI](https://github.com/Roth-Lab/pyclone-vi) clustering results)
 
 > [!NOTE]
 > In order to make use of PhyClone's data informed loss probability prior assignment, columns 4 and 5 are required.
