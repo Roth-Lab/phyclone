@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "PhyClone"
 version = "0.5.1"
-description='A method for inferring clonal phylogenies from bulk SNV data.'
+description='Accurate Bayesian reconstruction of cancer phylogenies from bulk sequencing.'
 authors = [
     {name = "Andrew Roth", email = "aroth@bccrc.ca"},
     {name = "Emilia Hurtado", email = "ehurtado@bccrc.ca"}
