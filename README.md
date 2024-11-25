@@ -20,40 +20,20 @@ An implementation of the forest structured Chinese restaurant process with a Dir
 
 ## Installation
 
-PhyClone is currently in development so the following procedure has a few steps.
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/phyclone/README.html)
 
-1. Ensure you have a working `conda` or (preferably) `mamba` installation.
-You can do this by installing [Miniforge](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html)
+The recommended way to install PhyClone is through [mamba](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html) and the [Bioconda](https://bioconda.github.io/index.html) package channel.
 
-
-2. Install the required dependencies using mamba/conda.
-We will create a new `conda` environment with the dependencies. Download the [environment.yaml](environment.yaml) file, and navigate into its save location. 
-Run the following command:
-```
-mamba env create --file environment.yaml
-```
-
-3. Activate the `conda` environment.
-```
-mamba activate phyclone
-```
-> [!NOTE]
-> You will have to do this whenever you open a new terminal and want to run PhyClone. 
-
-4. Install PhyClone
-```
-pip install git+https://github.com/Roth-Lab/phyclone.git
-```
-
-Or, SSH command:
+To install into a newly created environment **(Recommended)**:
 
 ```
-pip install git+ssh://git@github.com/Roth-Lab/phyclone.git
+mamba create --name phyclone phyclone
 ```
 
-5. If everything worked PhyClone should be available on the command line.
+Or if installing into a pre-exisiting environment:
+
 ```
-phyclone --help
+mamba install phyclone
 ```
 
 ## Input File Formats
