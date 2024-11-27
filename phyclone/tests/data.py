@@ -5,31 +5,31 @@ from phyclone.data.base import DataPoint as DataPointFinal
 
 
 def simulate_data(
-        tree,
-        rng,
-        num_samples,
-        depth=100,
-        error_rate=1e-3,
-        max_cn=6,
-        min_cn=1,
-        min_minor_cn=0,
-        tumour_content=1.0,
-        dist='beta-binomial',
-        grid_size=101,
-        precision=400,
-        ):
+    tree,
+    rng,
+    num_samples,
+    depth=100,
+    error_rate=1e-3,
+    max_cn=6,
+    min_cn=1,
+    min_minor_cn=0,
+    tumour_content=1.0,
+    dist="beta-binomial",
+    grid_size=101,
+    precision=400,
+):
 
-    g_n = 'AA'
+    g_n = "AA"
 
     samples = range(num_samples)
 
     for node in tree.nodes:
-        samples_dict = {k:{} for k in range(num_samples)}
-        tree.nodes[node]['converted_sample_dp'] = samples_dict
+        samples_dict = {k: {} for k in range(num_samples)}
+        tree.nodes[node]["converted_sample_dp"] = samples_dict
         node_sample_dp = []
-        for snv in tree.nodes[node]['snvs']:
+        for snv in tree.nodes[node]["snvs"]:
 
-            node_cellular_prev_arr = tree.nodes[node]['cellular_prev']
+            node_cellular_prev_arr = tree.nodes[node]["cellular_prev"]
             snv_datapoints = []
             for dim_idx, f in enumerate(node_cellular_prev_arr):
                 minor_cn, major_cn = get_parental_copy_number(min_cn, max_cn, rng, min_minor_cn=min_minor_cn)
@@ -50,20 +50,32 @@ def simulate_data(
                     g_n,
                     g_r,
                     g_v,
-                    rng
+                    rng,
                 )
 
-                cn, mu_inf, log_pi = get_major_cn_prior(major_cn, minor_cn, len(g_n),error_rate,)
+                cn, mu_inf, log_pi = get_major_cn_prior(
+                    major_cn,
+                    minor_cn,
+                    len(g_n),
+                    error_rate,
+                )
 
                 sample_data_point = SampleDataPoint(ref_counts, var_counts, cn, mu_inf, log_pi, tumour_content)
 
-                tree.nodes[node]['converted_sample_dp'][dim_idx][snv] = sample_data_point
+                tree.nodes[node]["converted_sample_dp"][dim_idx][snv] = sample_data_point
                 snv_datapoints.append(sample_data_point)
 
             node_sample_dp.append(DataPoint(samples, snv_datapoints).to_likelihood_grid(dist, grid_size, precision))
         node_vals = np.array(node_sample_dp)
         node_val = node_vals.sum(axis=0)
-        tree.nodes[node]["datapoint"] = [DataPointFinal(node, node_val, outlier_prob=0.0, outlier_prob_not=np.log(1.0))]
+        tree.nodes[node]["datapoint"] = [
+            DataPointFinal(
+                node,
+                node_val,
+                outlier_prob=0.0,
+                outlier_prob_not=np.log(1.0),
+            )
+        ]
 
 
 def get_parental_copy_number(min_cn, max_cn, rng, min_minor_cn=0):
@@ -81,22 +93,22 @@ def get_parental_copy_number(min_cn, max_cn, rng, min_minor_cn=0):
 def get_reference_genotype(g_n, minor_cn, major_cn):
     total_cn = minor_cn + major_cn
 
-    return [g_n, 'A' * total_cn]
+    return [g_n, "A" * total_cn]
 
 
 def get_variant_genotypes(g_n, g_r, minor_cn, major_cn):
     # Mutation occurs before CN event
     if g_n == g_r:
-        variant_genotypes = ['A' * minor_cn + 'B' * major_cn]
+        variant_genotypes = ["A" * minor_cn + "B" * major_cn]
 
         if minor_cn > 0:
-            variant_genotypes.append('A' * major_cn + 'B' * minor_cn)
+            variant_genotypes.append("A" * major_cn + "B" * minor_cn)
 
     # Mutation occurs after CN event
     else:
         total_cn = minor_cn + major_cn
 
-        variant_genotypes = ['A' * (total_cn - 1) + 'B']
+        variant_genotypes = ["A" * (total_cn - 1) + "B"]
 
     return variant_genotypes
 
@@ -134,9 +146,9 @@ def _get_cn(g):
 
 
 def _get_mu(g, error_rate):
-    num_ref_alleles = g.count('A')
+    num_ref_alleles = g.count("A")
 
-    num_var_alleles = g.count('B')
+    num_var_alleles = g.count("B")
 
     if num_ref_alleles == 0:
         return 1 - error_rate

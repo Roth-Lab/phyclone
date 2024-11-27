@@ -16,12 +16,14 @@ def add_cellular_prev(graph):
 
         graph.nodes[node]["cellular_prev"] = graph.nodes[node]["clonal_prev"].copy()
 
-        graph.nodes[node]["cellular_prev"] += np.sum(np.array([graph.nodes[c]["cellular_prev"] for c in children]),
-                                                     axis=0)
+        graph.nodes[node]["cellular_prev"] += np.sum(
+            np.array([graph.nodes[c]["cellular_prev"] for c in children]),
+            axis=0,
+        )
 
 
 def simulate_fscrp_tree(rng, alpha=1.0, dim=1, forest=False, num_data_points=20):
-    """ Simulate an FSCRP tree.
+    """Simulate an FSCRP tree.
 
     Parameters
     ----------
@@ -53,8 +55,7 @@ def simulate_fscrp_tree(rng, alpha=1.0, dim=1, forest=False, num_data_points=20)
 
 
 def get_roots(G):
-    """ Find all root nodes in the graph.
-    """
+    """Find all root nodes in the graph."""
     roots = []
 
     for node in G.nodes():
@@ -65,7 +66,7 @@ def get_roots(G):
 
 
 def simulate_labels(num_data_points, rng, alpha=1.0):
-    """ Simulate clustering from CRP.
+    """Simulate clustering from CRP.
 
     Parameters
     ----------
@@ -92,15 +93,13 @@ def simulate_labels(num_data_points, rng, alpha=1.0):
 
         probs = probs / np.sum(probs)
 
-        labels.append(
-            rng.multinomial(1, probs).argmax()
-        )
+        labels.append(rng.multinomial(1, probs).argmax())
 
     return labels
 
 
 def simulate_tree(labels, rng, forest=False):
-    """ Simulate a FSCRP tree.
+    """Simulate a FSCRP tree.
 
     Parameters
     ----------
@@ -148,13 +147,13 @@ def simulate_tree(labels, rng, forest=False):
 
     roots = get_roots(G)
     assert len(roots) == 1
-    G.graph['root'] = roots[0]
+    G.graph["root"] = roots[0]
 
     return G
 
 
 def simulate_params(tree, rng, dim=1, kappa=1.0):
-    """ Simulate cluster parameters.
+    """Simulate cluster parameters.
 
     Parameters
     ----------
@@ -174,17 +173,13 @@ def simulate_params(tree, rng, dim=1, kappa=1.0):
             agg_params = {}
 
             for node in get_roots(tree):
-                agg_params.update(
-                    get_agg_params(node_params, tree, node=node)
-                )
+                agg_params.update(get_agg_params(node_params, tree, node=node))
 
         else:
             agg_params = {node: node_params[node]}
 
             for child in tree.successors(node):
-                agg_params.update(
-                    get_agg_params(node_params, tree, node=child)
-                )
+                agg_params.update(get_agg_params(node_params, tree, node=child))
 
                 agg_params[node] += agg_params[child]
 
@@ -208,4 +203,3 @@ def tmp_draw(tree, plot_file):
     G = nx.nx_agraph.to_agraph(tree)
 
     G.draw(plot_file, prog="dot")
-

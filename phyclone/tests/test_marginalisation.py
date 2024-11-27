@@ -28,8 +28,8 @@ class DataParams:
 
 
 def build_phyclone_tree_from_nx(nx_tree):
-    grid_size = nx_tree.graph['shape']
-    tree_root = nx_tree.graph['root']
+    grid_size = nx_tree.graph["shape"]
+    tree_root = nx_tree.graph["root"]
 
     phyclone_tree = Tree(grid_size)
 
@@ -52,7 +52,7 @@ def build_phyclone_tree_from_nx(nx_tree):
 
 
 def get_node_post_order(tree):
-    root = tree.graph['root']
+    root = tree.graph["root"]
     node_post_order = list(nx.dfs_postorder_nodes(tree, root))
     return node_post_order
 
@@ -63,9 +63,9 @@ def establish_child_lists_on_nodes(node_post_order, tree):
         children = list(tree.successors(node))
         if len(children) == 0:
             node_post_order_stripped.remove(node)
-        tree.nodes[node]['children'] = np.array(children)
+        tree.nodes[node]["children"] = np.array(children)
 
-    tree.graph['node_post_order_stripped'] = node_post_order_stripped
+    tree.graph["node_post_order_stripped"] = node_post_order_stripped
 
 
 def compute_tree_prior_term(alpha, num_nodes, tree):
@@ -74,8 +74,8 @@ def compute_tree_prior_term(alpha, num_nodes, tree):
     log_p_prior = num_nodes + log_alpha
 
     for node in tree.nodes:
-        num_snvs = len(tree.nodes[node]['snvs'])
-        log_p_prior += log_factorial(num_snvs-1)
+        num_snvs = len(tree.nodes[node]["snvs"])
+        log_p_prior += log_factorial(num_snvs - 1)
 
     log_p_prior -= (num_nodes - 1) * np.log(num_nodes + 1)
 
@@ -92,30 +92,30 @@ class Test(unittest.TestCase):
         self.num_iters = 100000
         self.pval_threshold = 0.001
 
-
     def simulate_fscrp_tree(self, data_params):
-        tree = simulate_fscrp_tree(self.rng,
-                                   alpha=data_params.alpha,
-                                   dim=data_params.num_samples,
-                                   num_data_points=data_params.num_snvs)
+        tree = simulate_fscrp_tree(
+            self.rng, alpha=data_params.alpha, dim=data_params.num_samples, num_data_points=data_params.num_snvs
+        )
         return tree
 
     def simulate_data_on_tree(self, tree, data_params):
-        simulate_data(tree,
-                      self.rng,
-                      data_params.num_samples,
-                      depth=data_params.depth,
-                      max_cn=data_params.max_cn,
-                      min_cn=data_params.min_cn,
-                      min_minor_cn=data_params.min_minor_cn,
-                      tumour_content=data_params.tumour_content,
-                      error_rate=1e-3)
+        simulate_data(
+            tree,
+            self.rng,
+            data_params.num_samples,
+            depth=data_params.depth,
+            max_cn=data_params.max_cn,
+            min_cn=data_params.min_cn,
+            min_minor_cn=data_params.min_minor_cn,
+            tumour_content=data_params.tumour_content,
+            error_rate=1e-3,
+        )
         grid_size = data_params.grid_size
         num_nodes = tree.number_of_nodes()
-        tree.graph['num_samples'] = data_params.num_samples
-        tree.graph['num_nodes'] = num_nodes
-        tree.graph['shape'] = (data_params.num_samples, grid_size)
-        tree.graph['num_snvs'] = data_params.num_snvs
+        tree.graph["num_samples"] = data_params.num_samples
+        tree.graph["num_nodes"] = num_nodes
+        tree.graph["shape"] = (data_params.num_samples, grid_size)
+        tree.graph["num_snvs"] = data_params.num_snvs
         node_post_order = get_node_post_order(tree)
         establish_child_lists_on_nodes(node_post_order, tree)
 
@@ -130,12 +130,18 @@ class Test(unittest.TestCase):
         self.diri_prior_val = diri_prior.logpdf(diri_prior.rvs().T)
         self.diri_dist = diri_prior
 
-
-
     def get_importance_sampler_likelihood(self, data_params, trial):
-        importance_sampler_likelihood = run_importance_sampler(self.num_iters, self.sim_tree, self.diri_dist, data_params.density, data_params.precision, self.node_post_order, self.log_prior, trial + 1, )
+        importance_sampler_likelihood = run_importance_sampler(
+            self.num_iters,
+            self.sim_tree,
+            self.diri_dist,
+            data_params.density,
+            data_params.precision,
+            self.node_post_order,
+            self.log_prior,
+            trial + 1,
+        )
         return importance_sampler_likelihood
-
 
     def _run_test(self, data_params):
 
@@ -161,8 +167,6 @@ class Test(unittest.TestCase):
 
         assert ttest_ind_result.pvalue > self.pval_threshold
 
-
-
     def compute_phyclone_log_p(self, tree):
         grid_size = self.grid_size
 
@@ -181,72 +185,78 @@ class Test(unittest.TestCase):
 
         return log_p
 
-
-
     def test_50_snvs(self):
-        data_params = DataParams(alpha=1.0,
-                        depth=1000,
-                        max_cn=2,
-                        min_cn=2,
-                        min_minor_cn=1,
-                        num_samples=1,
-                        num_snvs=50,
-                        tumour_content=1.0,
-                        density='beta-binomial',
-                        precision=400,
-                        grid_size=self.grid_size,
-                        num_trials=10,)
+        data_params = DataParams(
+            alpha=1.0,
+            depth=1000,
+            max_cn=2,
+            min_cn=2,
+            min_minor_cn=1,
+            num_samples=1,
+            num_snvs=50,
+            tumour_content=1.0,
+            density="beta-binomial",
+            precision=400,
+            grid_size=self.grid_size,
+            num_trials=10,
+        )
 
         self._run_test(data_params)
 
-
     def test_100_snvs(self):
-        data_params = DataParams(alpha=1.0,
-                        depth=1000,
-                        max_cn=2,
-                        min_cn=2,
-                        min_minor_cn=1,
-                        num_samples=1,
-                        num_snvs=100,
-                        tumour_content=1.0,
-                        density='beta-binomial',
-                        precision=400,
-                        grid_size=self.grid_size,
-                        num_trials=10,)
+        data_params = DataParams(
+            alpha=1.0,
+            depth=1000,
+            max_cn=2,
+            min_cn=2,
+            min_minor_cn=1,
+            num_samples=1,
+            num_snvs=100,
+            tumour_content=1.0,
+            density="beta-binomial",
+            precision=400,
+            grid_size=self.grid_size,
+            num_trials=10,
+        )
 
         self._run_test(data_params)
 
     def test_100_snvs_2_samples(self):
-        data_params = DataParams(alpha=1.0,
-                                 depth=1000,
-                                 max_cn=2,
-                                 min_cn=2,
-                                 min_minor_cn=1,
-                                 num_samples=2,
-                                 num_snvs=100,
-                                 tumour_content=1.0,
-                                 density='beta-binomial',
-                                 precision=400,
-                                 grid_size=self.grid_size,
-                                 num_trials=10,)
+        data_params = DataParams(
+            alpha=1.0,
+            depth=1000,
+            max_cn=2,
+            min_cn=2,
+            min_minor_cn=1,
+            num_samples=2,
+            num_snvs=100,
+            tumour_content=1.0,
+            density="beta-binomial",
+            precision=400,
+            grid_size=self.grid_size,
+            num_trials=10,
+        )
 
         self._run_test(data_params)
 
     def test_1000_snvs(self):
-        data_params = DataParams(alpha=1.0,
-                        depth=1000,
-                        max_cn=2,
-                        min_cn=2,
-                        min_minor_cn=1,
-                        num_samples=1,
-                        num_snvs=1000,
-                        tumour_content=1.0,
-                        density='beta-binomial',
-                        precision=400,
-                        grid_size=self.grid_size,
-                        num_trials=10,)
+        data_params = DataParams(
+            alpha=1.0,
+            depth=1000,
+            max_cn=2,
+            min_cn=2,
+            min_minor_cn=1,
+            num_samples=1,
+            num_snvs=1000,
+            tumour_content=1.0,
+            density="beta-binomial",
+            precision=400,
+            grid_size=self.grid_size,
+            num_trials=10,
+        )
 
         self._run_test(data_params)
+
 
 if __name__ == "__main__":
     unittest.main()
