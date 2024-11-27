@@ -216,22 +216,37 @@ class Test(unittest.TestCase):
 
         self._run_test(data_params)
 
-    # def test_1000_snvs(self):
-    #     data_params = DataParams(alpha=1.0,
-    #                     depth=1000,
-    #                     max_cn=2,
-    #                     min_cn=2,
-    #                     min_minor_cn=1,
-    #                     num_samples=1,
-    #                     num_snvs=1000,
-    #                     tumour_content=1.0,
-    #                     density='beta-binomial',
-    #                     precision=400,
-    #                     grid_size=self.grid_size,
-    #                     num_trials=5,)
-    #
-    #     self._run_test(data_params)
+    def test_100_snvs_2_samples(self):
+        data_params = DataParams(alpha=1.0,
+                                 depth=1000,
+                                 max_cn=2,
+                                 min_cn=2,
+                                 min_minor_cn=1,
+                                 num_samples=2,
+                                 num_snvs=100,
+                                 tumour_content=1.0,
+                                 density='beta-binomial',
+                                 precision=400,
+                                 grid_size=self.grid_size,
+                                 num_trials=10,)
 
+        self._run_test(data_params)
 
+    def test_1000_snvs(self):
+        data_params = DataParams(alpha=1.0,
+                        depth=1000,
+                        max_cn=2,
+                        min_cn=2,
+                        min_minor_cn=1,
+                        num_samples=1,
+                        num_snvs=1000,
+                        tumour_content=1.0,
+                        density='beta-binomial',
+                        precision=400,
+                        grid_size=self.grid_size,
+                        num_trials=10,)
 
+        self._run_test(data_params)
 
+if __name__ == "__main__":
+    unittest.main()
