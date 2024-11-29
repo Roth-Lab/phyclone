@@ -63,7 +63,7 @@ def establish_child_lists_on_nodes(node_post_order, tree):
         children = list(tree.successors(node))
         if len(children) == 0:
             node_post_order_stripped.remove(node)
-        tree.nodes[node]["children"] = np.array(children)
+        tree.nodes[node]["children"] = np.array(children, dtype=np.int64)
 
     tree.graph["node_post_order_stripped"] = node_post_order_stripped
 
@@ -164,6 +164,10 @@ class Test(unittest.TestCase):
             importance_sampler_llh_arr[i] = importance_sampler_likelihood
 
         ttest_ind_result = ttest_ind(phyclone_llh_arr, importance_sampler_llh_arr, random_state=self.rng)
+
+        print("IS likelihoods: \n{}".format(importance_sampler_llh_arr))
+        print("PhyClone likelihoods: \n{}".format(phyclone_llh_arr))
+        print("\nT-test result: \n{}".format(ttest_ind_result))
 
         assert ttest_ind_result.pvalue > self.pval_threshold
 
