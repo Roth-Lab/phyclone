@@ -76,12 +76,52 @@ def run_importance_sampler(num_iters, tree, rng, density, precision, node_post_o
 
     ones_arr = np.ones(num_nodes)
 
-    for i in range(num_iters):
-        if i % 10000 == 0:
-            print("trial {}, IS iter {}/{}".format(trial, i, num_iters))
+    round_iters = 10000
 
-        cell_prev, clonal_prev = sample_clonal_and_cell_prev(num_samples, rng, numba_tree, trimmed_post_order, ones_arr)
+    num_rounds = num_iters // round_iters
 
+    for i in range(num_rounds):
+        clonal_prevs_for_round = rng.dirichlet(ones_arr, size=(round_iters, num_samples))
+
+        # cell_prev = compute_cell_prev_given_clonal_prev(clonal_prev, tree, trimmed_post_order)
+        w_idx_start = i * round_iters
+        print("trial {}, IS iter {}/{}".format(trial, w_idx_start, num_iters))
+
+        run_batch_of_IS_iters(clonal_prevs_for_round, density, log_p_prior, node_post_order, num_nodes, num_samples,
+                              numba_tree, precision, round_iters, trimmed_post_order, w_idx_start, weights)
+
+
+
+    # for i in range(num_iters):
+    #     if i % 10000 == 0:
+    #         print("trial {}, IS iter {}/{}".format(trial, i, num_iters))
+    #
+    #     cell_prev, clonal_prev = sample_clonal_and_cell_prev(num_samples, rng, numba_tree, trimmed_post_order, ones_arr)
+    #
+    #     node_llh_arr = compute_node_log_likelihoods_nb(
+    #         cell_prev,
+    #         node_post_order,
+    #         num_nodes,
+    #         num_samples,
+    #         numba_tree,
+    #         density,
+    #         precision,
+    #     )
+    #
+    #     loss_ratio = node_llh_arr.sum() + log_p_prior
+    #     weights[i] = loss_ratio
+
+    sum_of_lls = logsumexp(weights)
+    avg_llh = sum_of_lls - np.log(len(weights))
+
+    return avg_llh
+
+@njit
+def run_batch_of_IS_iters(clonal_prevs_for_round, density, log_p_prior, node_post_order, num_nodes, num_samples,
+                          numba_tree, precision, round_iters, trimmed_post_order, w_idx_start, weights):
+    for j in range(round_iters):
+        clonal_prev = clonal_prevs_for_round[j]
+        cell_prev = compute_cell_prev_given_clonal_prev(clonal_prev, numba_tree, trimmed_post_order)
         node_llh_arr = compute_node_log_likelihoods_nb(
             cell_prev,
             node_post_order,
@@ -93,12 +133,7 @@ def run_importance_sampler(num_iters, tree, rng, density, precision, node_post_o
         )
 
         loss_ratio = node_llh_arr.sum() + log_p_prior
-        weights[i] = loss_ratio
-
-    sum_of_lls = logsumexp(weights)
-    avg_llh = sum_of_lls - np.log(len(weights))
-
-    return avg_llh
+        weights[j + w_idx_start] = loss_ratio
 
 
 @njit
@@ -135,10 +170,10 @@ def compute_node_log_likelihoods_nb(
     return node_llh_arr
 
 
-def sample_clonal_and_cell_prev(num_samples, rng, tree, trimmed_post_order, ones_arr):
-    clonal_prev = rng.dirichlet(ones_arr, size=num_samples)
-    cell_prev = compute_cell_prev_given_clonal_prev(clonal_prev, tree, trimmed_post_order)
-    return cell_prev, clonal_prev
+# def sample_clonal_and_cell_prev(num_samples, rng, tree, trimmed_post_order, ones_arr):
+#     clonal_prev = rng.dirichlet(ones_arr, size=num_samples)
+#     cell_prev = compute_cell_prev_given_clonal_prev(clonal_prev, tree, trimmed_post_order)
+#     return cell_prev, clonal_prev
 
 
 @njit
