@@ -61,7 +61,7 @@ def convert_nx_tree_to_nb_tree(nx_tree):
     return numba_tree
 
 
-def run_importance_sampler(num_iters, tree, diri_dist, density, precision, node_post_order, log_p_prior, trial):
+def run_importance_sampler(num_iters, tree, rng, density, precision, node_post_order, log_p_prior, trial):
     num_samples = tree.graph["num_samples"]
     num_nodes = tree.graph["num_nodes"]
 
@@ -75,11 +75,13 @@ def run_importance_sampler(num_iters, tree, diri_dist, density, precision, node_
 
     node_post_order = np.array(node_post_order, dtype=np.int64)
 
+    ones_arr = np.ones(num_nodes)
+
     for i in range(num_iters):
         if i % 10000 == 0:
             print("trial {}, IS iter {}/{}".format(trial, i, num_iters))
 
-        cell_prev, clonal_prev = sample_clonal_and_cell_prev(num_samples, diri_dist, tree, trimmed_post_order)
+        # cell_prev, clonal_prev = sample_clonal_and_cell_prev(num_samples, rng, tree, trimmed_post_order, ones_arr)
 
         # node_llh_arr = compute_node_log_likelihoods(
         #     cell_prev,
@@ -90,6 +92,9 @@ def run_importance_sampler(num_iters, tree, diri_dist, density, precision, node_
         #     density,
         #     precision,
         # )
+
+        cell_prev, clonal_prev = sample_clonal_and_cell_prev(num_samples, rng, numba_tree, trimmed_post_order, ones_arr)
+
         node_llh_arr = compute_node_log_likelihoods_nb(
             cell_prev,
             node_post_order,
@@ -155,14 +160,15 @@ def compute_node_log_likelihoods_nb(
     density,
     precision,
 ):
-
-    node_llh_arr = np.empty((num_samples, num_nodes))
+    # node_llh_arr = np.empty((num_samples, num_nodes))
+    node_llh_arr = np.zeros((num_samples, num_nodes))
     for node in node_post_order:
         nb_node = tree.get_node(node)
         snvs = nb_node.snvs
 
         node_cell_prev = cell_prev[:, node]
-        llh_arr = np.zeros(num_samples)
+        # llh_arr = np.zeros(num_samples)
+        llh_arr = node_llh_arr[:, node]
 
         for snv in snvs:
             for sample in range(num_samples):
@@ -174,24 +180,39 @@ def compute_node_log_likelihoods_nb(
                     llh = log_pyclone_beta_binomial_pdf(numba_sample_dp, mut_ccf, precision)
                 llh_arr[sample] += llh
 
-        node_llh_arr[:, node] = llh_arr
+        # node_llh_arr[:, node] = llh_arr
     return node_llh_arr
 
 
-def sample_clonal_and_cell_prev(num_samples, diri, tree, trimmed_post_order):
-    clonal_prev = draw_clonal_prev(num_samples, diri)
+def sample_clonal_and_cell_prev(num_samples, rng, tree, trimmed_post_order, ones_arr):
+    # clonal_prev = draw_clonal_prev(num_samples, diri)
+    clonal_prev = rng.dirichlet(ones_arr, size=num_samples)
     cell_prev = compute_cell_prev_given_clonal_prev(clonal_prev, tree, trimmed_post_order)
     return cell_prev, clonal_prev
 
 
+# def compute_cell_prev_given_clonal_prev(clonal_prev, tree, trimmed_post_order):
+#     cell_prev = clonal_prev.copy()
+#     for node in trimmed_post_order:
+#         children = tree.nodes[node]["children"]
+#         child_prevs = cell_prev[:, children].T
+#         cell_prev[:, node] += child_prevs.sum(axis=0)
+#     return cell_prev
+
+@nb.njit
 def compute_cell_prev_given_clonal_prev(clonal_prev, tree, trimmed_post_order):
     cell_prev = clonal_prev.copy()
     for node in trimmed_post_order:
-        children = tree.nodes[node]["children"]
+        nb_node = tree.get_node(node)
+        # children = tree.nodes[node]["children"]
+        children = nb_node.children
         child_prevs = cell_prev[:, children].T
         cell_prev[:, node] += child_prevs.sum(axis=0)
     return cell_prev
 
 
-def draw_clonal_prev(num_samples, diri):
-    return diri.rvs(size=num_samples)
+# def draw_clonal_prev(num_samples, diri):
+#     return diri.rvs(size=num_samples)
+
+def draw_clonal_prev(num_samples, ones_arr, rng):
+    return rng.dirichlet(ones_arr, size=num_samples)

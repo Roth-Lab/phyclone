@@ -134,7 +134,7 @@ class Test(unittest.TestCase):
         importance_sampler_likelihood = run_importance_sampler(
             self.num_iters,
             self.sim_tree,
-            self.diri_dist,
+            self.rng,
             data_params.density,
             data_params.precision,
             self.node_post_order,
