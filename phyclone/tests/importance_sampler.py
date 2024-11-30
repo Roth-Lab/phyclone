@@ -1,9 +1,8 @@
 import numpy as np
 from phyclone.data.pyclone import log_pyclone_binomial_pdf, log_pyclone_beta_binomial_pdf
 from scipy.special import logsumexp
-# import numba as nb
 from numba import types, njit
-from numba.typed import List, Dict
+from numba.typed import Dict
 from numba.experimental import jitclass
 from phyclone.data.pyclone import SampleDataPoint
 from math import floor
@@ -12,10 +11,15 @@ from math import floor
 @jitclass
 class NumbaNode(object):
     id_num: types.int64
-    # snvs: types.ListType(types.unicode_type)
     snvs: types.int64[:]
     children: types.int64[:]
-    converted_sample_dp: types.DictType(types.int64, types.DictType(types.int64, SampleDataPoint.class_type.instance_type))
+    converted_sample_dp: types.DictType(
+        types.int64,
+        types.DictType(
+            types.int64,
+            SampleDataPoint.class_type.instance_type,
+        ),
+    )
 
     def __init__(self, id_num, snvs, children, converted_sample_dp):
         self.id_num = id_num
@@ -25,6 +29,7 @@ class NumbaNode(object):
 
     def get_sample_dp(self, sample, snv):
         return self.converted_sample_dp[sample][snv]
+
 
 @jitclass
 class NumbaTree(object):
@@ -49,19 +54,24 @@ def convert_nx_tree_to_nb_tree(nx_tree):
         children = nx_tree.nodes[node]["children"]
         snvs = nx_tree.nodes[node]["snvs"]
         snvs_idx_map = {k: v for v, k in enumerate(snvs)}
-        # nb_snvs = List(snvs)
         nb_snvs = np.arange(len(snvs_idx_map), dtype=np.int64)
         converted_sample_dp = nx_tree.nodes[node]["converted_sample_dp"]
-        nb_cnv_dp = Dict.empty(types.int64, types.DictType(types.int64, samp_type))
-        for k, v in converted_sample_dp.items():
-            curr_nb_dict = Dict.empty(types.int64, samp_type)
-            for snv, samp_dp in v.items():
-                curr_nb_dict[snvs_idx_map[snv]] = samp_dp
-            nb_cnv_dp[k] = curr_nb_dict
+        nb_cnv_dp = convert_nx_tree_sample_dp_dict_into_nb(converted_sample_dp, samp_type, snvs_idx_map)
         numba_node = NumbaNode(node, nb_snvs, children, nb_cnv_dp)
         nb_tree_nodes_dict[node] = numba_node
+
     numba_tree = NumbaTree(nb_tree_nodes_dict)
     return numba_tree
+
+
+def convert_nx_tree_sample_dp_dict_into_nb(converted_sample_dp, samp_type, snvs_idx_map):
+    nb_cnv_dp = Dict.empty(types.int64, types.DictType(types.int64, samp_type))
+    for k, v in converted_sample_dp.items():
+        curr_nb_dict = Dict.empty(types.int64, samp_type)
+        for snv, samp_dp in v.items():
+            curr_nb_dict[snvs_idx_map[snv]] = samp_dp
+        nb_cnv_dp[k] = curr_nb_dict
+    return nb_cnv_dp
 
 
 def run_importance_sampler(num_iters, tree, rng, density, precision, node_post_order, log_p_prior, trial):
@@ -72,7 +82,7 @@ def run_importance_sampler(num_iters, tree, rng, density, precision, node_post_o
 
     numba_tree = convert_nx_tree_to_nb_tree(tree)
 
-    trimmed_post_order = np.array(trimmed_post_order,  dtype=np.int64)
+    trimmed_post_order = np.array(trimmed_post_order, dtype=np.int64)
 
     weights = np.empty(num_iters, dtype=np.float64)
 
@@ -80,18 +90,7 @@ def run_importance_sampler(num_iters, tree, rng, density, precision, node_post_o
 
     ones_arr = np.ones(num_nodes)
 
-    round_iters = max(floor(num_iters / 10), 10000)
-    round_iters = min(round_iters, 100000)
-    num_rounds = floor(num_iters / round_iters)
-
-    rem_iters = num_iters - (round_iters * num_rounds)
-
-    if rem_iters > 0:
-        num_rounds += 1
-        round_iters_arr = np.full(num_rounds, round_iters, dtype=np.int64)
-        round_iters_arr[-1] = rem_iters
-    else:
-        round_iters_arr = np.full(num_rounds, round_iters, dtype=np.int64)
+    num_rounds, round_iters_arr = get_num_rounds_and_round_iters_arr(num_iters)
 
     w_idx_start = 0
 
@@ -101,20 +100,58 @@ def run_importance_sampler(num_iters, tree, rng, density, precision, node_post_o
 
         print("trial {}, IS iter {}/{}".format(trial, w_idx_start, num_iters))
 
-        run_batch_of_IS_iters(clonal_prevs_for_round, density, log_p_prior, node_post_order, num_nodes, num_samples,
-                              numba_tree, precision, round_iters, trimmed_post_order, w_idx_start, weights)
+        run_batch_of_IS_iters(
+            clonal_prevs_for_round,
+            density,
+            log_p_prior,
+            node_post_order,
+            num_nodes,
+            num_samples,
+            numba_tree,
+            precision,
+            round_iters,
+            trimmed_post_order,
+            w_idx_start,
+            weights,
+        )
 
         w_idx_start += round_iters
-
 
     sum_of_lls = logsumexp(weights)
     avg_llh = sum_of_lls - np.log(len(weights))
 
     return avg_llh
 
+
+def get_num_rounds_and_round_iters_arr(num_iters):
+    round_iters = max(floor(num_iters / 10), 10000)
+    round_iters = min(round_iters, 100000)
+    num_rounds = floor(num_iters / round_iters)
+    rem_iters = num_iters - (round_iters * num_rounds)
+    if rem_iters > 0:
+        num_rounds += 1
+        round_iters_arr = np.full(num_rounds, round_iters, dtype=np.int64)
+        round_iters_arr[-1] = rem_iters
+    else:
+        round_iters_arr = np.full(num_rounds, round_iters, dtype=np.int64)
+    return num_rounds, round_iters_arr
+
+
 @njit
-def run_batch_of_IS_iters(clonal_prevs_for_round, density, log_p_prior, node_post_order, num_nodes, num_samples,
-                          numba_tree, precision, round_iters, trimmed_post_order, w_idx_start, weights):
+def run_batch_of_IS_iters(
+    clonal_prevs_for_round,
+    density,
+    log_p_prior,
+    node_post_order,
+    num_nodes,
+    num_samples,
+    numba_tree,
+    precision,
+    round_iters,
+    trimmed_post_order,
+    w_idx_start,
+    weights,
+):
     for j in range(round_iters):
         clonal_prev = clonal_prevs_for_round[j]
         cell_prev = compute_cell_prev_given_clonal_prev(clonal_prev, numba_tree, trimmed_post_order)
@@ -163,7 +200,7 @@ def compute_node_log_likelihoods_nb(
                 node_llh_arr[sample, node] += llh
                 # llh_arr[sample] += llh
 
-        #node_llh_arr[:, node] = llh_arr
+        # node_llh_arr[:, node] = llh_arr
     return node_llh_arr
 
 

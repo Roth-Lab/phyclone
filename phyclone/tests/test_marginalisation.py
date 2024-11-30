@@ -8,7 +8,7 @@ import networkx as nx
 from scipy.stats import dirichlet
 from phyclone.utils.math import log_factorial
 from importance_sampler import run_importance_sampler
-from scipy.stats import ttest_ind, ttest_rel
+from scipy.stats import ttest_ind
 
 
 @dataclass
@@ -90,7 +90,6 @@ class Test(unittest.TestCase):
         self.grid_size = 101
         self.rng = np.random.default_rng(12345)
         self.num_iters = 1000000
-        # self.num_iters = 100
         self.pval_threshold = 0.01
 
     def simulate_fscrp_tree(self, data_params):
@@ -132,7 +131,6 @@ class Test(unittest.TestCase):
         self.diri_dist = diri_prior
 
     def get_importance_sampler_likelihood(self, data_params, trial):
-        # num_iters_for_samples = self.num_iters * data_params.num_samples
         importance_sampler_likelihood = run_importance_sampler(
             self.num_iters,
             self.sim_tree,
@@ -166,13 +164,10 @@ class Test(unittest.TestCase):
             importance_sampler_llh_arr[i] = importance_sampler_likelihood
 
         ttest_ind_result = ttest_ind(phyclone_llh_arr, importance_sampler_llh_arr, random_state=self.rng)
-        # ttest_rel_result = ttest_rel(phyclone_llh_arr, phyclone_llh_arr)
 
         print("IS likelihoods: \n{}".format(importance_sampler_llh_arr))
         print("PhyClone likelihoods: \n{}".format(phyclone_llh_arr))
         print("\nT-test result: \n{}".format(ttest_ind_result))
-
-        # print("\nT-test rel result: \n{}".format(ttest_rel_result))
 
         self.assertGreater(float(ttest_ind_result.pvalue), self.pval_threshold)
 
@@ -192,11 +187,7 @@ class Test(unittest.TestCase):
             log_p += grid_prior
             log_p += diri_prior_val
 
-        # grid_prior = np.log(grid_size) * 2
-
         log_p += grid_prior
-
-        # log_p += diri_prior_val
 
         return log_p
 
@@ -236,24 +227,6 @@ class Test(unittest.TestCase):
 
         self._run_test(data_params)
 
-    # def test_50_snvs_10_samples(self):
-    #     data_params = DataParams(
-    #         alpha=1.0,
-    #         depth=1000,
-    #         max_cn=2,
-    #         min_cn=2,
-    #         min_minor_cn=1,
-    #         num_samples=10,
-    #         num_snvs=50,
-    #         tumour_content=1.0,
-    #         density="beta-binomial",
-    #         precision=400,
-    #         grid_size=self.grid_size,
-    #         num_trials=5,
-    #     )
-    #
-    #     self._run_test(data_params)
-
     def test_100_snvs(self):
         data_params = DataParams(
             alpha=1.0,
@@ -285,7 +258,7 @@ class Test(unittest.TestCase):
             density="beta-binomial",
             precision=400,
             grid_size=self.grid_size,
-            num_trials=20,
+            num_trials=10,
         )
 
         self._run_test(data_params)

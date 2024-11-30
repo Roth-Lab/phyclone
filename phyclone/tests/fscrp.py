@@ -80,7 +80,9 @@ def simulate_labels(num_data_points, rng, alpha=1.0):
     labels: list (int)
         List of cluster labels.
     """
-    labels = [0, ]
+    labels = [
+        0,
+    ]
 
     for _ in range(1, num_data_points):
         counts = Counter(labels)
