@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 from dataclasses import dataclass
 from fscrp import simulate_fscrp_tree
-from phyclone.tests.data import simulate_data
+from phyclone.tests.sim_data_on_tree import simulate_data
 from phyclone.tree import Tree
 import networkx as nx
 from scipy.stats import dirichlet
@@ -70,7 +70,6 @@ def establish_child_lists_on_nodes(node_post_order, tree):
 
 def compute_tree_prior_term(alpha, num_nodes, tree):
     log_alpha = np.log(alpha)
-    # num_nodes += 1
     log_p_prior = num_nodes + log_alpha
 
     for node in tree.nodes:
@@ -94,7 +93,10 @@ class Test(unittest.TestCase):
 
     def simulate_fscrp_tree(self, data_params):
         tree = simulate_fscrp_tree(
-            self.rng, alpha=data_params.alpha, dim=data_params.num_samples, num_data_points=data_params.num_snvs
+            self.rng,
+            alpha=data_params.alpha,
+            dim=data_params.num_samples,
+            num_data_points=data_params.num_snvs,
         )
         return tree
 

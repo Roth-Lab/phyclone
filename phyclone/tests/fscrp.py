@@ -199,9 +199,3 @@ def simulate_params(tree, rng, dim=1, kappa=1.0):
         tree.nodes[node]["cellular_prev"] = params[node]
 
     return params
-
-
-def tmp_draw(tree, plot_file):
-    G = nx.nx_agraph.to_agraph(tree)
-
-    G.draw(plot_file, prog="dot")

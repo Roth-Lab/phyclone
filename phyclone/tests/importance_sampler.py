@@ -155,7 +155,7 @@ def run_batch_of_IS_iters(
     for j in range(round_iters):
         clonal_prev = clonal_prevs_for_round[j]
         cell_prev = compute_cell_prev_given_clonal_prev(clonal_prev, numba_tree, trimmed_post_order)
-        node_llh_arr = compute_node_log_likelihoods_nb(
+        node_llh_arr = compute_node_log_likelihoods(
             cell_prev,
             node_post_order,
             num_nodes,
@@ -170,7 +170,7 @@ def run_batch_of_IS_iters(
 
 
 @njit
-def compute_node_log_likelihoods_nb(
+def compute_node_log_likelihoods(
     cell_prev,
     node_post_order,
     num_nodes,
@@ -179,15 +179,12 @@ def compute_node_log_likelihoods_nb(
     density,
     precision,
 ):
-    # node_llh_arr = np.empty((num_samples, num_nodes))
     node_llh_arr = np.zeros((num_samples, num_nodes))
     for node in node_post_order:
         nb_node = tree.get_node(node)
         snvs = nb_node.snvs
 
         node_cell_prev = cell_prev[:, node]
-        # llh_arr = np.zeros(num_samples)
-        # llh_arr = node_llh_arr[:, node]
 
         for snv in snvs:
             for sample in range(num_samples):
@@ -198,9 +195,7 @@ def compute_node_log_likelihoods_nb(
                 else:
                     llh = log_pyclone_beta_binomial_pdf(numba_sample_dp, mut_ccf, precision)
                 node_llh_arr[sample, node] += llh
-                # llh_arr[sample] += llh
 
-        # node_llh_arr[:, node] = llh_arr
     return node_llh_arr
 
 
