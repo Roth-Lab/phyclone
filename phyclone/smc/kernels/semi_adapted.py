@@ -5,7 +5,7 @@ import numpy as np
 from phyclone.smc.kernels.base import Kernel, ProposalDistribution
 from phyclone.smc.swarm import TreeHolder
 from phyclone.tree import Tree
-from phyclone.utils.math import log_binomial_coefficient, log_normalize
+from phyclone.utils.math import log_normalize, cached_log_binomial_coefficient
 
 
 class SemiAdaptedProposalDistribution(ProposalDistribution):
@@ -15,7 +15,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
     should provide a computational advantage over the fully adapted proposal.
     """
 
-    __slots__ = ("_log_p", "log_half", "_q_dist", "_curr_trees")
+    __slots__ = ("_log_p", "log_half", "_q_dist", "_curr_trees", "parent_is_empty_tree", "_cached_log_old_num_roots")
 
     def __init__(
         self,
@@ -29,18 +29,19 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         self.log_half = kernel.log_half
 
+        self.parent_is_empty_tree = False
+
         self._init_dist()
 
     def log_p(self, tree):
         """Get the log probability of proposing the tree."""
 
-        if self._empty_tree():
+        if self.parent_is_empty_tree:
             log_p = self._get_log_p(tree)
 
         else:
 
             node = tree.labels[self.data_point.idx]
-
             assert node == tree.node_last_added_to
 
             # Existing node
@@ -55,7 +56,9 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
                 num_children = tree.num_children_on_node_that_matters
 
-                log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
+                log_p -= self._cached_log_old_num_roots + cached_log_binomial_coefficient(old_num_roots, num_children)
+
+                # log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
 
         return log_p
 
@@ -69,7 +72,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
     def sample(self):
         """Sample a new tree from the proposal distribution."""
-        if self._empty_tree():
+        if self.parent_is_empty_tree:
             tree = self._propose_existing_node()
         else:
             u = self._rng.random()
@@ -89,6 +92,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
             trees.append(self._get_outlier_tree())
 
         if self._empty_tree():
+            self.parent_is_empty_tree = True
             if self.parent_particle is None:
                 tree = Tree(self.data_point.grid_size)
             else:
@@ -98,6 +102,9 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
             tree_particle = TreeHolder(tree, self.tree_dist, self.perm_dist)
 
             trees.append(tree_particle)
+        else:
+            old_num_roots = len(self.parent_particle.tree_roots)
+            self._cached_log_old_num_roots = np.log(old_num_roots + 1)
 
         self._set_log_p_dist(trees)
 
@@ -162,7 +169,10 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
 
         num_children = self._rng.integers(0, num_roots + 1)
 
-        children = self._rng.choice(self.parent_particle.tree_roots, num_children, replace=False)
+        if num_children == 0:
+            children = []
+        else:
+            children = self._rng.choice(self.parent_particle.tree_roots, num_children, replace=False)
 
         tree_container = get_cached_new_tree(
             self.parent_particle,

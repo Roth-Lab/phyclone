@@ -1,3 +1,5 @@
+import numpy as np
+
 from phyclone.tree import Tree
 
 
@@ -61,7 +63,7 @@ class TreeHolder(object):
 
         self.log_p, self.log_p_one = self._tree_dist.compute_both_log_p_and_log_p_one(tree)
 
-        self.tree_roots = tree.roots
+        self.tree_roots = np.asarray(tree.roots)
         self.tree_nodes = tree.nodes
         self._hash_val = hash(tree)
         self._tree = tree.to_dict()
