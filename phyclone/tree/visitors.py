@@ -1,16 +1,15 @@
 from collections import defaultdict
-
 from rustworkx.visit import DFSVisitor
 
 
 class PostOrderNodeUpdater(DFSVisitor):
-    __slots__ = "tree"
+    __slots__ = "node_update_fxn"
 
-    def __init__(self, tree):
-        self.tree = tree
+    def __init__(self, node_update_fxn):
+        self.node_update_fxn = node_update_fxn
 
     def finish_vertex(self, v, t):
-        self.tree._update_node(v)
+        self.node_update_fxn(v)
 
 
 class PreOrderNodeRelabeller(DFSVisitor):

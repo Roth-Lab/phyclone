@@ -176,12 +176,11 @@ class Tree(object):
                 if node == -1 or node == "root":
                     continue
 
-                log_p = np.full(grid_size, log_prior, order="C")
+                node_obj = TreeNode(grid_size, log_prior, node)
 
                 for dp in data_list:
-                    log_p += dp.value
+                    node_obj.add_data_point(dp)
 
-                node_obj = TreeNode(log_p, np.zeros(grid_size, order="C"), node)
                 node_idx = node_idxs[node]
                 new_graph[node_idx] = node_obj
 
@@ -216,8 +215,21 @@ class Tree(object):
         }
         return res
 
+    def serialize_tree(self):
+        serial = rx.node_link_json(self._graph, node_attrs=lambda x: x.serialize())
+        return serial
+
+    def _graph_dp_keys_check(self, data_point):
+        dp_idx = data_point.idx
+        res = sum(map(lambda x: dp_idx in x.data_points, self._graph.nodes()))
+        if -1 in self._data:
+            dp_in_outliers = data_point in self._data[-1]
+            res += dp_in_outliers
+        return res
+
     def add_data_point_to_node(self, data_point, node):
-        assert data_point.idx not in self.labels.keys()
+        # assert data_point.idx not in self.labels.keys()
+        assert self._graph_dp_keys_check(data_point) == False
 
         self._internal_add_data_point_to_node(False, data_point, node)
 
@@ -226,9 +238,7 @@ class Tree(object):
         if node != -1:
             node_idx = self._node_indices[node]
 
-            self._graph[node_idx].log_p += data_point.value
-
-            self._graph[node_idx].log_r += data_point.value
+            self._graph[node_idx].add_data_point(data_point)
 
             self._last_node_added_to = node
 
@@ -243,16 +253,7 @@ class Tree(object):
 
         subtree = subtree.copy()
 
-        first_label = (
-            max(
-                self.nodes
-                + subtree.nodes
-                + [
-                    -1,
-                ]
-            )
-            + 1
-        ) - 1
+        first_label = (max(self.nodes + subtree.nodes + [-1,]) + 1) - 1
 
         # Connect subtree
         if parent is None:
@@ -307,7 +308,7 @@ class Tree(object):
         for data_point in data:
             self._data[node].append(data_point)
 
-            self._graph[node_idx].log_p += data_point.value
+            self._graph[node_idx].add_data_point(data_point)
 
         self._graph.add_edge(root_idx, node_idx, None)
 
@@ -454,7 +455,7 @@ class Tree(object):
 
         if node != -1:
             node_idx = self._node_indices[node]
-            self._graph[node_idx].log_p -= data_point.value
+            self._graph[node_idx].remove_data_point(data_point)
 
             self._update_path_to_root(node)
 
@@ -493,16 +494,12 @@ class Tree(object):
             self._update_path_to_root(parent_node.node_id)
 
     def update(self):
-        vis = PostOrderNodeUpdater(self)
+        vis = PostOrderNodeUpdater(self._update_node)
         root_idx = self._node_indices["root"]
         rx.dfs_search(self._graph, [root_idx], vis)
 
     def _add_node(self, node):
-        node_obj = TreeNode(
-            np.full(self.grid_size, self._log_prior, order="C"),
-            np.zeros(self.grid_size, order="C"),
-            node,
-        )
+        node_obj = TreeNode(self.grid_size, self._log_prior, node)
         new_node = self._graph.add_node(node_obj)
         self._node_indices[node] = new_node
         self._node_indices_rev[new_node] = node
@@ -531,35 +528,67 @@ class Tree(object):
     def _update_node(self, node_idx):
         child_log_r_values = [child.log_r for child in self._graph.successors(node_idx)]
 
-        log_p = self._graph[node_idx].log_p
-
-        if len(child_log_r_values) == 0:
-            np.copyto(self._graph[node_idx].log_r, log_p)
-            return
-        else:
-            log_s = compute_log_S(child_log_r_values)
-
-        self._graph[node_idx].log_r = np.add(log_p, log_s, out=self._graph[node_idx].log_r, order="C")
+        self._graph[node_idx].update_node_from_child_r_vals(child_log_r_values)
 
 
 class TreeNode(object):
-    __slots__ = ("log_p", "log_r", "node_id")
+    __slots__ = ("log_p", "log_r", "node_id", "data_points")
 
-    def __init__(self, log_p: np.array, log_r: np.array, node_id: Union[str | int]):
-        self.log_p = log_p
-        self.log_r = log_r
+    def __init__(self, grid_size: tuple[int, int], log_prior: float, node_id: Union[str | int]):
+        self.log_p = np.full(grid_size, log_prior, order="C")
+        self.log_r = np.zeros(grid_size, order="C")
         self.node_id = node_id
+        self.data_points = set()
 
     def __copy__(self):
-        return TreeNode(self.log_p.copy(), self.log_r.copy(), self.node_id)
+        cls = self.__class__
+        new = cls.__new__(cls)
+        new.log_p = self.log_p.copy()
+        new.log_r = self.log_r.copy()
+        if isinstance(self.node_id, str):
+            new.node_id = str(self.node_id)
+        else:
+            new.node_id = int(self.node_id)
+        new.data_points = self.data_points.copy()
+        return new
 
     def __eq__(self, other):
         log_p_compare = np.array_equal(self.log_p, other.log_p)
         log_r_compare = np.array_equal(self.log_r, other.log_r)
         return log_p_compare and log_r_compare
 
+    def add_data_point(self, data_point):
+        dp_idx = data_point.idx
+        assert dp_idx not in self.data_points
+
+        self.data_points.add(dp_idx)
+        self.log_p += data_point.value
+        self.log_r += data_point.value
+
+    def remove_data_point(self, data_point):
+        dp_idx = data_point.idx
+        assert dp_idx in self.data_points
+
+        self.data_points.discard(dp_idx)
+        self.log_p -= data_point.value
+
+    def update_node_from_child_r_vals(self, child_log_r_values):
+        log_p = self.log_p
+        log_r = self.log_r
+
+        if len(child_log_r_values) == 0:
+            np.copyto(log_r, log_p)
+            return
+        else:
+            log_s = compute_log_S(child_log_r_values)
+
+        np.add(log_p, log_s, out=log_r, order="C")
+
     def copy(self):
-        return TreeNode(self.log_p.copy(), self.log_r.copy(), self.node_id)
+        return self.__copy__()
 
     def to_dict(self):
         return {"log_p": self.log_p, "log_R": self.log_r, "node_id": self.node_id}
+
+    def serialize(self):
+        return {"node_id": str(self.node_id), "data_points": str(list(self.data_points))}
