@@ -150,6 +150,7 @@ def cached_log_factorial(x):
 def log_binomial_coefficient(n, x):
     return log_factorial(n) - log_factorial(x) - log_factorial(n - x)
 
+
 @lru_cache(maxsize=2048)
 def cached_log_binomial_coefficient(n, x):
     return log_binomial_coefficient(n, x)
