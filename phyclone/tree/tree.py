@@ -79,8 +79,10 @@ class Tree(object):
 
         node = tree.create_root_node([])
 
-        for data_point in data:
-            tree._internal_add_data_point_to_node(True, data_point, node)
+        if len(data) > 0:
+            node_idx = tree._node_indices[node]
+            tree._data[node].extend(data)
+            tree._graph[node_idx].add_data_point_list(data)
 
         tree.update()
 
@@ -112,9 +114,9 @@ class Tree(object):
         result = {dp.idx: k for k, l in self.node_data.items() for dp in l}
         return result
 
-    @property
-    def leafs(self):
-        return [x for x in self.nodes if self.get_number_of_children(x) == 0]
+    # @property
+    # def leafs(self):
+    #     return [x for x in self.nodes if self.get_number_of_children(x) == 0]
 
     @property
     def multiplicity(self):
@@ -177,9 +179,7 @@ class Tree(object):
                     continue
 
                 node_obj = TreeNode(grid_size, log_prior, node)
-
-                for dp in data_list:
-                    node_obj.add_data_point(dp)
+                node_obj.add_data_point_list(data_list)
 
                 node_idx = node_idxs[node]
                 new_graph[node_idx] = node_obj
@@ -287,7 +287,7 @@ class Tree(object):
 
         self._update_path_to_root(parent_node.node_id)
 
-    def create_root_node(self, children=[], data=[]):
+    def create_root_node(self, children=None, data=None):
         """Create a new root node in the forest.
 
         Parameters
@@ -297,6 +297,11 @@ class Tree(object):
         data: list
             Data points to add to new node.
         """
+        if data is None:
+            data = []
+        if children is None:
+            children = []
+
         node = self._graph.num_nodes() - 1
 
         self._add_node(node)
@@ -305,10 +310,9 @@ class Tree(object):
 
         root_idx = self._node_indices["root"]
 
-        for data_point in data:
-            self._data[node].append(data_point)
-
-            self._graph[node_idx].add_data_point(data_point)
+        if len(data) > 0:
+            self._data[node].extend(data)
+            self._graph[node_idx].add_data_point_list(data)
 
         self._graph.add_edge(root_idx, node_idx, None)
 
@@ -366,12 +370,11 @@ class Tree(object):
     def get_number_of_descendants(self, source="root"):
         source_idx = self._node_indices[source]
         descs = rx.descendants(self._graph, source_idx)
-        return len(list(descs))
+        return len(descs)
 
     def get_parent(self, node):
         if node == "root":
             return None
-
         else:
             node_idx = self._node_indices[node]
             return [pred.node_id for pred in self._graph.predecessors(node_idx)][0]
@@ -426,18 +429,18 @@ class Tree(object):
 
         return new
 
-    def get_subtree_data(self, node):
-        data = self.get_data(node)
-
-        for desc in self.get_descendants(node):
-            data.extend(self.get_data(desc))
-
-        return data
+    # def get_subtree_data(self, node):
+    #     data = self.get_data(node)
+    #
+    #     for desc in self.get_descendants(node):
+    #         data.extend(self.get_data(desc))
+    #
+    #     return data
 
     def relabel_nodes(self):
         data = defaultdict(list)
 
-        data[-1] = self._data[-1]
+        data[-1] = list(self._data[-1])
 
         vis = PreOrderNodeRelabeller(self, data)
 
@@ -556,6 +559,18 @@ class TreeNode(object):
         log_p_compare = np.array_equal(self.log_p, other.log_p)
         log_r_compare = np.array_equal(self.log_r, other.log_r)
         return log_p_compare and log_r_compare
+
+    def add_data_point_list(self, data_point_list):
+        dp_idx_set = {dp.idx for dp in data_point_list}
+        assert self.data_points.isdisjoint(dp_idx_set)
+        self.data_points.update(dp_idx_set)
+
+        log_p = self.log_p
+        log_r = self.log_r
+
+        for data_point in data_point_list:
+            log_p += data_point.value
+            log_r += data_point.value
 
     def add_data_point(self, data_point):
         dp_idx = data_point.idx
