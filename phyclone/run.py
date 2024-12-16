@@ -110,7 +110,8 @@ def run(
 
     else:
 
-        rng_list = rng_main.spawn(num_chains)
+        #rng_list = rng_main.spawn(num_chains)
+        rng_list = [instantiate_and_seed_RNG(seed) for seed in range(num_chains)]
 
         with ProcessPoolExecutor(max_workers=num_chains, mp_context=get_context("spawn")) as pool:
             chain_results = [
@@ -416,12 +417,19 @@ def setup_kernel(outlier_prob, proposal, rng, tree_dist):
     return kernel
 
 
-def instantiate_and_seed_RNG(seed):
+#  def instantiate_and_seed_RNG(seed):
+#      if seed is not None:
+#          rng = np.random.default_rng(seed)
+#      else:
+#          rng = np.random.default_rng()
+#      return rng
+
+def instantiate_and_seed_RNG(seed=None):
     if seed is not None:
-        rng = np.random.default_rng(seed)
+        ss = np.random.SeedSequence(seed)
+        return [np.random.default_rng(child_seed) for child_seed in ss.spawn(1)][0]
     else:
-        rng = np.random.default_rng()
-    return rng
+        return np.random.default_rng()
 
 
 def print_stats(iter_id, tree, tree_dist, chain_num):
