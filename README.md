@@ -33,7 +33,7 @@ mamba create --name phyclone phyclone
 Or if installing into a pre-exisiting environment:
 
 ```
-mamba install phyclone
+mamba install -c bioconda phyclone
 ```
 
 ## Input File Formats
