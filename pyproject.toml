@@ -17,19 +17,19 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "numba",
-    "numpy",
+    "numpy>=1.26.4",
     "scipy",
     "click",
-    "xxhash",
+    "xxhash>=3.3.0",
     "networkx",
-    "rustworkx",
-    "pandas"
+    "rustworkx>=0.15.1",
+    "pandas>=2.2.2"
 ]
 classifiers = [
     "Private :: Do Not Upload",
     "Development Status :: 4 - Beta",
     "Programming Language :: Python",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)"
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)"
 ]
 
 [project.urls]

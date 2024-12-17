@@ -6,9 +6,9 @@ dependencies:
   - python>=3.10
   - click
   - networkx
-  - rustworkx
+  - rustworkx>=0.15.1
   - numba
-  - numpy
-  - pandas
+  - numpy>=1.26.4
+  - pandas>=2.2.2
   - scipy
-  - python-xxhash
+  - python-xxhash>=3.3.0
