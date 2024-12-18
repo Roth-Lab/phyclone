@@ -53,16 +53,16 @@ class Tree(object):
         return self_key == other_key
 
     def to_newick_string(self):
-        vis = GraphToNewickVisitor(self)
+        visitor = GraphToNewickVisitor(self)
         root_idx = self._node_indices["root"]
-        rx.dfs_search(self._graph, [root_idx], vis)
-        return vis.final_string
+        rx.dfs_search(self._graph, [root_idx], visitor)
+        return visitor.final_string
 
     def get_clades(self):
-        vis = GraphToCladesVisitor(self)
+        visitor = GraphToCladesVisitor(self)
         root_idx = self._node_indices["root"]
-        rx.dfs_search(self._graph, [root_idx], vis)
-        vis_clades = frozenset(vis.clades)
+        rx.dfs_search(self._graph, [root_idx], visitor)
+        vis_clades = frozenset(visitor.clades)
         return vis_clades
 
     @staticmethod
@@ -78,10 +78,7 @@ class Tree(object):
 
         node = tree.create_root_node([])
 
-        if len(data) > 0:
-            node_idx = tree._node_indices[node]
-            tree._data[node].extend(data)
-            tree._graph[node_idx].add_data_point_list(data)
+        _ = tree._add_list_of_data_points_to_node(data, node)
 
         tree.update()
 
@@ -200,7 +197,7 @@ class Tree(object):
     def to_dict(self):
         node_data = {k: v.copy() for k, v in self._data.items() if k != "root"}
 
-        res = {
+        tree_dict = {
             "graph": self._graph.edge_list(),
             "node_idx": self._node_indices.copy(),
             "node_idx_rev": self._node_indices_rev.copy(),
@@ -208,61 +205,62 @@ class Tree(object):
             "grid_size": self.grid_size,
             "node_last_added_to": self._last_node_added_to,
         }
-        return res
+        return tree_dict
 
     def serialize_tree(self):
         serial = rx.node_link_json(self._graph, node_attrs=lambda x: x.serialize())
         return serial
 
-    def _graph_dp_keys_check(self, data_point):
+    def _is_data_point_in_tree(self, data_point):
         dp_idx = data_point.idx
-        res = sum(map(lambda x: dp_idx in x.data_points, self._graph.nodes()))
+        data_point_is_present = sum(map(lambda x: dp_idx in x.data_points, self._graph.nodes()))
         if -1 in self._data:
             dp_in_outliers = data_point in self._data[-1]
-            res += dp_in_outliers
-        return res
+            data_point_is_present += dp_in_outliers
+        return data_point_is_present
 
     def add_data_point_to_node(self, data_point, node):
-        # assert data_point.idx not in self.labels.keys()
-        assert self._graph_dp_keys_check(data_point) == False
+        assert self._is_data_point_in_tree(data_point) == False
 
         self._internal_add_data_point_to_node(False, data_point, node)
 
     def _internal_add_data_point_to_node(self, build_add, data_point, node):
         self._data[node].append(data_point)
+        self._last_node_added_to = node
+
         if node != -1:
             node_idx = self._node_indices[node]
 
             self._graph[node_idx].add_data_point(data_point)
 
-            self._last_node_added_to = node
-
             if not build_add:
                 self._update_path_to_root(self.get_parent(node))
 
     def add_data_point_to_outliers(self, data_point):
-        self._data[-1].append(data_point)
-        self._last_node_added_to = -1
+        self.add_data_point_to_node(data_point, -1)
 
     def add_subtree(self, subtree, parent=None):
 
         subtree = subtree.copy()
 
-        first_label = (max(self.nodes + subtree.nodes + [-1,]) + 1) - 1
-
         # Connect subtree
         if parent is None:
             parent = "root"
-
         parent_idx = self._node_indices[parent]
-
         parent_node = self._graph[parent_idx]
-
         subtree_dummy_root = subtree._node_indices["root"]
-
         node_map_idx = self._graph.compose(subtree._graph, {parent_idx: (subtree_dummy_root, None)})
 
         self._graph.remove_node_retain_edges(node_map_idx[subtree_dummy_root])
+
+        self._relabel_grafted_subtree_nodes(node_map_idx, subtree, subtree_dummy_root)
+
+        self._last_node_added_to = subtree._last_node_added_to
+
+        self._update_path_to_root(parent_node.node_id)
+
+    def _relabel_grafted_subtree_nodes(self, node_map_idx, subtree, subtree_dummy_root):
+        first_label = (max(self.nodes + subtree.nodes + [-1]) + 1) - 1
 
         for old_idx, new_idx in node_map_idx.items():
             if old_idx == subtree_dummy_root:
@@ -275,12 +273,7 @@ class Tree(object):
                 node_name = first_label
                 node_obj.node_id = node_name
             self._data[node_name] = subtree._data[old_node_name]
-            self._node_indices[node_name] = new_idx
-            self._node_indices_rev[new_idx] = node_name
-
-        self._last_node_added_to = subtree._last_node_added_to
-
-        self._update_path_to_root(parent_node.node_id)
+            self._add_node_to_indices(node_name, new_idx)
 
     def create_root_node(self, children=None, data=None):
         """Create a new root node in the forest.
@@ -301,13 +294,9 @@ class Tree(object):
 
         self._add_node(node)
 
-        node_idx = self._node_indices[node]
-
         root_idx = self._node_indices["root"]
 
-        if len(data) > 0:
-            self._data[node].extend(data)
-            self._graph[node_idx].add_data_point_list(data)
+        node_idx = self._add_list_of_data_points_to_node(data, node)
 
         self._graph.add_edge(root_idx, node_idx, None)
 
@@ -322,6 +311,13 @@ class Tree(object):
         self._update_path_to_root(node)
 
         return node
+
+    def _add_list_of_data_points_to_node(self, data, node):
+        node_idx = self._node_indices[node]
+        if len(data) > 0:
+            self._data[node].extend(data)
+            self._graph[node_idx].add_data_point_list(data)
+        return node_idx
 
     def copy(self):
         cls = self.__class__
@@ -417,8 +413,7 @@ class Tree(object):
             node = new._graph[node_idx].node_id
             new._data[node] = list(self._data[node])
 
-            new._node_indices[node] = node_idx
-            new._node_indices_rev[node_idx] = node
+            new._add_node_to_indices(node, node_idx)
 
         new.update()
 
@@ -429,16 +424,16 @@ class Tree(object):
 
         data[-1] = list(self._data[-1])
 
-        vis = PreOrderNodeRelabeller(self, data)
+        visitor = PreOrderNodeRelabeller(self, data)
 
         root_idx = self._node_indices["root"]
 
-        rx.dfs_search(self._graph, [root_idx], vis)
+        rx.dfs_search(self._graph, [root_idx], visitor)
 
         self._data = data
 
-        self._node_indices = vis.node_indices
-        self._node_indices_rev = vis.node_indices_rev
+        self._node_indices = visitor.node_indices
+        self._node_indices_rev = visitor.node_indices_rev
 
     def remove_data_point_from_node(self, data_point, node):
         self._data[node].remove(data_point)
@@ -462,9 +457,7 @@ class Tree(object):
             sub_root = subtree.roots[0]
 
             parent = self.get_parent(sub_root)
-
             parent_idx = self._node_indices[parent]
-
             parent_node = self._graph[parent_idx]
 
             sub_root_idx = self._node_indices[sub_root]
@@ -484,15 +477,19 @@ class Tree(object):
             self._update_path_to_root(parent_node.node_id)
 
     def update(self):
+        """Update recursion values for all nodes in the tree."""
         vis = PostOrderNodeUpdater(self._update_node)
         root_idx = self._node_indices["root"]
         rx.dfs_search(self._graph, [root_idx], vis)
 
     def _add_node(self, node):
         node_obj = TreeNode(self.grid_size, self._log_prior, node)
-        new_node = self._graph.add_node(node_obj)
-        self._node_indices[node] = new_node
-        self._node_indices_rev[new_node] = node
+        node_idx = self._graph.add_node(node_obj)
+        self._add_node_to_indices(node, node_idx)
+
+    def _add_node_to_indices(self, node, node_idx):
+        self._node_indices[node] = node_idx
+        self._node_indices_rev[node_idx] = node
 
     def _update_path_to_root(self, source):
         """Update recursion values for all nodes on the path between the source node and root inclusive."""
