@@ -20,6 +20,7 @@ class PreOrderNodeRelabeller(DFSVisitor):
         "graph",
         "orig_data",
         "curr_idx",
+        "root_node_name",
     )
 
     def __init__(self, tree, data, start_idx=0):
@@ -29,10 +30,11 @@ class PreOrderNodeRelabeller(DFSVisitor):
         self.node_indices_rev = dict()
         self.curr_idx = start_idx
         self.graph = tree._graph
+        self.root_node_name = tree.root_node_name
 
     def discover_vertex(self, v, t):
         node_id = self.graph[v].node_id
-        if node_id != "root":
+        if node_id != self.root_node_name:
             old_node_id = node_id
             node_id = self.curr_idx
             self.curr_idx += 1
@@ -50,6 +52,7 @@ class GraphToCladesVisitor(DFSVisitor):
         "clades",
         "node_indices_rev",
         "data",
+        "root_node_name",
     )
 
     def __init__(self, tree):
@@ -58,6 +61,7 @@ class GraphToCladesVisitor(DFSVisitor):
         self.clades = set()
         self.node_indices_rev = tree._node_indices_rev
         self.data = tree._data
+        self.root_node_name = tree.root_node_name
 
     def discover_vertex(self, v, t):
         node_idx = self.node_indices_rev[v]
@@ -78,7 +82,7 @@ class GraphToCladesVisitor(DFSVisitor):
     def finish_vertex(self, v, t):
         node_idx = self.node_indices_rev[v]
 
-        if node_idx != "root":
+        if node_idx != self.root_node_name:
             parent_idx = self.child_parent_mapping[node_idx]
             datalist = self.dict_of_sets[node_idx]
 
@@ -93,6 +97,7 @@ class GraphToNewickVisitor(DFSVisitor):
         "parents",
         "node_indices_rev",
         "final_string",
+        "root_node_name",
     )
 
     def __init__(self, tree):
@@ -101,6 +106,7 @@ class GraphToNewickVisitor(DFSVisitor):
         self.parents = set()
         self.node_indices_rev = tree._node_indices_rev
         self.final_string = None
+        self.root_node_name = tree.root_node_name
 
     def tree_edge(self, edge):
         parent = edge[0]
@@ -122,7 +128,7 @@ class GraphToNewickVisitor(DFSVisitor):
         else:
             curr_node_string = "{node_idx}".format(node_idx=node_idx)
 
-        if node_idx != "root":
+        if node_idx != self.root_node_name:
             parent_idx = self.child_parent_mapping[node_idx]
             self.dict_of_lists[parent_idx].append(curr_node_string)
         else:
