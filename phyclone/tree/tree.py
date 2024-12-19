@@ -84,7 +84,7 @@ class Tree(object):
         tree.update()
 
         return tree
-    
+
     @property
     def root_node_name(self):
         return self._ROOT_NODE_NAME

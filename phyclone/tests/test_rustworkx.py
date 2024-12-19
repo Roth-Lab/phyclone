@@ -301,3 +301,7 @@ def tree_eq(self_tree, other):
     other_key = (get_clades(other), frozenset(other.outliers))
 
     return self_key == other_key
+
+
+if __name__ == "__main__":
+    unittest.main()

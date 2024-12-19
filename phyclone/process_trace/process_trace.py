@@ -248,9 +248,11 @@ def get_tree_from_consensus_graph(data, graph):
 
     nodes = list(graph.nodes)
 
+    root_node_name = Tree._ROOT_NODE_NAME
+
     for node in nodes:
         if len(list(graph.predecessors(node))) == 0:
-            graph.add_edge("root", node)
+            graph.add_edge(root_node_name, node)
 
     tree = from_dict_nx(data, {"graph": nx.to_dict_of_dicts(graph), "labels": labels})
 
@@ -264,8 +266,10 @@ def from_dict_nx(data, tree_dict):
 
     data = dict(zip([x.idx for x in data], data))
 
+    root_node_name = new.root_node_name
+
     for node in tree_dict["graph"].keys():
-        if node == "root":
+        if node == root_node_name:
             continue
         new._add_node(node)
 

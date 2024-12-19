@@ -108,7 +108,7 @@ class PruneRegraphSampler(object):
             new_tree = pruned_tree.copy()
 
             if parent is None:
-                nc = new_tree.get_number_of_children("root")
+                nc = new_tree.get_number_of_children(new_tree.root_node_name)
 
             else:
                 nc = new_tree.get_number_of_children(parent)

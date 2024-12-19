@@ -434,6 +434,6 @@ def print_stats(iter_id, tree, tree_dist, chain_num):
             round(tree_dist.log_p_one(tree), 3),
             tree.get_number_of_nodes(),
             len(tree.outliers),
-            tree.get_number_of_children("root"),
+            tree.get_number_of_children(tree.root_node_name),
         )
     )

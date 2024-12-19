@@ -3,33 +3,34 @@ from phyclone.process_trace.utils import convert_rustworkx_to_networkx
 
 
 def get_map_node_ccfs_and_clonal_prev_dicts(tree):
-    graph = compute_map_tree_features(tree)
+    root_node_name = tree.root_node_name
+    graph = compute_map_tree_features(tree, root_node_name)
 
-    ccf_dict = get_map_node_ccfs_dict(graph)
-    clonal_prev_dict = get_map_node_clonal_prevs_dict(ccf_dict, graph)
+    ccf_dict = get_map_node_ccfs_dict(graph, root_node_name)
+    clonal_prev_dict = get_map_node_clonal_prevs_dict(ccf_dict, graph, root_node_name)
 
-    del ccf_dict["root"]
-    del clonal_prev_dict["root"]
+    del ccf_dict[root_node_name]
+    del clonal_prev_dict[root_node_name]
     return ccf_dict, clonal_prev_dict
 
 
-def compute_map_tree_features(tree):
+def compute_map_tree_features(tree, root_node_name):
     graph = tree._graph.copy()
     graph = convert_rustworkx_to_networkx(graph)
-    compute_max_likelihood(graph, "root")
-    set_max_assignment(graph)
+    compute_max_likelihood(graph, root_node_name)
+    set_max_assignment(graph, root_node_name)
     return graph
 
 
-def get_map_node_ccfs_dict(graph):
+def get_map_node_ccfs_dict(graph, root_node_name):
     ccf_dict = {}
-    get_map_ccfs(graph, "root", ccf_dict)
+    get_map_ccfs(graph, root_node_name, ccf_dict)
     return ccf_dict
 
 
-def get_map_node_clonal_prevs_dict(ccf_dict, graph):
+def get_map_node_clonal_prevs_dict(ccf_dict, graph, root_node_name):
     clonal_prev_dict = {}
-    get_map_clonal_prev(graph, "root", ccf_dict, clonal_prev_dict)
+    get_map_clonal_prev(graph, root_node_name, ccf_dict, clonal_prev_dict)
     return clonal_prev_dict
 
 
@@ -132,12 +133,12 @@ def _compute_log_D_n(child_log_R, prev_log_D_n):
     return choice, result
 
 
-def set_max_assignment(graph):
-    num_dims, num_vals = graph.nodes["root"]["log_R"].shape
+def set_max_assignment(graph, root_node_name):
+    num_dims, num_vals = graph.nodes[root_node_name]["log_R"].shape
 
-    graph.nodes["root"]["max_idx"] = np.ones(num_dims, dtype=int) * (num_vals - 1)
+    graph.nodes[root_node_name]["max_idx"] = np.ones(num_dims, dtype=int) * (num_vals - 1)
 
-    _set_max_assignment(graph, np.ones(num_dims, dtype=int) * (num_vals - 1), "root")
+    _set_max_assignment(graph, np.ones(num_dims, dtype=int) * (num_vals - 1), root_node_name)
 
 
 def _set_max_assignment(graph, idxs, node):

@@ -52,6 +52,10 @@ class OldTree(object):
         return tree
 
     @property
+    def root_node_name(self):
+        return "root"
+
+    @property
     def graph(self):
         result = self._graph.copy()
 
