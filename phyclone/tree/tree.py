@@ -15,6 +15,7 @@ from phyclone.utils.math import cached_log_factorial
 
 
 class Tree(object):
+    _ROOT_NODE_NAME = "root"
     __slots__ = (
         "grid_size",
         "_data",
@@ -40,7 +41,7 @@ class Tree(object):
 
         self._last_node_added_to = None
 
-        self._add_node("root")
+        self._add_node(self._ROOT_NODE_NAME)
 
     def __hash__(self):
         return hash((self.get_clades(), frozenset(self.outliers)))
@@ -54,13 +55,13 @@ class Tree(object):
 
     def to_newick_string(self):
         visitor = GraphToNewickVisitor(self)
-        root_idx = self._node_indices["root"]
+        root_idx = self._node_indices[self._ROOT_NODE_NAME]
         rx.dfs_search(self._graph, [root_idx], visitor)
         return visitor.final_string
 
     def get_clades(self):
         visitor = GraphToCladesVisitor(self)
-        root_idx = self._node_indices["root"]
+        root_idx = self._node_indices[self._ROOT_NODE_NAME]
         rx.dfs_search(self._graph, [root_idx], visitor)
         vis_clades = frozenset(visitor.clades)
         return vis_clades
@@ -83,12 +84,16 @@ class Tree(object):
         tree.update()
 
         return tree
+    
+    @property
+    def root_node_name(self):
+        return self._ROOT_NODE_NAME
 
     @property
     def graph(self):
         result = self._graph.copy()
 
-        root_idx = self._node_indices["root"]
+        root_idx = self._node_indices[self._ROOT_NODE_NAME]
 
         result.remove_node(root_idx)
 
@@ -102,7 +107,7 @@ class Tree(object):
     @property
     def data_log_likelihood(self):
         """The log likelihood grid of the data for all values of the root node."""
-        root_idx = self._node_indices["root"]
+        root_idx = self._node_indices[self._ROOT_NODE_NAME]
         return self._graph[root_idx].log_r
 
     @property
@@ -122,7 +127,7 @@ class Tree(object):
 
     @property
     def nodes(self):
-        result = [node.node_id for node in self._graph.nodes() if node.node_id != "root"]
+        result = [node.node_id for node in self._graph.nodes() if node.node_id != self._ROOT_NODE_NAME]
         return result
 
     @property
@@ -136,8 +141,8 @@ class Tree(object):
     def node_data(self):
         result = self._data.copy()
 
-        if "root" in result:
-            del result["root"]
+        if self._ROOT_NODE_NAME in result:
+            del result[self._ROOT_NODE_NAME]
 
         return result
 
@@ -147,7 +152,7 @@ class Tree(object):
 
     @property
     def roots(self):
-        node_idx = self._node_indices["root"]
+        node_idx = self._node_indices[self._ROOT_NODE_NAME]
         return [child.node_id for child in self._graph.successors(node_idx)]
 
     @classmethod
@@ -167,15 +172,16 @@ class Tree(object):
         new._last_node_added_to = tree_dict["node_last_added_to"]
         new._data.update({k: v.copy() for k, v in tree_dict["node_data"].items()})
 
-        _ = new_graph.add_node(TreeNode(grid_size, log_prior, "root"))
+        _ = new_graph.add_node(TreeNode(grid_size, log_prior, cls._ROOT_NODE_NAME))
 
         if len(tree_dict["graph"]) > 0:
 
             node_idxs = tree_dict["node_idx"]
             new_graph.extend_from_edge_list(tree_dict["graph"])
+            root_name = cls._ROOT_NODE_NAME
 
             for node, data_list in tree_dict["node_data"].items():
-                if node == -1 or node == "root":
+                if node == -1 or node == root_name:
                     continue
                 node_obj = TreeNode(grid_size, log_prior, node)
                 node_obj.add_data_point_list(data_list)
@@ -239,10 +245,10 @@ class Tree(object):
 
         # Connect subtree
         if parent is None:
-            parent = "root"
+            parent = self._ROOT_NODE_NAME
         parent_idx = self._node_indices[parent]
         parent_node = self._graph[parent_idx]
-        subtree_dummy_root = subtree._node_indices["root"]
+        subtree_dummy_root = subtree._node_indices[subtree._ROOT_NODE_NAME]
         node_map_idx = self._graph.compose(subtree._graph, {parent_idx: (subtree_dummy_root, None)})
 
         self._graph.remove_node_retain_edges(node_map_idx[subtree_dummy_root])
@@ -288,7 +294,7 @@ class Tree(object):
 
         self._add_node(node)
 
-        root_idx = self._node_indices["root"]
+        root_idx = self._node_indices[self._ROOT_NODE_NAME]
 
         node_idx = self._add_list_of_data_points_to_node(data, node)
 
@@ -347,18 +353,22 @@ class Tree(object):
         node_idx = self._node_indices[node]
         return len(self._graph.successors(node_idx))
 
-    def get_descendants(self, source="root"):
+    def get_descendants(self, source=None):
+        if source is None:
+            source = self._ROOT_NODE_NAME
         source_idx = self._node_indices[source]
         descs = rx.descendants(self._graph, source_idx)
         return [self._graph[child].node_id for child in descs]
 
-    def get_number_of_descendants(self, source="root"):
+    def get_number_of_descendants(self, source=None):
+        if source is None:
+            source = self._ROOT_NODE_NAME
         source_idx = self._node_indices[source]
         descs = rx.descendants(self._graph, source_idx)
         return len(descs)
 
     def get_parent(self, node):
-        if node == "root":
+        if node == self._ROOT_NODE_NAME:
             return None
         else:
             node_idx = self._node_indices[node]
@@ -379,7 +389,7 @@ class Tree(object):
         return data_len
 
     def get_subtree(self, subtree_root):
-        if subtree_root == "root":
+        if subtree_root == self._ROOT_NODE_NAME:
             return self.copy()
 
         new = Tree(self.grid_size)
@@ -390,7 +400,7 @@ class Tree(object):
 
         subtree_graph = self._graph.subgraph(subtree_graph_node_indices, preserve_attrs=True)
 
-        new_root_idx = new._node_indices["root"]
+        new_root_idx = new._node_indices[self._ROOT_NODE_NAME]
 
         sub_root_idx = -1
 
@@ -418,7 +428,7 @@ class Tree(object):
         data[-1] = list(self._data[-1])
 
         visitor = PreOrderNodeRelabeller(self, data)
-        root_idx = self._node_indices["root"]
+        root_idx = self._node_indices[self._ROOT_NODE_NAME]
         rx.dfs_search(self._graph, [root_idx], visitor)
 
         self._data = data
@@ -454,7 +464,7 @@ class Tree(object):
 
             for node in subtree._graph.nodes():
                 node_id = node.node_id
-                if node_id != "root":
+                if node_id != self._ROOT_NODE_NAME:
                     del self._data[node_id]
                     curr_idx = self._node_indices[node_id]
                     del self._node_indices[node_id]
@@ -467,7 +477,7 @@ class Tree(object):
     def update(self):
         """Update recursion values for all nodes in the tree."""
         vis = PostOrderNodeUpdater(self._update_node)
-        root_idx = self._node_indices["root"]
+        root_idx = self._node_indices[self._ROOT_NODE_NAME]
         rx.dfs_search(self._graph, [root_idx], vis)
 
     def _add_node(self, node):
@@ -481,19 +491,19 @@ class Tree(object):
 
     def _update_path_to_root(self, source):
         """Update recursion values for all nodes on the path between the source node and root inclusive."""
-        root_idx = self._node_indices["root"]
+        root_idx = self._node_indices[self._ROOT_NODE_NAME]
         source_idx = self._node_indices[source]
         paths = rx.all_simple_paths(self._graph, root_idx, source_idx)
 
         if len(paths) == 0:
-            assert source == "root"
+            assert source == self._ROOT_NODE_NAME
             paths = [[root_idx]]
 
         assert len(paths) == 1
         path = paths[0]
 
         assert self._node_indices_rev[path[-1]] == source
-        assert self._node_indices_rev[path[0]] == "root"
+        assert self._node_indices_rev[path[0]] == self._ROOT_NODE_NAME
 
         for source in reversed(path):
             self._update_node(source)
