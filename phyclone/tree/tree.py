@@ -158,7 +158,10 @@ class Tree(object):
     @classmethod
     def from_dict(cls, tree_dict):
         grid_size = tree_dict["grid_size"]
-        log_prior = tree_dict["log_prior"]
+        if "log_prior" in tree_dict:
+            log_prior = tree_dict["log_prior"]
+        else:
+            log_prior = -np.log(grid_size[1])
         new_graph = rx.PyDiGraph()
 
         new = cls.__new__(cls)
