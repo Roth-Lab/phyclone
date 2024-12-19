@@ -263,7 +263,7 @@ class Tree(object):
         self._update_path_to_root(parent_node.node_id)
 
     def _relabel_grafted_subtree_nodes(self, node_map_idx, subtree, subtree_dummy_root):
-        first_label = (max(self.nodes + subtree.nodes + [-1]) + 1) - 1
+        first_label = max(self.nodes + subtree.nodes + [-1])
 
         for old_idx, new_idx in node_map_idx.items():
             if old_idx == subtree_dummy_root:
