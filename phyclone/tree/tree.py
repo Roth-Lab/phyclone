@@ -150,60 +150,54 @@ class Tree(object):
         node_idx = self._node_indices["root"]
         return [child.node_id for child in self._graph.successors(node_idx)]
 
-    @staticmethod
-    def from_dict(tree_dict):
+    @classmethod
+    def from_dict(cls, tree_dict):
         grid_size = tree_dict["grid_size"]
-        new = Tree(grid_size)
+        log_prior = tree_dict["log_prior"]
+        new_graph = rx.PyDiGraph()
+
+        new = cls.__new__(cls)
+        new.grid_size = grid_size
+        new._graph = new_graph
+        new._log_prior = log_prior
+        new._data = defaultdict(list)
+
+        new._node_indices_rev = tree_dict["node_idx_rev"].copy()
+        new._node_indices = tree_dict["node_idx"].copy()
+        new._last_node_added_to = tree_dict["node_last_added_to"]
+        new._data.update({k: v.copy() for k, v in tree_dict["node_data"].items()})
+
+        _ = new_graph.add_node(TreeNode(grid_size, log_prior, "root"))
 
         if len(tree_dict["graph"]) > 0:
 
-            new_graph = new._graph
             node_idxs = tree_dict["node_idx"]
-
             new_graph.extend_from_edge_list(tree_dict["graph"])
 
-            log_prior = new._log_prior
-            new_data = new._data
-
             for node, data_list in tree_dict["node_data"].items():
-                new_data[node] = list(data_list)
                 if node == -1 or node == "root":
                     continue
-
                 node_obj = TreeNode(grid_size, log_prior, node)
                 node_obj.add_data_point_list(data_list)
-
                 node_idx = node_idxs[node]
                 new_graph[node_idx] = node_obj
 
-            new._node_indices_rev = tree_dict["node_idx_rev"].copy()
-            new._node_indices = node_idxs.copy()
-
             node_index_holes = [idx for idx in new_graph.node_indices() if idx not in tree_dict["node_idx_rev"]]
-
             if len(node_index_holes) > 0:
                 new_graph.remove_nodes_from(node_index_holes)
 
-        else:
-            for node, data_list in tree_dict["node_data"].items():
-                new._data[node] = list(data_list)
-
-        new._last_node_added_to = tree_dict["node_last_added_to"]
-
         new.update()
-
         return new
 
     def to_dict(self):
-        node_data = {k: v.copy() for k, v in self._data.items() if k != "root"}
-
         tree_dict = {
             "graph": self._graph.edge_list(),
             "node_idx": self._node_indices.copy(),
             "node_idx_rev": self._node_indices_rev.copy(),
-            "node_data": node_data,
+            "node_data": {k: v.copy() for k, v in self._data.items()},
             "grid_size": self.grid_size,
             "node_last_added_to": self._last_node_added_to,
+            "log_prior": self._log_prior,
         }
         return tree_dict
 
@@ -421,17 +415,13 @@ class Tree(object):
 
     def relabel_nodes(self):
         data = defaultdict(list)
-
         data[-1] = list(self._data[-1])
 
         visitor = PreOrderNodeRelabeller(self, data)
-
         root_idx = self._node_indices["root"]
-
         rx.dfs_search(self._graph, [root_idx], visitor)
 
         self._data = data
-
         self._node_indices = visitor.node_indices
         self._node_indices_rev = visitor.node_indices_rev
 
@@ -471,9 +461,7 @@ class Tree(object):
                     del self._node_indices_rev[curr_idx]
 
             indices_to_remove = list(rx.descendants(self._graph, sub_root_idx)) + [sub_root_idx]
-
             self._graph.remove_nodes_from(indices_to_remove)
-
             self._update_path_to_root(parent_node.node_id)
 
     def update(self):
@@ -502,11 +490,9 @@ class Tree(object):
             paths = [[root_idx]]
 
         assert len(paths) == 1
-
         path = paths[0]
 
         assert self._node_indices_rev[path[-1]] == source
-
         assert self._node_indices_rev[path[0]] == "root"
 
         for source in reversed(path):
