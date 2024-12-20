@@ -46,7 +46,7 @@ def get_fscrp_tree(alpha, grid_size, clusters, parent_pointers):
         parent -= 1
 
         if parent == -1:
-            tree._graph.add_edge("root", child)
+            tree._graph.add_edge(tree.root_node_name, child)
 
         elif parent >= 0:
             tree._graph.add_edge(parent, child)

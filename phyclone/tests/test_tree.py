@@ -109,3 +109,7 @@ class Test(unittest.TestCase):
             result.append(self._create_data_point(i))
 
         return result
+
+
+if __name__ == "__main__":
+    unittest.main()

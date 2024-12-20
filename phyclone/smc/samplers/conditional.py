@@ -31,13 +31,14 @@ class ConditionalSMCSampler(AbstractSMCSampler):
 
         tree_dist = self.kernel.tree_dist
         perm_dist = self.kernel.perm_dist
+        outlier_node_name = tree.outlier_node_name
 
         for data_point in self.data_points:
             new_tree = new_tree.copy()
 
             old_node = data_to_node[data_point.idx]
 
-            if old_node == -1:
+            if old_node == outlier_node_name:
                 new_tree.add_data_point_to_outliers(data_point)
 
             elif old_node in node_map:

@@ -70,3 +70,7 @@ class TestPruneRegraph(unittest.TestCase):
             result.append(self._create_data_point(i + start_idx, n, p))
 
         return result
+
+
+if __name__ == "__main__":
+    unittest.main()

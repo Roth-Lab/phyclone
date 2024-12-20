@@ -236,21 +236,27 @@ def write_consensus_results(
 def get_tree_from_consensus_graph(data, graph):
     labels = {}
 
+    tmp_tree = Tree(data[0].grid_size)
+
+    outlier_node_name = tmp_tree.outlier_node_name
+
     for node in graph.nodes:
         for idx in graph.nodes[node]["idxs"]:
             labels[idx] = node
 
     for x in data:
         if x.idx not in labels:
-            labels[x.idx] = -1
+            labels[x.idx] = outlier_node_name
 
     graph = graph.copy()
 
     nodes = list(graph.nodes)
 
+    root_node_name = tmp_tree.root_node_name
+
     for node in nodes:
         if len(list(graph.predecessors(node))) == 0:
-            graph.add_edge("root", node)
+            graph.add_edge(root_node_name, node)
 
     tree = from_dict_nx(data, {"graph": nx.to_dict_of_dicts(graph), "labels": labels})
 
@@ -264,8 +270,10 @@ def from_dict_nx(data, tree_dict):
 
     data = dict(zip([x.idx for x in data], data))
 
+    root_node_name = new.root_node_name
+
     for node in tree_dict["graph"].keys():
-        if node == "root":
+        if node == root_node_name:
             continue
         new._add_node(node)
 
@@ -317,6 +325,8 @@ def get_labels_table(data, tree, clusters=None):
 
     clone_muts = set()
 
+    outlier_node_name = tree.outlier_node_name
+
     if clusters is None:
         tree_labels = tree.labels
         for idx in tree_labels:
@@ -331,7 +341,7 @@ def get_labels_table(data, tree, clusters=None):
 
         for x in data:
             if x.name not in clone_muts:
-                df_records_list.append({"mutation_id": x.name, "clone_id": -1})
+                df_records_list.append({"mutation_id": x.name, "clone_id": outlier_node_name})
 
         df = pd.DataFrame(df_records_list)
 
@@ -362,7 +372,7 @@ def get_labels_table(data, tree, clusters=None):
 
         missing_muts_df = missing_muts_df.copy()
 
-        missing_muts_df["clone_id"] = -1
+        missing_muts_df["clone_id"] = outlier_node_name
 
         df_records_list.extend(missing_muts_df.to_dict("records"))
 

@@ -54,8 +54,9 @@ class ParticleGibbsSubtreeSampler(ParticleGibbsTreeSampler):
     def sample_tree(self, tree):
         nodes = []
 
+        outlier_node_name = tree.outlier_node_name
         for label in tree.labels.values():
-            if label != -1:
+            if label != outlier_node_name:
                 nodes.append(label)
 
         subtree_root_child = self._rng.choice(nodes)

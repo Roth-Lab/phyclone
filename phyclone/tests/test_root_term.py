@@ -185,3 +185,7 @@ class Test(unittest.TestCase):
         print("Prob || Expected: {}, Actual: {}".format(expected_prob_log, actual_prob_log))
 
         np.testing.assert_allclose(actual_prob_log, expected_prob_log)
+
+
+if __name__ == "__main__":
+    unittest.main()
