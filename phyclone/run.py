@@ -304,8 +304,9 @@ def append_to_trace(i, timer, trace, tree, tree_dist):
 
 def update_concentration_value(conc_sampler, tree, tree_dist):
     node_sizes = []
+    outlier_node_name = tree.outlier_node_name
     for node, node_data in tree.node_data.items():
-        if node == -1:
+        if node == outlier_node_name:
             continue
 
         node_sizes.append(len(node_data))

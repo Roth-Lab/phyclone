@@ -25,7 +25,7 @@ class BootstrapProposalDistribution(ProposalDistribution):
         """Get the log probability of the tree."""
         # First particle
         if self.parent_particle is None:
-            if tree.labels[self.data_point.idx] == -1:
+            if tree.labels[self.data_point.idx] == tree.outlier_node_name:
                 log_p = np.log(self.outlier_proposal_prob)
 
             else:
@@ -35,7 +35,7 @@ class BootstrapProposalDistribution(ProposalDistribution):
             node = tree.labels[self.data_point.idx]
 
             # Outlier
-            if node == -1:
+            if node == tree.outlier_node_name:
                 log_p = np.log(self.outlier_proposal_prob)
 
             # Node in tree

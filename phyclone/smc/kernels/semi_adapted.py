@@ -45,7 +45,7 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
             assert node == tree.node_last_added_to
 
             # Existing node
-            if node in self.parent_particle.tree_nodes or node == -1:
+            if node in self.parent_particle.tree_nodes or node == tree.outlier_node_name:
                 log_p = self.log_half + self._get_log_p(tree)
 
             # New node
@@ -57,8 +57,6 @@ class SemiAdaptedProposalDistribution(ProposalDistribution):
                 num_children = tree.num_children_on_node_that_matters
 
                 log_p -= self._cached_log_old_num_roots + cached_log_binomial_coefficient(old_num_roots, num_children)
-
-                # log_p -= np.log(old_num_roots + 1) + log_binomial_coefficient(old_num_roots, num_children)
 
         return log_p
 

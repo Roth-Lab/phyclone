@@ -17,6 +17,7 @@ class TreeHolder(object):
         "labels",
         "node_last_added_to",
         "num_children_on_node_that_matters",
+        "outlier_node_name",
     )
 
     def __init__(self, tree, tree_dist, perm_dist):
@@ -56,6 +57,8 @@ class TreeHolder(object):
     @tree.setter
     def tree(self, tree):
 
+        self.outlier_node_name = tree.outlier_node_name
+
         if self._perm_dist is None:
             self.log_pdf = 0.0
         else:
@@ -69,7 +72,7 @@ class TreeHolder(object):
         self._tree = tree.to_dict()
         self.labels = tree.labels
         self.node_last_added_to = tree.node_last_added_to
-        if self.node_last_added_to != -1:
+        if self.node_last_added_to != tree.outlier_node_name:
             self.num_children_on_node_that_matters = tree.get_number_of_children(self.node_last_added_to)
         else:
             self.num_children_on_node_that_matters = 0

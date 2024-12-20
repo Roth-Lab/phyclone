@@ -53,11 +53,13 @@ class FSCRPDistribution(object):
     def _alpha_and_CRP_prior_log_p_compute(self, tree, tree_node_data):
         if tree_node_data is None:
             tree_node_data = tree.node_data
+
+        outlier_node_name = tree.outlier_node_name
         log_p = 0
         # CRP prior
         num_nodes = tree.get_number_of_nodes()
         log_p += num_nodes * self.log_alpha
-        log_p += sum(cached_log_factorial(len(v) - 1) for k, v in tree_node_data.items() if k != -1)
+        log_p += sum(cached_log_factorial(len(v) - 1) for k, v in tree_node_data.items() if k != outlier_node_name)
         return log_p, num_nodes
 
     def log_p_one(self, tree, tree_node_data=None, log_p=None, num_nodes=None, multiplicity=None):
@@ -151,7 +153,7 @@ class TreeJointDistribution(object):
         log_p = self.prior.log_p(tree, tree_node_data)
 
         # Outlier prior
-        log_p += self.outlier_prior(tree_node_data)
+        log_p += self.outlier_prior(tree_node_data, tree.outlier_node_name)
 
         if tree.get_number_of_children(tree.root_node_name) > 0:
             for i in range(tree.grid_size[0]):
@@ -170,7 +172,7 @@ class TreeJointDistribution(object):
         log_p = self.prior.log_p_one(tree, tree_node_data)
 
         # Outlier prior
-        log_p += self.outlier_prior(tree_node_data)
+        log_p += self.outlier_prior(tree_node_data, tree.outlier_node_name)
 
         if tree.get_number_of_children(tree.root_node_name) > 0:
             for i in range(tree.grid_size[0]):
@@ -186,7 +188,7 @@ class TreeJointDistribution(object):
 
         log_p, log_p_one = self.prior.compute_both_log_p_and_log_p_one_priors(tree, tree_node_data)
 
-        log_outlier_prior = self.outlier_prior(tree_node_data)
+        log_outlier_prior = self.outlier_prior(tree_node_data, tree.outlier_node_name)
 
         log_p += log_outlier_prior
 
@@ -204,12 +206,12 @@ class TreeJointDistribution(object):
         return log_p, log_p_one
 
     @staticmethod
-    def outlier_prior(tree_node_data):
+    def outlier_prior(tree_node_data, outlier_node_name):
         log_p = 0
         for node, node_data in tree_node_data.items():
             for data_point in node_data:
                 if data_point.outlier_prob != 0:
-                    if node == -1:
+                    if node == outlier_node_name:
                         log_p += data_point.outlier_prob
 
                     else:

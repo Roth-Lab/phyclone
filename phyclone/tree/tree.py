@@ -16,6 +16,7 @@ from phyclone.utils.math import cached_log_factorial
 
 class Tree(object):
     _ROOT_NODE_NAME = "root"
+    _OUTLIER_NODE_NAME = -1
     __slots__ = (
         "grid_size",
         "_data",
@@ -90,6 +91,10 @@ class Tree(object):
         return self._ROOT_NODE_NAME
 
     @property
+    def outlier_node_name(self):
+        return self._OUTLIER_NODE_NAME
+
+    @property
     def graph(self):
         result = self._graph.copy()
 
@@ -148,7 +153,7 @@ class Tree(object):
 
     @property
     def outliers(self):
-        return list(self._data[-1])
+        return list(self._data[self._OUTLIER_NODE_NAME])
 
     @property
     def roots(self):
@@ -182,9 +187,10 @@ class Tree(object):
             node_idxs = tree_dict["node_idx"]
             new_graph.extend_from_edge_list(tree_dict["graph"])
             root_name = cls._ROOT_NODE_NAME
+            outlier_node_name = cls._OUTLIER_NODE_NAME
 
             for node, data_list in tree_dict["node_data"].items():
-                if node == -1 or node == root_name:
+                if node == outlier_node_name or node == root_name:
                     continue
                 node_obj = TreeNode(grid_size, log_prior, node)
                 node_obj.add_data_point_list(data_list)
@@ -217,8 +223,8 @@ class Tree(object):
     def _is_data_point_in_tree(self, data_point):
         dp_idx = data_point.idx
         data_point_is_present = sum(map(lambda x: dp_idx in x.data_points, self._graph.nodes()))
-        if -1 in self._data:
-            dp_in_outliers = data_point in self._data[-1]
+        if self._OUTLIER_NODE_NAME in self._data:
+            dp_in_outliers = data_point in self._data[self._OUTLIER_NODE_NAME]
             data_point_is_present += dp_in_outliers
         return data_point_is_present
 
@@ -231,7 +237,7 @@ class Tree(object):
         self._data[node].append(data_point)
         self._last_node_added_to = node
 
-        if node != -1:
+        if node != self._OUTLIER_NODE_NAME:
             node_idx = self._node_indices[node]
 
             self._graph[node_idx].add_data_point(data_point)
@@ -240,7 +246,7 @@ class Tree(object):
                 self._update_path_to_root(self.get_parent(node))
 
     def add_data_point_to_outliers(self, data_point):
-        self.add_data_point_to_node(data_point, -1)
+        self.add_data_point_to_node(data_point, self._OUTLIER_NODE_NAME)
 
     def add_subtree(self, subtree, parent=None):
 
@@ -428,7 +434,7 @@ class Tree(object):
 
     def relabel_nodes(self):
         data = defaultdict(list)
-        data[-1] = list(self._data[-1])
+        data[self._OUTLIER_NODE_NAME] = list(self._data[self._OUTLIER_NODE_NAME])
 
         visitor = PreOrderNodeRelabeller(self, data)
         root_idx = self._node_indices[self._ROOT_NODE_NAME]
@@ -441,14 +447,14 @@ class Tree(object):
     def remove_data_point_from_node(self, data_point, node):
         self._data[node].remove(data_point)
 
-        if node != -1:
+        if node != self._OUTLIER_NODE_NAME:
             node_idx = self._node_indices[node]
             self._graph[node_idx].remove_data_point(data_point)
 
             self._update_path_to_root(node)
 
     def remove_data_point_from_outliers(self, data_point):
-        self._data[-1].remove(data_point)
+        self._data[self._OUTLIER_NODE_NAME].remove(data_point)
 
     def remove_subtree(self, subtree):
         if subtree == self:
